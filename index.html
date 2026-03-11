@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <title>てんぐすん。</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.16.0/dist/tf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/piexifjs@1.0.6/piexif.min.js"></script>
+
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    body { font-family: sans-serif; background: #f2f2f2; padding: 2em; }
+    .container { background: #fff; max-width: 420px; margin: auto; border-radius: 10px; box-shadow: 0 0 10px #ccc; padding: 2em; }
+    h1 { color: #c46b9e; text-align: center; }
+    label { display: block; margin-top: 1em; }
+    input[type="file"] { width: 100%; }
+    .controls { display: flex; gap: 0.5em; margin-top: 0.8em; }
+    .controls button { flex: 1; padding: 0.6em; background: #c46b9e; color: #fff; border: none; border-radius: 5px; font-size: 0.95em; cursor: pointer; }
+    button[type="submit"] { margin-top: 1.2em; width: 100%; padding: 0.8em; background: #c46b9e; color: #fff; border: none; border-radius: 5px; font-size: 1.1em; cursor: pointer; }
+    .result { margin-top: 2em; font-size: 1.2em; text-align: center; }
+    .healthy { color: #2bbd7e; }
+    .sick { color: #e84c3d; }
+    .early-stage { color: #ff9800; }
+    .mid-stage { color: #f57c00; }
+    .severe-stage { color: #d32f2f; }
+    .preview { margin-top: 1em; max-width: 100%; border-radius: 8px; display:block; }
+    .model-status { font-size: 0.95em; color: #888; margin-top: 0.5em; text-align: center; }
+
+    /* video wrapper: fixed frame; internal video can be transformed without changing frame */
+    .video-wrapper {
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      position: relative;
+      overflow: hidden;
+      border-radius: 8px;
+      background: #000;
+      margin-top: 1em;
+    }
+    video.main {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%) scale(1);
+      transform-origin: center center;
+      min-width: 100%;
+      min-height: 100%;
+      width: auto;
+      height: auto;
+      display: none;
+      will-change: transform;
+    }
+
+    /* overlay preview shown inside videoWrapper when toggled */
+    .overlay-preview {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: none;
+      z-index: 5;
+      border-radius: 8px;
+      background: #000;
+      cursor: pointer;
+    }
+
+    /* preview thumbnail area */
+    .preview-thumb {
+      margin-top: 0.6em;
+      display: flex;
+      gap: 0.6em;
+      align-items: center;
+      justify-content: flex-start;
+    }
+    .preview-thumb img {
+      width: 80px;
+      height: 80px;
+      object-fit: cover;
+      border-radius: 6px;
+      border: 1px solid #ddd;
+      cursor: pointer;
+      display: block;
+    }
+    /* mini simple camera shown in thumbnail area (no controls/zoom) */
+    .mini-camera {
+      width: 80px;
+      height: 80px;
+      border-radius: 6px;
+      overflow: hidden;
+      background: #000;
+      border: 1px solid #ddd;
+      display: none;
+      cursor: pointer;
+    }
+    .mini-camera video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .preview-thumb .txt { color:#666; font-size:0.9em; }
+
+    .zoom-control { margin-top: 0.6em; display: none; align-items: center; gap: 0.6em; }
+    .zoom-control input[type="range"] { width: 100%; }
+    .zoom-value { min-width: 48px; text-align: right; font-size: 0.95em; color: #444; }
+
+    /* brightness control: placed under zoom-control */
+    .brightness-control { margin-top: 0.4em; display: none; align-items: center; gap: 0.6em; }
+    .brightness-control input[type="range"] { width: 100%; }
+    .brightness-value { min-width: 56px; text-align: right; font-size: 0.95em; color: #444; }
+
+    /* download button style */
+    #downloadBtn {
+      margin-left: auto;
+      padding: 0.45em 0.6em;
+      background: #4a90e2;
+      color: #fff;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 0.9em;
+    }
+    #downloadBtn[disabled] { opacity: 0.5; cursor: default; background: #9fbce9; }
+
+    .small-note { font-size: 0.85em; color: #666; margin-top:0.5em; text-align:center; }
+    .muted { color:#888; font-size:0.9em; margin-top:0.5em; text-align:center; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>🌸てんぐすん。🌸</h1>
+    <div id="modelStatus" class="model-status"></div>
+
+    <form id="sakuraForm">
+      <label>サクラの写真をアップロードするか、カメラで撮影してください</label>
+
+      <input type="file" id="imageInput" accept="image/*" />
+
+      <div class="controls">
+        <button type="button" id="toggleCamera">カメラ起動</button>
+        <button type="button" id="switchCamera" disabled>カメラ切替</button>
+        <button type="button" id="captureBtn" disabled>撮影</button>
+      </div>
+
+      <div class="video-wrapper" id="videoWrapper">
+        <video id="video" class="main" autoplay playsinline></video>
+        <!-- overlay preview that toggles with camera display -->
+        <img id="overlayPreview" class="overlay-preview" alt="撮影画像プレビュー" />
+      </div>
+
+      <!-- Zoom control (fallback + precise control) -->
+      <div id="zoomControl" class="zoom-control">
+        <input id="zoomSlider" type="range" min="1" max="1" step="0.1" value="1" />
+        <div id="zoomValue" class="zoom-value">1.0x</div>
+      </div>
+
+      <!-- Brightness control (added under zoom) -->
+      <div id="brightnessControl" class="brightness-control" title="明るさを調整します。中央が0（変化なし）">
+        <!-- Range is -1 .. 1, 0 is neutral -->
+        <input id="brightnessSlider" type="range" min="-1" max="1" step="0.01" value="0" />
+        <div id="brightnessValue" class="brightness-value">0.00</div>
+      </div>
+
+      <!-- thumbnail preview shown after capture; clicking toggles overlay <-> camera -->
+      <div class="preview-thumb" id="previewThumb" style="display:none;">
+        <img id="preview" alt="プレビュー画像" />
+        <!-- mini simple camera container that will show a tiny live feed (no zoom/pan) -->
+        <div class="mini-camera" id="miniCamContainer" title="ミニカメラ（タップでサムネイル/カメラ切替）">
+          <video id="miniCam" autoplay playsinline muted></video>
+        </div>
+
+        <div class="txt">撮影済み（タップで確認/カメラ切替）</div>
+
+        <!-- ダウンロードボタン（撮った画像があるときに有効化） -->
+        <button type="button" id="downloadBtn" disabled title="撮った画像をダウンロード">ダウンロード</button>
+      </div>
+
+      <button type="submit">AIで判定</button>
+    </form>
+
+    <div id="result" class="result"></div>
+    <div class="muted">※ カメラを使用するにはブラウザがカメラアクセスを許可する必要があります。モバイルではHTTPSが必要です。</div>
+  </div>
+
+  <script>
+    // --- モデル関連 ---
+    let models = {
+      sakura: null,        // 段階1: 桜判定
+      health: null,        // 段階2: 健康度判定
+      severity: null       // 段階3: 重症度判定
+    };
+
+    let modelClasses = {
+      sakura: ["桜", "桜以外"],
+      health: ["健康", "病気"],
+      severity: ["初期", "中期", "深刻期"]
+    };
+
+    const modelStatus = document.getElementById('modelStatus');
+
+    // ここにURLを挿入▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+    const modelUrls = {
+      sakura: "https://teachablemachine.withgoogle.com/models/pjM_yXs46/model.json",      // 桜判定モデル
+      health: "https://teachablemachine.withgoogle.com/models/k3U5df8h9/model.json",   // 健康度判定モデル
+      severity: "https://teachablemachine.withgoogle.com/models/S-LKWb28N/model.json"  // 重症度判定モデル
+    };
+    // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
+
+    async function loadModelFromUrl(modelKey, modelUrl) {
+      try {
+        models[modelKey] = await tf.loadLayersModel(modelUrl);
+        const metaUrl = modelUrl.replace(/model\.json$/, "metadata.json");
+        try {
+          const response = await fetch(metaUrl);
+          if (response.ok) {
+            const json = await response.json();
+            if (json && json.labels) {
+              modelClasses[modelKey] = json.labels;
+            }
+          }
+        } catch (_) {}
+        return true;
+      } catch (e) {
+        console.error(`モデル読み込み失敗 (${modelKey}):`, e);
+        models[modelKey] = null;
+        return false;
+      }
+    }
+
+    async function loadAllModels() {
+      modelStatus.textContent = "モデルを読み込み中...";
+      const results = await Promise.all([
+        loadModelFromUrl('sakura', modelUrls.sakura),
+        loadModelFromUrl('health', modelUrls.health),
+        loadModelFromUrl('severity', modelUrls.severity)
+      ]);
+
+      if (results.every(r => r)) {
+        modelStatus.textContent = "すべてのモデルを読み込みました。";
+      } else {
+        const missing = ['sakura', 'health', 'severity'].filter((k, i) => !results[i]);
+        modelStatus.textContent = `⚠️ 一部のモデル読み込み失敗: ${missing.join(', ')} (URLを確認してください)`;
+      }
+    }
+
+    loadAllModels();
+
+    // --- DOM ---
+    const imageInput = document.getElementById('imageInput');
+    const preview = document.getElementById('preview');
+    const previewThumb = document.getElementById('previewThumb');
+    const overlayPreview = document.getElementById('overlayPreview');
+    const video = document.getElementById('video');
+    const videoWrapper = document.getElementById('videoWrapper');
+    const toggleCameraBtn = document.getElementById('toggleCamera');
+    const switchCameraBtn = document.getElementById('switchCamera');
+    const captureBtn = document.getElementById('captureBtn');
+    const zoomControl = document.getElementById('zoomControl');
+    const zoomSlider = document.getElementById('zoomSlider');
+    const zoomValue = document.getElementById('zoomValue');
+
+    const brightnessControl = document.getElementById('brightnessControl');
+    const brightnessSlider = document.getElementById('brightnessSlider');
+    const brightnessValue = document.getElementById('brightnessValue');
+
+    const miniCamContainer = document.getElementById('miniCamContainer');
+    const miniCam = document.getElementById('miniCam');
+
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    // --- 状態 ---
+    let inputImage = null;
+    let stream = null;
+    let isCameraOn = false;
+    let currentFacingMode = "environment";
+    let hardwareZoomSupported = false;
+    let hardwareZoomRange = {min:1, max:1, step:0.1};
+    let zoomFactor = 1;
+    let brightnessFactor = 0;
+    let panX = 0, panY = 0;
+    let wrapperRect = null;
+
+    let lastCapturedDataUrl = null;
+    let lastCaptureMeta = null;
+
+    let viewState = 'MAIN_VIEW';
+
+    // --- Helper functions to enforce strict two-stoggle tate ---
+    function setMainView() {
+      viewState = 'MAIN_VIEW';
+      overlayPreview.style.display = 'none';
+      if (isCameraOn) video.style.display = 'block';
+      hideMiniCam(false);
+      if (preview.src) {
+        previewThumb.style.display = 'flex';
+        preview.style.display = 'block';
+      }
+    }
+
+    function setOverlayView() {
+      if (!overlayPreview.src) return;
+      viewState = 'OVERLAY_VIEW';
+      overlayPreview.style.display = 'block';
+      video.style.display = 'none';
+      showMiniCam();
+    }
+
+    // --- ファイル入力 サムネイルを表示しながら状態の一貫性を保つ ---
+    imageInput.addEventListener('change', function() {
+      if (this.files && this.files[0]) {
+        const fr = new FileReader();
+        fr.onload = function(e) {
+          preview.src = e.target.result;
+          overlayPreview.src = e.target.result;
+          preview.removeAttribute('data-captured');
+          overlayPreview.removeAttribute('data-captured');
+          preview.style.filter = 'none';
+          overlayPreview.style.filter = 'none';
+          previewThumb.style.display = 'flex';
+          setMainView();
+          inputImage = new Image();
+          inputImage.crossOrigin = "anonymous";
+          inputImage.src = e.target.result;
+          downloadBtn.disabled = true;
+          lastCapturedDataUrl = null;
+          lastCaptureMeta = null;
+        };
+        fr.readAsDataURL(this.files[0]);
+      } else {
+        previewThumb.style.display = 'none';
+        overlayPreview.style.display = 'none';
+        inputImage = null;
+      }
+    });
+
+    // --- Camera controls (start/stop/switch/capture) ---
+    toggleCameraBtn.addEventListener('click', async () => {
+      if (isCameraOn) {
+        stopCamera();
+      } else {
+        try { await startCamera(); } catch (err) { console.error(err); alert('カメラ起動エラー'); }
+      }
+    });
+
+    async function startCamera() {
+      stopCamera();
+      const tryConstraints = [
+        { video: { facingMode: { exact: currentFacingMode } }, audio: false },
+        { video: { facingMode: currentFacingMode }, audio: false },
+        { video: true, audio: false }
+      ];
+      let got = false;
+      for (const c of tryConstraints) {
+        try {
+          stream = await navigator.mediaDevices.getUserMedia(c);
+          got = true;
+          break;
+        } catch (e) {}
+      }
+      if (!got || !stream) throw new Error('カメラストリーム取得失敗');
+
+      video.srcObject = stream;
+      video.style.display = 'block';
+      previewThumb.style.display = preview.src ? 'flex' : 'none';
+      captureBtn.disabled = false;
+      switchCameraBtn.disabled = false;
+      toggleCameraBtn.textContent = "カメラ停止";
+      isCameraOn = true;
+      videoWrapper.style.touchAction = 'none';
+
+      zoomFactor = 1; panX = 0; panY = 0; applyVideoTransform();
+      overlayPreview.style.display = 'none';
+
+      const track = stream.getVideoTracks()[0];
+      hardwareZoomSupported = false;
+      try {
+        const caps = track.getCapabilities ? track.getCapabilities() : {};
+        const settings = track.getSettings ? track.getSettings() : {};
+        if (caps && typeof caps.zoom !== 'undefined') {
+          hardwareZoomSupported = true;
+          hardwareZoomRange.min = caps.zoom.min || 1;
+          hardwareZoomRange.max = caps.zoom.max || 1;
+          hardwareZoomRange.step = caps.zoom.step || 0.1;
+          const initialZoom = settings.zoom || hardwareZoomRange.min || 1;
+          zoomFactor = clamp(initialZoom, hardwareZoomRange.min, hardwareZoomRange.max);
+          setupZoomSlider(hardwareZoomRange.min, hardwareZoomRange.max, hardwareZoomRange.step, zoomFactor);
+          video.style.transform = `translate(-50%,-50%) scale(1)`;
+        } else {
+          hardwareZoomSupported = false;
+          setupZoomSlider(1, 3, 0.1, 1);
+          video.style.transform = `translate(-50%,-50%) scale(1)`;
+        }
+      } catch (err) {
+        hardwareZoomSupported = false;
+        setupZoomSlider(1, 3, 0.1, 1);
+        video.style.transform = `translate(-50%,-50%) scale(1)`;
+      }
+
+      setupBrightnessSlider(-1, 1, 0.01, 0);
+
+      setMainView();
+    }
+
+    function stopCamera() {
+      if (stream) stream.getTracks().forEach(t => t.stop());
+      stream = null;
+      video.srcObject = null;
+      video.style.display = 'none';
+      captureBtn.disabled = true;
+      switchCameraBtn.disabled = true;
+      toggleCameraBtn.textContent = "カメラ起動";
+      isCameraOn = false;
+      hideZoomControl();
+      hideBrightnessControl();
+      zoomFactor = 1; brightnessFactor = 0; panX = 0; panY = 0; applyVideoTransform();
+      video.style.filter = '';
+      miniCam.style.filter = '';
+      videoWrapper.style.touchAction = '';
+      setMainView();
+    }
+
+    switchCameraBtn.addEventListener('click', async () => {
+      switchCameraBtn.disabled = true;
+      currentFacingMode = (currentFacingMode === 'environment') ? 'user' : 'environment';
+      try { await startCamera(); } catch (err) {
+        currentFacingMode = (currentFacingMode === 'environment') ? 'user' : 'environment';
+        try { await startCamera(); } catch (_) {}
+        alert('カメラ切替に失敗しました');
+      } finally { switchCameraBtn.disabled = false; }
+    });
+
+    // --- Helper: GPS and EXIF utilities ---
+    function toExifDateString(d) {
+      const pad = (n) => String(n).padStart(2, '0');
+      return `${d.getFullYear()}:${pad(d.getMonth()+1)}:${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    }
+    function decimalToDMSRational(dec) {
+      dec = Math.abs(dec);
+      const deg = Math.floor(dec);
+      const minf = (dec - deg) * 60;
+      const minutes = Math.floor(minf);
+      const sec = (minf - minutes) * 60;
+      const secNum = Math.round(sec * 100);
+      const secDen = 100;
+      return [[deg,1],[minutes,1],[secNum,secDen]];
+    }
+
+    // --- Capture: bake brightness into image and embed EXIF (date + optional GPS) ---
+    captureBtn.addEventListener('click', async () => {
+      if (!stream) return;
+      const W = video.videoWidth; const H = video.videoHeight;
+      if (!W || !H) return;
+
+      const captureTime = new Date();
+      lastCaptureMeta = { capturedAt: captureTime, coords: null };
+
+      const getPosition = () => new Promise((resolve) => {
+        if (!navigator.geolocation) return resolve(null);
+        let resolved = false;
+        const success = (pos) => { if (!resolved) { resolved = true; resolve(pos.coords); } };
+        const fail = () => { if (!resolved) { resolved = true; resolve(null); } };
+        navigator.geolocation.getCurrentPosition(success, fail, { enableHighAccuracy: true, timeout: 3000, maximumAge: 60000 });
+        setTimeout(() => { if (!resolved) { resolved = true; resolve(null); } }, 3500);
+      });
+
+      const positionPromise = getPosition();
+
+      wrapperRect = videoWrapper.getBoundingClientRect();
+      const wrapperW = Math.round(wrapperRect.width);
+      const wrapperH = Math.round(wrapperRect.height);
+      const scaleToFill = Math.max(wrapperW / W, wrapperH / H);
+      const factor = zoomFactor || 1;
+      const cropWsrc = Math.round(wrapperW / (scaleToFill * factor));
+      const cropHsrc = Math.round(wrapperH / (scaleToFill * factor));
+      const centerSourceX = W / 2 - (panX / (scaleToFill * factor));
+      const centerSourceY = H / 2 - (panY / (scaleToFill * factor));
+      let sx = Math.round(centerSourceX - cropWsrc / 2);
+      let sy = Math.round(centerSourceY - cropHsrc / 2);
+      if (sx < 0) sx = 0;
+      if (sy < 0) sy = 0;
+      if (sx + cropWsrc > W) sx = Math.max(0, W - cropWsrc);
+      if (sy + cropHsrc > H) sy = Math.max(0, H - cropHsrc);
+      const canvas = document.createElement('canvas');
+      const size = Math.min(cropWsrc, cropHsrc);
+      canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      const cssBrightnessMultiplier = 1 + brightnessFactor;
+      try {
+        ctx.filter = `brightness(${cssBrightnessMultiplier})`;
+        ctx.drawImage(video, sx, sy, size, size, 0, 0, size, size);
+      }
+      catch (err) {
+        console.warn('drawImage failed', err);
+        ctx.filter = 'none';
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+      }
+
+      const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+
+      const coords = await positionPromise;
+      if (coords) lastCaptureMeta.coords = { latitude: coords.latitude, longitude: coords.longitude, altitude: coords.altitude };
+
+      try {
+        const exifObj = { "0th": {}, "Exif": {}, "GPS": {}, "1st": {}, "thumbnail": null };
+        const dateStr = toExifDateString(captureTime);
+        exifObj["0th"][piexif.ImageIFD.DateTime] = dateStr;
+        exifObj["Exif"][piexif.ExifIFD.DateTimeOriginal] = dateStr;
+        if (coords) {
+          const latRef = coords.latitude >= 0 ? "N" : "S";
+          const lonRef = coords.longitude >= 0 ? "E" : "W";
+          exifObj["GPS"][piexif.GPSIFD.GPSLatitudeRef] = latRef;
+          exifObj["GPS"][piexif.GPSIFD.GPSLongitudeRef] = lonRef;
+          exifObj["GPS"][piexif.GPSIFD.GPSLatitude] = decimalToDMSRational(coords.latitude);
+          exifObj["GPS"][piexif.GPSIFD.GPSLongitude] = decimalToDMSRational(coords.longitude);
+          if (typeof coords.altitude === 'number' && !isNaN(coords.altitude)) {
+            const altNum = Math.round(Math.abs(coords.altitude) * 100);
+            exifObj["GPS"][piexif.GPSIFD.GPSAltitude] = [altNum, 100];
+            exifObj["GPS"][piexif.GPSIFD.GPSAltitudeRef] = coords.altitude >= 0 ? 0 : 1;
+          }
+        }
+        const exifbytes = piexif.dump(exifObj);
+        const newDataUrl = piexif.insert(exifbytes, jpegDataUrl);
+        lastCapturedDataUrl = newDataUrl;
+      } catch (exifErr) {
+        console.warn('EXIF埋め込み失敗', exifErr);
+        lastCapturedDataUrl = jpegDataUrl;
+      }
+
+      preview.src = lastCapturedDataUrl;
+      overlayPreview.src = lastCapturedDataUrl;
+
+      preview.setAttribute('data-captured', 'true');
+      overlayPreview.setAttribute('data-captured', 'true');
+
+      preview.style.filter = 'none';
+      overlayPreview.style.filter = 'none';
+
+      previewThumb.style.display = 'flex';
+      inputImage = new Image(); inputImage.crossOrigin = "anonymous"; inputImage.src = lastCapturedDataUrl;
+
+      downloadBtn.disabled = false;
+
+      setMainView();
+    });
+
+    // --- Thumbnail click handlers ---
+    preview.addEventListener('click', (ev) => {
+      if (!overlayPreview.src) return;
+      if (viewState === 'MAIN_VIEW') setOverlayView(); else setMainView();
+      ev.stopPropagation();
+    });
+    overlayPreview.addEventListener('click', (ev) => { setMainView(); ev.stopPropagation(); });
+
+    // --- Mini camera logic (simple live feed in thumbnail area) ---
+    function showMiniCam() {
+      if (!stream) return;
+      try {
+        miniCam.srcObject = stream;
+        miniCam.muted = true;
+        miniCam.style.filter = `brightness(${1 + brightnessFactor})`;
+        miniCam.play().catch(()=>{});
+        miniCamContainer.style.display = 'block';
+        preview.style.display = 'none';
+      } catch (err) { console.warn('miniCam start failed', err); }
+    }
+    function hideMiniCam(detach = true) {
+      miniCamContainer.style.display = 'none';
+      if (detach) { try { miniCam.srcObject = null; } catch (_) {} }
+      if (preview.src) preview.style.display = 'block';
+    }
+    miniCamContainer.addEventListener('click', (ev) => { if (!preview.src) return; setMainView(); ev.stopPropagation(); });
+    miniCam.addEventListener('click', (ev) => { miniCamContainer.click(); ev.stopPropagation(); });
+
+    // --- Download button handler ---
+    downloadBtn.addEventListener('click', (ev) => {
+      if (!lastCapturedDataUrl) return;
+      let filename = 'sakura.jpg';
+      if (lastCaptureMeta && lastCaptureMeta.capturedAt) {
+        const d = lastCaptureMeta.capturedAt;
+        const pad = (n)=>String(n).padStart(2,'0');
+        filename = `sakura_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.jpg`;
+      }
+      const a = document.createElement('a');
+      a.href = lastCapturedDataUrl;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    });
+
+    // --- Zoom UI / gestures / pan ---
+    function setupZoomSlider(min, max, step, initial) {
+      zoomSlider.min = min;
+      zoomSlider.max = max;
+      zoomSlider.step = step;
+      zoomSlider.value = initial;
+      zoomValue.textContent = parseFloat(initial).toFixed(1) + "x";
+      zoomControl.style.display = 'flex';
+      zoomSlider.oninput = async (e) => {
+        const v = parseFloat(e.target.value);
+        const s = { x: 0, y: 0 };
+        await setZoom(v, s);
+        zoomValue.textContent = v.toFixed(1) + "x";
+      };
+    }
+    function hideZoomControl() { zoomControl.style.display = 'none'; zoomSlider.oninput = null; zoomFactor = 1; zoomValue.textContent = "1.0x"; }
+
+    // --- Brightness control setup and handlers ---
+    function setupBrightnessSlider(min, max, step, initial) {
+      brightnessSlider.min = min;
+      brightnessSlider.max = max;
+      brightnessSlider.step = step;
+      brightnessSlider.value = initial;
+      brightnessValue.textContent = parseFloat(initial).toFixed(2);
+      brightnessControl.style.display = 'flex';
+
+      brightnessSlider.oninput = (e) => {
+        const v = parseFloat(e.target.value);
+        brightnessFactor = v;
+        brightnessValue.textContent = (v >= 0 ? "+" : "") + v.toFixed(2);
+        applyBrightness();
+      };
+      brightnessFactor = parseFloat(initial);
+      applyBrightness();
+    }
+
+    function hideBrightnessControl() {
+      brightnessControl.style.display = 'none';
+      brightnessSlider.oninput = null;
+      brightnessFactor = 0;
+      brightnessValue.textContent = "0.00";
+    }
+
+    function applyBrightness() {
+      const cssVal = 1 + (brightnessFactor || 0);
+      video.style.filter = `brightness(${cssVal})`;
+      miniCam.style.filter = `brightness(${cssVal})`;
+    }
+
+    function applyVideoTransform() { video.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${zoomFactor})`; }
+
+    async function setZoom(newZoom, s) {
+      const oldZoom = zoomFactor || 1;
+      const newPanX = (panX - s.x) * (newZoom / oldZoom) + s.x;
+      const newPanY = (panY - s.y) * (newZoom / oldZoom) + s.y;
+      zoomFactor = newZoom; panX = newPanX; panY = newPanY; clampPan(); applyVideoTransform();
+      if (stream && typeof stream.getVideoTracks === 'function') {
+        const track = stream.getVideoTracks()[0];
+        try { await track.applyConstraints({ advanced: [{ zoom: clamp(zoomFactor, hardwareZoomRange.min, hardwareZoomRange.max) }] }); }
+        catch (err) {}
+      }
+      if (zoomControl.style.display !== 'none') { zoomSlider.value = zoomFactor; zoomValue.textContent = zoomFactor.toFixed(1) + 'x'; }
+    }
+    function clampPan() {
+      const W = video.videoWidth, H = video.videoHeight;
+      if (!W || !H) return;
+      wrapperRect = videoWrapper.getBoundingClientRect();
+      const wrapperW = wrapperRect.width, wrapperH = wrapperRect.height;
+      const scaleToFill = Math.max(wrapperW / W, wrapperH / H);
+      const displayedWidth = W * scaleToFill, displayedHeight = H * scaleToFill;
+      const visualWidth = displayedWidth * zoomFactor, visualHeight = displayedHeight * zoomFactor;
+      const maxPanX = Math.max(0, (visualWidth - wrapperW) / 2), maxPanY = Math.max(0, (visualHeight - wrapperH) / 2);
+      panX = clamp(panX, -maxPanX, maxPanX); panY = clamp(panY, -maxPanY, maxPanY);
+    }
+    function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+    // gestures (pinch/pan)
+    let isPanning = false, isPinching = false, pinchStartDist = 0, pinchStartZoom = 1;
+    let pinchCenter = {x:0,y:0}, startPanX = 0, startPanY = 0, panStart = {x:0,y:0};
+    function getTouchDist(t1,t2){const dx=t2.clientX-t1.clientX,dy=t2.clientY-t1.clientY;return Math.hypot(dx,dy);}
+    function getTouchMid(t1,t2){return {x:(t1.clientX+t2.clientX)/2,y:(t1.clientY+t2.clientY)/2};}
+
+    videoWrapper.addEventListener('touchstart', (ev) => {
+      if (!isCameraOn) return;
+      if (viewState !== 'MAIN_VIEW') return;
+      ev.preventDefault();
+      wrapperRect = videoWrapper.getBoundingClientRect();
+      if (ev.touches.length === 1) {
+        isPanning = true; isPinching = false;
+        startPanX = panX; startPanY = panY;
+        panStart = { x: ev.touches[0].clientX, y: ev.touches[0].clientY };
+      } else if (ev.touches.length === 2) {
+        isPinching = true; isPanning = false;
+        pinchStartDist = getTouchDist(ev.touches[0], ev.touches[1]);
+        pinchStartZoom = zoomFactor || 1;
+        const mid = getTouchMid(ev.touches[0], ev.touches[1]);
+        pinchCenter = { x: mid.x - wrapperRect.left - wrapperRect.width / 2, y: mid.y - wrapperRect.top - wrapperRect.height / 2 };
+        panStart = { x: panX, y: panY };
+      }
+    }, { passive: false });
+
+    videoWrapper.addEventListener('touchmove', (ev) => {
+      if (!isCameraOn) return;
+      if (viewState !== 'MAIN_VIEW') return;
+      ev.preventDefault();
+      wrapperRect = videoWrapper.getBoundingClientRect();
+      if (isPinching && ev.touches.length >= 2) {
+        const dist = getTouchDist(ev.touches[0], ev.touches[1]);
+        if (pinchStartDist <= 0) return;
+        let scale = dist / pinchStartDist;
+        let newZoom = pinchStartZoom * scale;
+        const minZoom = parseFloat(zoomSlider.min || 1), maxZoom = parseFloat(zoomSlider.max || 3);
+        newZoom = clamp(newZoom, minZoom, maxZoom);
+        const s = { x: pinchCenter.x, y: pinchCenter.y };
+        panX = (panStart.x - s.x) * (newZoom / pinchStartZoom) + s.x;
+        panY = (panStart.y - s.y) * (newZoom / pinchStartZoom) + s.y;
+        zoomFactor = newZoom; clampPan(); applyVideoTransform();
+        if (zoomControl.style.display !== 'none') { zoomSlider.value = zoomFactor; zoomValue.textContent = zoomFactor.toFixed(1) + 'x'; }
+      } else if (isPanning && ev.touches.length === 1) {
+        const dx = ev.touches[0].clientX - panStart.x;
+        const dy = ev.touches[0].clientY - panStart.y;
+        panX = startPanX + dx; panY = startPanY + dy; clampPan(); applyVideoTransform();
+      }
+    }, { passive: false });
+
+    videoWrapper.addEventListener('touchend', (ev) => {
+      if (!isCameraOn) return;
+      if (viewState !== 'MAIN_VIEW') return;
+      ev.preventDefault();
+      if (ev.touches.length === 0) { isPanning = false; isPinching = false; }
+      else if (ev.touches.length === 1) {
+        isPinching = false; isPanning = true;
+        startPanX = panX; startPanY = panY; panStart = { x: ev.touches[0].clientX, y: ev.touches[0].clientY };
+      }
+    }, { passive: false });
+
+    let isMouseDown = false, mouseStart = {x:0,y:0};
+    videoWrapper.addEventListener('mousedown', (ev) => {
+      if (!isCameraOn) return; if (viewState !== 'MAIN_VIEW') return;
+      ev.preventDefault(); isMouseDown = true; mouseStart = { x: ev.clientX, y: ev.clientY }; startPanX = panX; startPanY = panY;
+    });
+    window.addEventListener('mousemove', (ev) => {
+      if (!isCameraOn) return; if (viewState !== 'MAIN_VIEW') return;
+      if (!isMouseDown) return;
+      const dx = ev.clientX - mouseStart.x, dy = ev.clientY - mouseStart.y;
+      panX = startPanX + dx; panY = startPanY + dy; clampPan(); applyVideoTransform();
+    });
+    window.addEventListener('mouseup', () => { if (!isCameraOn) return; isMouseDown = false; });
+
+    videoWrapper.addEventListener('wheel', (ev) => {
+      if (!isCameraOn) return; if (viewState !== 'MAIN_VIEW') return;
+      ev.preventDefault();
+      const delta = -ev.deltaY; const zoomChange = delta > 0 ? 1.05 : 0.95;
+      const newZoom = clamp(zoomFactor * zoomChange, parseFloat(zoomSlider.min || 1), parseFloat(zoomSlider.max || 3));
+      wrapperRect = videoWrapper.getBoundingClientRect();
+      const s = { x: ev.clientX - wrapperRect.left - wrapperRect.width/2, y: ev.clientY - wrapperRect.top - wrapperRect.height/2 };
+      setZoom(newZoom, s);
+    }, { passive: false });
+
+    // --- Model preprocessing & predict ---
+    function preprocessImage(img, size=224) {
+      const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size;
+      const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, size, size);
+      let tensor = tf.browser.fromPixels(canvas).expandDims(0).toFloat().div(tf.scalar(255));
+      return tensor;
+    }
+
+    // --- 3段階判定ロジック ---
+    async function predictSakura(img) {
+      if (!models.sakura) return null;
+      const tensor = preprocessImage(img, 224);
+      const predictionTensor = models.sakura.predict(tensor);
+      let prediction;
+      if (Array.isArray(predictionTensor)) prediction = await predictionTensor[0].data();
+      else prediction = await predictionTensor.data();
+
+      let idx = 0;
+      for (let i = 1; i < prediction.length; i++) {
+        if (prediction[i] > prediction[idx]) idx = i;
+      }
+      tf.dispose(tensor);
+      tf.dispose(predictionTensor);
+      return { class: modelClasses.sakura[idx], idx: idx, confidence: prediction[idx] };
+    }
+
+    async function predictHealth(img) {
+      if (!models.health) return null;
+      const tensor = preprocessImage(img, 224);
+      const predictionTensor = models.health.predict(tensor);
+      let prediction;
+      if (Array.isArray(predictionTensor)) prediction = await predictionTensor[0].data();
+      else prediction = await predictionTensor.data();
+
+      let idx = 0;
+      for (let i = 1; i < prediction.length; i++) {
+        if (prediction[i] > prediction[idx]) idx = i;
+      }
+      tf.dispose(tensor);
+      tf.dispose(predictionTensor);
+      return { class: modelClasses.health[idx], idx: idx, confidence: prediction[idx] };
+    }
+
+    async function predictSeverity(img) {
+      if (!models.severity) return null;
+      const tensor = preprocessImage(img, 224);
+      const predictionTensor = models.severity.predict(tensor);
+      let prediction;
+      if (Array.isArray(predictionTensor)) prediction = await predictionTensor[0].data();
+      else prediction = await predictionTensor.data();
+
+      let idx = 0;
+      for (let i = 1; i < prediction.length; i++) {
+        if (prediction[i] > prediction[idx]) idx = i;
+      }
+      tf.dispose(tensor);
+      tf.dispose(predictionTensor);
+      return { class: modelClasses.severity[idx], idx: idx, confidence: prediction[idx] };
+    }
+
+    // --- フォーム送信: 3段階判定実行 ---
+    document.getElementById('sakuraForm').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      const resultDiv = document.getElementById('result');
+
+      if (!inputImage) {
+        resultDiv.innerHTML = "画像を確認してください。";
+        return;
+      }
+
+      resultDiv.textContent = "判定中...";
+
+      inputImage.onload = async () => {
+        try {
+          // 段階1: 桜判定
+          const sakuraResult = await predictSakura(inputImage);
+          if (!sakuraResult) {
+            resultDiv.innerHTML = "桜判定モデルが未読み込みです。";
+            return;
+          }
+
+          const isSakura = sakuraResult.idx === 0; // クラス0が「桜」と仮定
+          const sakuraProb = (sakuraResult.confidence * 100).toFixed(1);
+
+          if (!isSakura) {
+            resultDiv.innerHTML = `<span class="sick">⚠️ 桜ではないようです</span>`;
+            return;
+          }
+
+          // 段階2: 健康度判定（桜と判定された場合）
+          const healthResult = await predictHealth(inputImage);
+          if (!healthResult) {
+            resultDiv.innerHTML = "健康度判定モデルが未読み込みです。";
+            return;
+          }
+
+          const isHealthy = healthResult.idx === 0; // クラス0が「健康」と仮定
+          const healthProb = (healthResult.confidence * 100).toFixed(1);
+
+          if (isHealthy) {
+            resultDiv.innerHTML = `<span class="healthy">✅ 健康です</span>`;
+            return;
+          }
+
+          // 段階3: 重症度判定（病気と判定された場合）
+          const severityResult = await predictSeverity(inputImage);
+          if (!severityResult) {
+            resultDiv.innerHTML = `<span class="sick">⚠️ 病気の可能性があります</span>`;
+            return;
+          }
+
+          const severityClass = severityResult.class;
+          const severityProb = (severityResult.confidence * 100).toFixed(1);
+
+          // 重症度に応じたスタイル分け
+          let styleClass = '';
+          if (severityClass.includes('初期')) styleClass = 'early-stage';
+          else if (severityClass.includes('中期')) styleClass = 'mid-stage';
+          else if (severityClass.includes('深刻')) styleClass = 'severe-stage';
+          else styleClass = 'sick';
+
+          resultDiv.innerHTML = `<span class="${styleClass}">⚠️ 病気の可能性があります【${severityClass}】</span>`;
+
+        } catch (err) {
+          console.error(err);
+          resultDiv.innerHTML = "判定に失敗しました。画像やモデルの形式を確認してください。";
+        }
+      };
+
+      if (inputImage.complete) inputImage.onload();
+    });
+
+    // resize handling
+    window.addEventListener('resize', () => { clampPan(); applyVideoTransform(); });
+
+    // cleanup
+    window.addEventListener('beforeunload', () => { if (stream) stream.getTracks().forEach(t => t.stop()); });
+
+  </script>
+</body>
+</html>
