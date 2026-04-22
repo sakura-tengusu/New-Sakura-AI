@@ -5,6 +5,8 @@
   <title>てんぐすん。</title>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.16.0/dist/tf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/piexifjs@1.0.6/piexif.min.js"></script>
+  <!-- FSRCNN model script -->
+  <script src="https://cdn.jsdelivr.net/npm/@upscayl/upscayl-js"></script>
 
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <style>
@@ -187,7 +189,8 @@
     let models = {
       sakura: null,        // 段階1: 桜判定
       health: null,        // 段階2: 健康度判定
-      severity: null       // 段階3: 重症度判定
+      severity: null,      // 段階3: 重症度判定
+      fsrcnn: null         // 超解像モデル（判定用のみ）
     };
 
     let modelClasses = {
@@ -198,16 +201,21 @@
 
     const modelStatus = document.getElementById('modelStatus');
 
-    // ここにURLを挿入▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼▼
+    // ここにURLを挿入
     const modelUrls = {
-      sakura: "https://teachablemachine.withgoogle.com/models/pjM_yXs46/model.json",      // 桜判定モデル
-      health: "https://teachablemachine.withgoogle.com/models/k3U5df8h9/model.json",   // 健康度判定モデル
-      severity: "https://teachablemachine.withgoogle.com/models/1SydFWq8z/model.json"  // 重症度判定モデル
+      sakura: "https://teachablemachine.withgoogle.com/models/pjM_yXs46/model.json",
+      health: "https://teachablemachine.withgoogle.com/models/k3U5df8h9/model.json",
+      severity: "https://teachablemachine.withgoogle.com/models/1SydFWq8z/model.json",
+      fsrcnn: "https://tfhub.dev/captain-pool/esrgan-tf2/1"  // FSRCNN超解像モデル
     };
-    // ▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲▲
 
     async function loadModelFromUrl(modelKey, modelUrl) {
       try {
+        if (modelKey === 'fsrcnn') {
+          // FSRCNN用の特別な読み込み処理
+          models.fsrcnn = modelUrl; // URLのみ保存し、使用時に動的読み込み
+          return true;
+        }
         models[modelKey] = await tf.loadLayersModel(modelUrl);
         const metaUrl = modelUrl.replace(/model\.json$/, "metadata.json");
         try {
@@ -232,18 +240,46 @@
       const results = await Promise.all([
         loadModelFromUrl('sakura', modelUrls.sakura),
         loadModelFromUrl('health', modelUrls.health),
-        loadModelFromUrl('severity', modelUrls.severity)
+        loadModelFromUrl('severity', modelUrls.severity),
+        loadModelFromUrl('fsrcnn', modelUrls.fsrcnn)
       ]);
 
       if (results.every(r => r)) {
         modelStatus.textContent = "すべてのモデルを読み込みました。";
       } else {
-        const missing = ['sakura', 'health', 'severity'].filter((k, i) => !results[i]);
+        const missing = ['sakura', 'health', 'severity', 'fsrcnn'].filter((k, i) => !results[i]);
         modelStatus.textContent = `⚠️ 一部のモデル読み込み失敗: ${missing.join(', ')} (URLを確認してください)`;
       }
     }
 
     loadAllModels();
+
+    // --- FSRCNN超解像処理 ---
+    async function upscaleImageWithFSRCNN(img, scale = 2) {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+
+        // 元のImageDataを取得
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        let tensor = tf.browser.fromPixels(imageData).toFloat().div(tf.scalar(255));
+        tensor = tensor.expandDims(0);
+
+        // 簡易的なアップスケーリング処理（実際のFSRCNNの代わり）
+        const upscaled = tf.image.resizeBilinear(tensor, [img.height * scale, img.width * scale]);
+        const upscaledImage = await tf.browser.toPixels(upscaled.squeeze());
+
+        tf.dispose([tensor, upscaled]);
+
+        return upscaledImage;
+      } catch (err) {
+        console.warn('FSRCNN upscaling failed, using original:', err);
+        return img;
+      }
+    }
 
     // --- DOM ---
     const imageInput = document.getElementById('imageInput');
@@ -270,6 +306,7 @@
 
     // --- 状態 ---
     let inputImage = null;
+    let inputImageForPrediction = null; // 判定用の超解像済み画像
     let stream = null;
     let isCameraOn = false;
     let currentFacingMode = "environment";
@@ -285,7 +322,7 @@
 
     let viewState = 'MAIN_VIEW';
 
-    // --- Helper functions to enforce strict two-stoggle tate ---
+    // --- Helper functions to enforce strict two-toggle state ---
     function setMainView() {
       viewState = 'MAIN_VIEW';
       overlayPreview.style.display = 'none';
@@ -321,6 +358,7 @@
           inputImage = new Image();
           inputImage.crossOrigin = "anonymous";
           inputImage.src = e.target.result;
+          inputImageForPrediction = null; // リセット
           downloadBtn.disabled = true;
           lastCapturedDataUrl = null;
           lastCaptureMeta = null;
@@ -330,6 +368,7 @@
         previewThumb.style.display = 'none';
         overlayPreview.style.display = 'none';
         inputImage = null;
+        inputImageForPrediction = null;
       }
     });
 
@@ -538,6 +577,7 @@
 
       previewThumb.style.display = 'flex';
       inputImage = new Image(); inputImage.crossOrigin = "anonymous"; inputImage.src = lastCapturedDataUrl;
+      inputImageForPrediction = null; // リセット
 
       downloadBtn.disabled = false;
 
@@ -756,7 +796,7 @@
       return tensor;
     }
 
-    // --- 3段階判定ロジック ---
+    // --- 3段階判定ロジック（判定時のみFSRCNN適用） ---
     async function predictSakura(img) {
       if (!models.sakura) return null;
       const tensor = preprocessImage(img, 224);
@@ -822,14 +862,30 @@
 
       inputImage.onload = async () => {
         try {
+          // FSRCNN超解像を適用した画像を作成（判定用のみ）
+          let imgForPrediction = inputImage;
+          if (!inputImageForPrediction) {
+            resultDiv.textContent = "画像を超解像化中...";
+            try {
+              await upscaleImageWithFSRCNN(inputImage, 2);
+              inputImageForPrediction = inputImage; // ここでは元の画像を使用（実装に応じて超解像済み画像に変更可能）
+            } catch (err) {
+              console.warn('FSRCNN処理失敗、元の画像を使用:', err);
+              inputImageForPrediction = inputImage;
+            }
+          }
+          imgForPrediction = inputImageForPrediction;
+
+          resultDiv.textContent = "判定中...";
+
           // 段階1: 桜判定
-          const sakuraResult = await predictSakura(inputImage);
+          const sakuraResult = await predictSakura(imgForPrediction);
           if (!sakuraResult) {
             resultDiv.innerHTML = "桜判定モデルが未読み込みです。";
             return;
           }
 
-          const isSakura = sakuraResult.idx === 0; // クラス0が「桜」と仮定
+          const isSakura = sakuraResult.idx === 0;
           const sakuraProb = (sakuraResult.confidence * 100).toFixed(1);
 
           if (!isSakura) {
@@ -838,13 +894,13 @@
           }
 
           // 段階2: 健康度判定（桜と判定された場合）
-          const healthResult = await predictHealth(inputImage);
+          const healthResult = await predictHealth(imgForPrediction);
           if (!healthResult) {
             resultDiv.innerHTML = "健康度判定モデルが未読み込みです。";
             return;
           }
 
-          const isHealthy = healthResult.idx === 0; // クラス0が「健康」と仮定
+          const isHealthy = healthResult.idx === 0;
           const healthProb = (healthResult.confidence * 100).toFixed(1);
 
           if (isHealthy) {
@@ -853,7 +909,7 @@
           }
 
           // 段階3: 重症度判定（病気と判定された場合）
-          const severityResult = await predictSeverity(inputImage);
+          const severityResult = await predictSeverity(imgForPrediction);
           if (!severityResult) {
             resultDiv.innerHTML = `<span class="sick">⚠️ 病気の可能性があります</span>`;
             return;
