@@ -5,943 +5,1017 @@
   <title>てんぐすん。</title>
   <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.16.0/dist/tf.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/piexifjs@1.0.6/piexif.min.js"></script>
-  <!-- FSRCNN model script -->
-  <script src="https://cdn.jsdelivr.net/npm/@upscayl/upscayl-js"></script>
-
   <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&family=Noto+Serif+JP:wght@300;400&display=swap" rel="stylesheet">
   <style>
-    body { font-family: sans-serif; background: #f2f2f2; padding: 2em; }
-    .container { background: #fff; max-width: 420px; margin: auto; border-radius: 10px; box-shadow: 0 0 10px #ccc; padding: 2em; }
-    h1 { color: #c46b9e; text-align: center; }
-    label { display: block; margin-top: 1em; }
-    input[type="file"] { width: 100%; }
-    .controls { display: flex; gap: 0.5em; margin-top: 0.8em; }
-    .controls button { flex: 1; padding: 0.6em; background: #c46b9e; color: #fff; border: none; border-radius: 5px; font-size: 0.95em; cursor: pointer; }
-    button[type="submit"] { margin-top: 1.2em; width: 100%; padding: 0.8em; background: #c46b9e; color: #fff; border: none; border-radius: 5px; font-size: 1.1em; cursor: pointer; }
-    .result { margin-top: 2em; font-size: 1.2em; text-align: center; }
-    .healthy { color: #2bbd7e; }
-    .sick { color: #e84c3d; }
-    .early-stage { color: #ff9800; }
-    .mid-stage { color: #f57c00; }
-    .severe-stage { color: #d32f2f; }
-    .preview { margin-top: 1em; max-width: 100%; border-radius: 8px; display:block; }
-    .model-status { font-size: 0.95em; color: #888; margin-top: 0.5em; text-align: center; }
+    :root {
+      --sakura-50: #FFF0F5;
+      --sakura-100: #FFD6E7;
+      --sakura-200: #FFB3CF;
+      --sakura-400: #F472A8;
+      --sakura-600: #C44D87;
+      --sakura-800: #7D1F52;
+      --sakura-900: #3D0A26;
+      --leaf-500: #5BA25B;
+      --leaf-600: #3E7D3E;
+      --amber-500: #D97706;
+      --red-500: #DC2626;
+      --bg: #FEF6F9;
+      --surface: #FFFAFC;
+      --border: rgba(196, 77, 135, 0.15);
+      --border-mid: rgba(196, 77, 135, 0.28);
+      --text-primary: #2D1018;
+      --text-secondary: #7D4560;
+      --text-muted: #B088A0;
+      --radius-sm: 8px;
+      --radius-md: 14px;
+      --radius-lg: 22px;
+      --radius-xl: 32px;
+    }
 
-    /* video wrapper: fixed frame; internal video can be transformed without changing frame */
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Zen Maru Gothic', sans-serif;
+      background: var(--bg);
+      min-height: 100dvh;
+      color: var(--text-primary);
+      padding: 0;
+      overflow-x: hidden;
+    }
+
+    /* 桜の花びら背景 */
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background:
+        radial-gradient(ellipse at 15% 20%, rgba(244,114,168,0.07) 0%, transparent 50%),
+        radial-gradient(ellipse at 85% 70%, rgba(244,114,168,0.05) 0%, transparent 45%),
+        radial-gradient(ellipse at 50% 50%, rgba(255,214,231,0.04) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    /* 浮かぶ花びらアニメ */
+    .petal {
+      position: fixed;
+      pointer-events: none;
+      z-index: 0;
+      opacity: 0;
+      animation: petalFall linear infinite;
+    }
+    .petal svg { fill: rgba(244,114,168,0.3); }
+    @keyframes petalFall {
+      0% { transform: translateY(-40px) rotate(0deg); opacity: 0; }
+      10% { opacity: 1; }
+      90% { opacity: 0.6; }
+      100% { transform: translateY(100dvh) rotate(720deg); opacity: 0; }
+    }
+
+    /* レイアウト */
+    .app {
+      position: relative;
+      z-index: 1;
+      max-width: 440px;
+      margin: 0 auto;
+      padding: 0 0 3rem;
+    }
+
+    /* ヘッダー */
+    .app-header {
+      padding: 2.5rem 1.5rem 1.5rem;
+      text-align: center;
+    }
+    .header-emblem {
+      width: 68px;
+      height: 68px;
+      margin: 0 auto 1rem;
+      background: linear-gradient(135deg, var(--sakura-100) 0%, var(--sakura-200) 100%);
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 32px;
+      box-shadow: 0 4px 20px rgba(196,77,135,0.18), inset 0 1px 0 rgba(255,255,255,0.7);
+      border: 1.5px solid var(--border-mid);
+    }
+    .app-title {
+      font-family: 'Noto Serif JP', serif;
+      font-size: 1.6rem;
+      font-weight: 300;
+      color: var(--sakura-800);
+      letter-spacing: 0.12em;
+    }
+    .app-subtitle {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      margin-top: 0.3rem;
+      letter-spacing: 0.05em;
+    }
+
+    /* カード */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      margin: 0 1rem 1rem;
+      overflow: hidden;
+    }
+    .card-section {
+      padding: 1.25rem 1.25rem 0;
+    }
+    .card-section:last-child { padding-bottom: 1.25rem; }
+
+    .section-label {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      margin-bottom: 0.75rem;
+    }
+
+    /* ファイル入力 */
+    .file-drop {
+      border: 1.5px dashed var(--border-mid);
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s;
+      position: relative;
+      background: var(--sakura-50);
+    }
+    .file-drop:hover { border-color: var(--sakura-400); background: #FFF0F8; }
+    .file-drop input[type="file"] {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      cursor: pointer;
+      width: 100%;
+      height: 100%;
+    }
+    .file-drop-icon { font-size: 1.8rem; margin-bottom: 0.4rem; }
+    .file-drop-text { font-size: 0.82rem; color: var(--text-secondary); }
+
+    /* カメラボタン群 */
+    .btn-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 0.5rem;
+      margin-top: 0.75rem;
+    }
+    .btn {
+      font-family: 'Zen Maru Gothic', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 0.6rem 0.4rem;
+      border: 1.5px solid var(--border-mid);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      color: var(--sakura-600);
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.3rem;
+    }
+    .btn:hover:not(:disabled) { background: var(--sakura-50); border-color: var(--sakura-400); }
+    .btn:active:not(:disabled) { transform: scale(0.97); }
+    .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+    .btn.active { background: var(--sakura-600); color: #fff; border-color: var(--sakura-600); }
+
+    /* カメラビュー */
     .video-wrapper {
+      position: relative;
       width: 100%;
       aspect-ratio: 1 / 1;
-      position: relative;
+      background: #1a0a10;
       overflow: hidden;
-      border-radius: 8px;
-      background: #000;
-      margin-top: 1em;
+      border-radius: var(--radius-md);
+      margin-top: 0.75rem;
     }
     video.main {
       position: absolute;
-      top: 50%;
-      left: 50%;
+      top: 50%; left: 50%;
       transform: translate(-50%, -50%) scale(1);
       transform-origin: center center;
-      min-width: 100%;
-      min-height: 100%;
-      width: auto;
-      height: auto;
+      min-width: 100%; min-height: 100%;
+      width: auto; height: auto;
       display: none;
       will-change: transform;
     }
-
-    /* overlay preview shown inside videoWrapper when toggled */
     .overlay-preview {
       position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
+      inset: 0;
+      width: 100%; height: 100%;
       object-fit: cover;
       display: none;
       z-index: 5;
-      border-radius: 8px;
-      background: #000;
       cursor: pointer;
     }
 
-    /* preview thumbnail area */
-    .preview-thumb {
-      margin-top: 0.6em;
+    /* スライダーコントロール */
+    .slider-group {
+      margin-top: 0.6rem;
+      display: none;
+    }
+    .slider-row {
       display: flex;
-      gap: 0.6em;
       align-items: center;
-      justify-content: flex-start;
+      gap: 0.6rem;
+      margin-top: 0.4rem;
     }
-    .preview-thumb img {
-      width: 80px;
-      height: 80px;
-      object-fit: cover;
-      border-radius: 6px;
-      border: 1px solid #ddd;
+    .slider-label {
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      min-width: 40px;
+    }
+    .slider-row input[type="range"] {
+      flex: 1;
+      height: 3px;
+      -webkit-appearance: none;
+      appearance: none;
+      background: var(--sakura-100);
+      border-radius: 2px;
+      outline: none;
+    }
+    .slider-row input[type="range"]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 16px; height: 16px;
+      border-radius: 50%;
+      background: var(--sakura-600);
       cursor: pointer;
-      display: block;
+      box-shadow: 0 1px 4px rgba(196,77,135,0.3);
     }
-    /* mini simple camera shown in thumbnail area (no controls/zoom) */
+    .slider-val {
+      font-size: 0.72rem;
+      color: var(--text-secondary);
+      min-width: 38px;
+      text-align: right;
+    }
+
+    /* サムネイル */
+    .preview-thumb {
+      display: none;
+      gap: 0.6rem;
+      align-items: center;
+      margin-top: 0.75rem;
+    }
+    .thumb-img {
+      width: 76px; height: 76px;
+      object-fit: cover;
+      border-radius: var(--radius-sm);
+      border: 1.5px solid var(--border-mid);
+      cursor: pointer;
+      flex-shrink: 0;
+    }
     .mini-camera {
-      width: 80px;
-      height: 80px;
-      border-radius: 6px;
+      width: 76px; height: 76px;
+      border-radius: var(--radius-sm);
       overflow: hidden;
-      background: #000;
-      border: 1px solid #ddd;
+      background: #1a0a10;
+      border: 1.5px solid var(--border-mid);
       display: none;
       cursor: pointer;
+      flex-shrink: 0;
     }
-    .mini-camera video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .preview-thumb .txt { color:#666; font-size:0.9em; }
-
-    .zoom-control { margin-top: 0.6em; display: none; align-items: center; gap: 0.6em; }
-    .zoom-control input[type="range"] { width: 100%; }
-    .zoom-value { min-width: 48px; text-align: right; font-size: 0.95em; color: #444; }
-
-    /* brightness control: placed under zoom-control */
-    .brightness-control { margin-top: 0.4em; display: none; align-items: center; gap: 0.6em; }
-    .brightness-control input[type="range"] { width: 100%; }
-    .brightness-value { min-width: 56px; text-align: right; font-size: 0.95em; color: #444; }
-
-    /* download button style */
-    #downloadBtn {
-      margin-left: auto;
-      padding: 0.45em 0.6em;
-      background: #4a90e2;
-      color: #fff;
-      border: none;
-      border-radius: 6px;
+    .mini-camera video { width: 100%; height: 100%; object-fit: cover; }
+    .thumb-info { flex: 1; }
+    .thumb-info p { font-size: 0.75rem; color: var(--text-secondary); }
+    .btn-download {
+      font-family: 'Zen Maru Gothic', sans-serif;
+      font-size: 0.72rem;
+      padding: 0.35rem 0.6rem;
+      border: 1.5px solid #B5D4F4;
+      border-radius: var(--radius-sm);
+      background: #E6F1FB;
+      color: #185FA5;
       cursor: pointer;
-      font-size: 0.9em;
+      white-space: nowrap;
+      flex-shrink: 0;
     }
-    #downloadBtn[disabled] { opacity: 0.5; cursor: default; background: #9fbce9; }
+    .btn-download:disabled { opacity: 0.45; cursor: not-allowed; }
 
-    .small-note { font-size: 0.85em; color: #666; margin-top:0.5em; text-align:center; }
-    .muted { color:#888; font-size:0.9em; margin-top:0.5em; text-align:center; }
+    /* 判定ボタン */
+    .btn-submit {
+      display: block;
+      width: calc(100% - 2rem);
+      margin: 1.25rem 1rem 0;
+      padding: 1rem;
+      font-family: 'Zen Maru Gothic', sans-serif;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(135deg, var(--sakura-600) 0%, var(--sakura-400) 100%);
+      border: none;
+      border-radius: var(--radius-xl);
+      cursor: pointer;
+      letter-spacing: 0.08em;
+      transition: all 0.2s;
+      box-shadow: 0 4px 16px rgba(196,77,135,0.25);
+    }
+    .btn-submit:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(196,77,135,0.3); }
+    .btn-submit:active { transform: scale(0.98) translateY(0); }
+    .btn-submit:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+
+    /* 結果エリア */
+    .result-card {
+      margin: 1rem 1rem 0;
+      border-radius: var(--radius-lg);
+      overflow: hidden;
+      display: none;
+    }
+    .result-inner {
+      padding: 1.5rem 1.25rem;
+      text-align: center;
+    }
+    .result-icon { font-size: 2.4rem; margin-bottom: 0.5rem; }
+    .result-label {
+      font-family: 'Noto Serif JP', serif;
+      font-size: 1.2rem;
+      font-weight: 400;
+      line-height: 1.6;
+    }
+    .result-sub { font-size: 0.78rem; margin-top: 0.4rem; opacity: 0.75; }
+    .result-badge {
+      display: inline-block;
+      padding: 0.25rem 0.9rem;
+      border-radius: 99px;
+      font-size: 0.72rem;
+      font-weight: 700;
+      margin-top: 0.6rem;
+      letter-spacing: 0.05em;
+    }
+
+    /* 結果タイプ別スタイル */
+    .result-healthy  { background: #F0FAF0; border: 1.5px solid #86EFAC; color: #166534; }
+    .result-not-sakura { background: #FFF7ED; border: 1.5px solid #FCD34D; color: #92400E; }
+    .result-early    { background: #FFFBEB; border: 1.5px solid #FCD34D; color: #78350F; }
+    .result-mid      { background: #FFF4E6; border: 1.5px solid #FDBA74; color: #9A3412; }
+    .result-severe   { background: #FEF2F2; border: 1.5px solid #FCA5A5; color: #991B1B; }
+    .result-loading  { background: var(--sakura-50); border: 1.5px solid var(--border-mid); color: var(--sakura-800); }
+    .result-error    { background: #F8F8F8; border: 1.5px solid #E5E7EB; color: #374151; }
+
+    /* モデルステータス */
+    .model-status {
+      text-align: center;
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      padding: 0.5rem 1rem;
+    }
+    .status-dot {
+      display: inline-block;
+      width: 6px; height: 6px;
+      border-radius: 50%;
+      margin-right: 0.3rem;
+      background: var(--text-muted);
+      vertical-align: middle;
+    }
+    .status-dot.ok { background: var(--leaf-500); }
+    .status-dot.err { background: var(--red-500); }
+    .status-dot.loading {
+      background: var(--sakura-400);
+      animation: pulse 1s infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.3; } }
+
+
+
+    .footer-note {
+      text-align: center;
+      font-size: 0.68rem;
+      color: var(--text-muted);
+      padding: 1.5rem 1.5rem 0;
+      line-height: 1.8;
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🌸てんぐすん。🌸</h1>
-    <div id="modelStatus" class="model-status"></div>
 
-    <form id="sakuraForm">
-      <label>サクラの写真をアップロードするか、カメラで撮影してください</label>
+<!-- 浮かぶ花びら -->
+<script>
+(function(){
+  const shapes = ['M10,2 C10,2 14,6 12,10 C10,14 6,14 4,10 C2,6 6,2 10,2Z',
+    'M10,1 C13,1 16,4 16,7 C16,11 10,15 10,15 C10,15 4,11 4,7 C4,4 7,1 10,1Z'];
+  for(let i=0;i<7;i++){
+    const p=document.createElement('div');
+    p.className='petal';
+    const size=12+Math.random()*14;
+    const left=5+Math.random()*90;
+    const dur=8+Math.random()*14;
+    const delay=-Math.random()*dur;
+    p.style.cssText=`left:${left}%;top:0;width:${size}px;height:${size}px;animation-duration:${dur}s;animation-delay:${delay}s`;
+    p.innerHTML=`<svg viewBox="0 0 20 20" width="${size}" height="${size}"><path d="${shapes[i%2]}"/></svg>`;
+    document.body.appendChild(p);
+  }
+})();
+</script>
 
-      <input type="file" id="imageInput" accept="image/*" />
+<div class="app">
 
-      <div class="controls">
-        <button type="button" id="toggleCamera">カメラ起動</button>
-        <button type="button" id="switchCamera" disabled>カメラ切替</button>
-        <button type="button" id="captureBtn" disabled>撮影</button>
+  <!-- ヘッダー -->
+  <header class="app-header">
+    <div class="header-emblem">🌸</div>
+    <h1 class="app-title">てんぐすん。</h1>
+    <p class="app-subtitle">桜の健康をAIで診断します</p>
+  </header>
+
+  <!-- モデルステータス -->
+  <div class="model-status" id="modelStatus">
+    <span class="status-dot loading" id="statusDot"></span>モデルを読み込み中…
+  </div>
+
+  <!-- メインカード -->
+  <div class="card">
+    <div class="card-section">
+      <p class="section-label">画像を選択</p>
+
+      <div class="file-drop" id="fileDrop">
+        <input type="file" id="imageInput" accept="image/*" />
+        <div class="file-drop-icon">📷</div>
+        <p class="file-drop-text">タップして写真を選択<br><span style="font-size:0.72rem;opacity:0.7">またはここにドロップ</span></p>
       </div>
 
+      <div class="btn-row">
+        <button type="button" class="btn" id="toggleCamera">📹 カメラ</button>
+        <button type="button" class="btn" id="switchCamera" disabled>🔄 切替</button>
+        <button type="button" class="btn" id="captureBtn" disabled>✦ 撮影</button>
+      </div>
+    </div>
+
+    <div class="card-section" id="cameraSection" style="display:none">
       <div class="video-wrapper" id="videoWrapper">
         <video id="video" class="main" autoplay playsinline></video>
-        <!-- overlay preview that toggles with camera display -->
         <img id="overlayPreview" class="overlay-preview" alt="撮影画像プレビュー" />
       </div>
 
-      <!-- Zoom control (fallback + precise control) -->
-      <div id="zoomControl" class="zoom-control">
-        <input id="zoomSlider" type="range" min="1" max="1" step="0.1" value="1" />
-        <div id="zoomValue" class="zoom-value">1.0x</div>
+      <div class="slider-group" id="sliderGroup">
+        <div class="slider-row">
+          <span class="slider-label">ズーム</span>
+          <input type="range" id="zoomSlider" min="1" max="3" step="0.1" value="1" />
+          <span class="slider-val" id="zoomValue">1.0x</span>
+        </div>
+        <div class="slider-row">
+          <span class="slider-label">明るさ</span>
+          <input type="range" id="brightnessSlider" min="-1" max="1" step="0.01" value="0" />
+          <span class="slider-val" id="brightnessValue">+0.00</span>
+        </div>
       </div>
+    </div>
 
-      <!-- Brightness control (added under zoom) -->
-      <div id="brightnessControl" class="brightness-control" title="明るさを調整します。中央が0（変化なし）">
-        <!-- Range is -1 .. 1, 0 is neutral -->
-        <input id="brightnessSlider" type="range" min="-1" max="1" step="0.01" value="0" />
-        <div id="brightnessValue" class="brightness-value">0.00</div>
-      </div>
-
-      <!-- thumbnail preview shown after capture; clicking toggles overlay <-> camera -->
-      <div class="preview-thumb" id="previewThumb" style="display:none;">
-        <img id="preview" alt="プレビュー画像" />
-        <!-- mini simple camera container that will show a tiny live feed (no zoom/pan) -->
-        <div class="mini-camera" id="miniCamContainer" title="ミニカメラ（タップでサムネイル/カメラ切替）">
+    <div class="card-section">
+      <div class="preview-thumb" id="previewThumb">
+        <img class="thumb-img" id="preview" alt="プレビュー" />
+        <div class="mini-camera" id="miniCamContainer">
           <video id="miniCam" autoplay playsinline muted></video>
         </div>
-
-        <div class="txt">撮影済み（タップで確認/カメラ切替）</div>
-
-        <!-- ダウンロードボタン（撮った画像があるときに有効化） -->
-        <button type="button" id="downloadBtn" disabled title="撮った画像をダウンロード">ダウンロード</button>
+        <div class="thumb-info">
+          <p>撮影済み</p>
+          <p style="font-size:0.68rem;opacity:0.6;margin-top:0.2rem">タップで確認</p>
+        </div>
+        <button type="button" class="btn-download" id="downloadBtn" disabled>⬇ 保存</button>
       </div>
-
-      <button type="submit">AIで判定</button>
-    </form>
-
-    <div id="result" class="result"></div>
-    <div class="muted">※ カメラを使用するにはブラウザがカメラアクセスを許可する必要があります。位置情報はダウンロードした写真に埋め込む際のみ使用します。このAIが判定した結果は必ずしも正しいとは限りません。</div>
+    </div>
   </div>
 
-  <script>
-    // --- モデル関連 ---
-    let models = {
-      sakura: null,        // 段階1: 桜判定
-      health: null,        // 段階2: 健康度判定
-      severity: null,      // 段階3: 重症度判定
-      fsrcnn: null         // 超解像モデル（判定用のみ）
-    };
 
-    let modelClasses = {
-      sakura: ["桜", "桜以外"],
-      health: ["健康", "病気"],
-      severity: ["初期", "中期", "深刻期"]
-    };
 
-    const modelStatus = document.getElementById('modelStatus');
+  <!-- 判定ボタン -->
+  <button type="button" class="btn-submit" id="submitBtn" disabled>🌸 AIで診断する</button>
 
-    // ここにURLを挿入
-    const modelUrls = {
-      sakura: "https://teachablemachine.withgoogle.com/models/pjM_yXs46/model.json",
-      health: "https://teachablemachine.withgoogle.com/models/k3U5df8h9/model.json",
-      severity: "https://teachablemachine.withgoogle.com/models/1SydFWq8z/model.json",
-      fsrcnn: "https://tfhub.dev/captain-pool/esrgan-tf2/1"  // FSRCNN超解像モデル
-    };
+  <!-- 結果 -->
+  <div class="result-card" id="resultCard">
+    <div class="result-inner" id="result"></div>
+  </div>
 
-    async function loadModelFromUrl(modelKey, modelUrl) {
-      try {
-        if (modelKey === 'fsrcnn') {
-          // FSRCNN用の特別な読み込み処理
-          models.fsrcnn = modelUrl; // URLのみ保存し、使用時に動的読み込み
-          return true;
-        }
-        models[modelKey] = await tf.loadLayersModel(modelUrl);
-        const metaUrl = modelUrl.replace(/model\.json$/, "metadata.json");
-        try {
-          const response = await fetch(metaUrl);
-          if (response.ok) {
-            const json = await response.json();
-            if (json && json.labels) {
-              modelClasses[modelKey] = json.labels;
-            }
-          }
-        } catch (_) {}
-        return true;
-      } catch (e) {
-        console.error(`モデル読み込み失敗 (${modelKey}):`, e);
-        models[modelKey] = null;
-        return false;
-      }
-    }
+  <p class="footer-note">
+    カメラのご使用にはブラウザの許可が必要です<br>
+    位置情報はダウンロード写真のEXIFのみに使用します
+  </p>
+</div>
 
-    async function loadAllModels() {
-      modelStatus.textContent = "モデルを読み込み中...";
-      const results = await Promise.all([
-        loadModelFromUrl('sakura', modelUrls.sakura),
-        loadModelFromUrl('health', modelUrls.health),
-        loadModelFromUrl('severity', modelUrls.severity),
-        loadModelFromUrl('fsrcnn', modelUrls.fsrcnn)
-      ]);
+<script>
+// ====== モデル関連 ======
+let models = { sakura: null, health: null, severity: null };
+let modelClasses = {
+  sakura: ["桜", "桜以外"],
+  health: ["健康", "病気"],
+  severity: ["初期", "中期", "深刻期"]
+};
 
-      if (results.every(r => r)) {
-        modelStatus.textContent = "すべてのモデルを読み込みました。";
-      } else {
-        const missing = ['sakura', 'health', 'severity', 'fsrcnn'].filter((k, i) => !results[i]);
-        modelStatus.textContent = `⚠️ 一部のモデル読み込み失敗: ${missing.join(', ')} (URLを確認してください)`;
-      }
-    }
+const modelUrls = {
+  sakura:   "https://teachablemachine.withgoogle.com/models/pjM_yXs46/model.json",
+  health:   "https://teachablemachine.withgoogle.com/models/k3U5df8h9/model.json",
+  severity: "https://teachablemachine.withgoogle.com/models/1SydFWq8z/model.json"
+};
 
-    loadAllModels();
+const modelStatusEl = document.getElementById('modelStatus');
+const statusDot = document.getElementById('statusDot');
+const submitBtn = document.getElementById('submitBtn');
 
-    // --- FSRCNN超解像処理 ---
-    async function upscaleImageWithFSRCNN(img, scale = 2) {
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        ctx.drawImage(img, 0, 0);
+async function loadModelFromUrl(key, url) {
+  try {
+    models[key] = await tf.loadLayersModel(url);
+    try {
+      const r = await fetch(url.replace(/model\.json$/, "metadata.json"));
+      if (r.ok) { const j = await r.json(); if (j && j.labels) modelClasses[key] = j.labels; }
+    } catch(_) {}
+    return true;
+  } catch(e) { console.error(`モデル読み込み失敗(${key}):`, e); return false; }
+}
 
-        // 元のImageDataを取得
-        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-        let tensor = tf.browser.fromPixels(imageData).toFloat().div(tf.scalar(255));
-        tensor = tensor.expandDims(0);
+async function loadAllModels() {
+  const results = await Promise.all([
+    loadModelFromUrl('sakura',   modelUrls.sakura),
+    loadModelFromUrl('health',   modelUrls.health),
+    loadModelFromUrl('severity', modelUrls.severity)
+  ]);
+  if (results.every(r => r)) {
+    statusDot.className = 'status-dot ok';
+    modelStatusEl.innerHTML = '<span class="status-dot ok"></span>AIモデル読み込み完了';
+    submitBtn.disabled = false;
+  } else {
+    const missing = ['sakura','health','severity'].filter((_,i)=>!results[i]);
+    statusDot.className = 'status-dot err';
+    modelStatusEl.innerHTML = `<span class="status-dot err"></span>⚠ 一部失敗: ${missing.join(', ')}`;
+  }
+}
+loadAllModels();
 
-        // 簡易的なアップスケーリング処理（実際のFSRCNNの代わり）
-        const upscaled = tf.image.resizeBilinear(tensor, [img.height * scale, img.width * scale]);
-        const upscaledImage = await tf.browser.toPixels(upscaled.squeeze());
+// ====== Google フォーム送信設定（内部定数 — 研究チームのみ編集） ======
+const FORM_ACTION_URL  = "https://docs.google.com/forms/d/1FAIpQLSfmu6pjGJWYpcZw_-IYTZLraYS5VyqhY8eklDJdfGvCtRlRNg/formResponse";
+const ENTRY_RESULT     = "entry.1319158684"; // 判定結果
+const ENTRY_CONFIDENCE = "entry.1644085124"; // 確信度(%)
+const ENTRY_MEMO       = "entry.245467202";  // メモ（任意）
 
-        tf.dispose([tensor, upscaled]);
+async function sendToGoogleForm(resultText, confidence, memo) {
+  if (!FORM_ACTION_URL || FORM_ACTION_URL.includes('YOUR_FORM_ID')) return;
+  const body = new URLSearchParams();
+  if (ENTRY_RESULT)     body.append(ENTRY_RESULT,     resultText);
+  if (ENTRY_CONFIDENCE) body.append(ENTRY_CONFIDENCE, confidence);
+  if (ENTRY_MEMO)       body.append(ENTRY_MEMO,       memo || '');
+  try {
+    await fetch(FORM_ACTION_URL, { method: 'POST', mode: 'no-cors', body });
+  } catch(err) {
+    console.warn('フォーム送信失敗:', err);
+  }
+}
 
-        return upscaledImage;
-      } catch (err) {
-        console.warn('FSRCNN upscaling failed, using original:', err);
-        return img;
-      }
-    }
+// ====== DOM ======
+const imageInput = document.getElementById('imageInput');
+const preview = document.getElementById('preview');
+const previewThumb = document.getElementById('previewThumb');
+const overlayPreview = document.getElementById('overlayPreview');
+const video = document.getElementById('video');
+const videoWrapper = document.getElementById('videoWrapper');
+const toggleCameraBtn = document.getElementById('toggleCamera');
+const switchCameraBtn = document.getElementById('switchCamera');
+const captureBtn = document.getElementById('captureBtn');
+const sliderGroup = document.getElementById('sliderGroup');
+const zoomSlider = document.getElementById('zoomSlider');
+const zoomValue = document.getElementById('zoomValue');
+const brightnessSlider = document.getElementById('brightnessSlider');
+const brightnessValue = document.getElementById('brightnessValue');
+const miniCamContainer = document.getElementById('miniCamContainer');
+const miniCam = document.getElementById('miniCam');
+const downloadBtn = document.getElementById('downloadBtn');
+const cameraSection = document.getElementById('cameraSection');
+const resultCard = document.getElementById('resultCard');
+const resultDiv = document.getElementById('result');
 
-    // --- DOM ---
-    const imageInput = document.getElementById('imageInput');
-    const preview = document.getElementById('preview');
-    const previewThumb = document.getElementById('previewThumb');
-    const overlayPreview = document.getElementById('overlayPreview');
-    const video = document.getElementById('video');
-    const videoWrapper = document.getElementById('videoWrapper');
-    const toggleCameraBtn = document.getElementById('toggleCamera');
-    const switchCameraBtn = document.getElementById('switchCamera');
-    const captureBtn = document.getElementById('captureBtn');
-    const zoomControl = document.getElementById('zoomControl');
-    const zoomSlider = document.getElementById('zoomSlider');
-    const zoomValue = document.getElementById('zoomValue');
+let inputImage = null;
+let stream = null;
+let isCameraOn = false;
+let currentFacingMode = "environment";
+let hardwareZoomRange = {min:1,max:3,step:0.1};
+let zoomFactor = 1;
+let brightnessFactor = 0;
+let panX = 0, panY = 0;
+let wrapperRect = null;
+let lastCapturedDataUrl = null;
+let lastCaptureMeta = null;
+let viewState = 'MAIN_VIEW';
 
-    const brightnessControl = document.getElementById('brightnessControl');
-    const brightnessSlider = document.getElementById('brightnessSlider');
-    const brightnessValue = document.getElementById('brightnessValue');
+function setMainView() {
+  viewState = 'MAIN_VIEW';
+  overlayPreview.style.display = 'none';
+  if (isCameraOn) video.style.display = 'block';
+  hideMiniCam(false);
+  if (preview.src) { previewThumb.style.display = 'flex'; preview.style.display = 'block'; }
+}
+function setOverlayView() {
+  if (!overlayPreview.src) return;
+  viewState = 'OVERLAY_VIEW';
+  overlayPreview.style.display = 'block';
+  video.style.display = 'none';
+  showMiniCam();
+}
 
-    const miniCamContainer = document.getElementById('miniCamContainer');
-    const miniCam = document.getElementById('miniCam');
-
-    const downloadBtn = document.getElementById('downloadBtn');
-
-    // --- 状態 ---
-    let inputImage = null;
-    let inputImageForPrediction = null; // 判定用の超解像済み画像
-    let stream = null;
-    let isCameraOn = false;
-    let currentFacingMode = "environment";
-    let hardwareZoomSupported = false;
-    let hardwareZoomRange = {min:1, max:1, step:0.1};
-    let zoomFactor = 1;
-    let brightnessFactor = 0;
-    let panX = 0, panY = 0;
-    let wrapperRect = null;
-
-    let lastCapturedDataUrl = null;
-    let lastCaptureMeta = null;
-
-    let viewState = 'MAIN_VIEW';
-
-    // --- Helper functions to enforce strict two-toggle state ---
-    function setMainView() {
-      viewState = 'MAIN_VIEW';
-      overlayPreview.style.display = 'none';
-      if (isCameraOn) video.style.display = 'block';
-      hideMiniCam(false);
-      if (preview.src) {
-        previewThumb.style.display = 'flex';
-        preview.style.display = 'block';
-      }
-    }
-
-    function setOverlayView() {
-      if (!overlayPreview.src) return;
-      viewState = 'OVERLAY_VIEW';
-      overlayPreview.style.display = 'block';
-      video.style.display = 'none';
-      showMiniCam();
-    }
-
-    // --- ファイル入力 サムネイルを表示しながら状態の一貫性を保つ ---
-    imageInput.addEventListener('change', function() {
-      if (this.files && this.files[0]) {
-        const fr = new FileReader();
-        fr.onload = function(e) {
-          preview.src = e.target.result;
-          overlayPreview.src = e.target.result;
-          preview.removeAttribute('data-captured');
-          overlayPreview.removeAttribute('data-captured');
-          preview.style.filter = 'none';
-          overlayPreview.style.filter = 'none';
-          previewThumb.style.display = 'flex';
-          setMainView();
-          inputImage = new Image();
-          inputImage.crossOrigin = "anonymous";
-          inputImage.src = e.target.result;
-          inputImageForPrediction = null; // リセット
-          downloadBtn.disabled = true;
-          lastCapturedDataUrl = null;
-          lastCaptureMeta = null;
-        };
-        fr.readAsDataURL(this.files[0]);
-      } else {
-        previewThumb.style.display = 'none';
-        overlayPreview.style.display = 'none';
-        inputImage = null;
-        inputImageForPrediction = null;
-      }
-    });
-
-    // --- Camera controls (start/stop/switch/capture) ---
-    toggleCameraBtn.addEventListener('click', async () => {
-      if (isCameraOn) {
-        stopCamera();
-      } else {
-        try { await startCamera(); } catch (err) { console.error(err); alert('カメラ起動エラー'); }
-      }
-    });
-
-    async function startCamera() {
-      stopCamera();
-      const tryConstraints = [
-        { video: { facingMode: { exact: currentFacingMode } }, audio: false },
-        { video: { facingMode: currentFacingMode }, audio: false },
-        { video: true, audio: false }
-      ];
-      let got = false;
-      for (const c of tryConstraints) {
-        try {
-          stream = await navigator.mediaDevices.getUserMedia(c);
-          got = true;
-          break;
-        } catch (e) {}
-      }
-      if (!got || !stream) throw new Error('カメラストリーム取得失敗');
-
-      video.srcObject = stream;
-      video.style.display = 'block';
-      previewThumb.style.display = preview.src ? 'flex' : 'none';
-      captureBtn.disabled = false;
-      switchCameraBtn.disabled = false;
-      toggleCameraBtn.textContent = "カメラ停止";
-      isCameraOn = true;
-      videoWrapper.style.touchAction = 'none';
-
-      zoomFactor = 1; panX = 0; panY = 0; applyVideoTransform();
-      overlayPreview.style.display = 'none';
-
-      const track = stream.getVideoTracks()[0];
-      hardwareZoomSupported = false;
-      try {
-        const caps = track.getCapabilities ? track.getCapabilities() : {};
-        const settings = track.getSettings ? track.getSettings() : {};
-        if (caps && typeof caps.zoom !== 'undefined') {
-          hardwareZoomSupported = true;
-          hardwareZoomRange.min = caps.zoom.min || 1;
-          hardwareZoomRange.max = caps.zoom.max || 1;
-          hardwareZoomRange.step = caps.zoom.step || 0.1;
-          const initialZoom = settings.zoom || hardwareZoomRange.min || 1;
-          zoomFactor = clamp(initialZoom, hardwareZoomRange.min, hardwareZoomRange.max);
-          setupZoomSlider(hardwareZoomRange.min, hardwareZoomRange.max, hardwareZoomRange.step, zoomFactor);
-          video.style.transform = `translate(-50%,-50%) scale(1)`;
-        } else {
-          hardwareZoomSupported = false;
-          setupZoomSlider(1, 3, 0.1, 1);
-          video.style.transform = `translate(-50%,-50%) scale(1)`;
-        }
-      } catch (err) {
-        hardwareZoomSupported = false;
-        setupZoomSlider(1, 3, 0.1, 1);
-        video.style.transform = `translate(-50%,-50%) scale(1)`;
-      }
-
-      setupBrightnessSlider(-1, 1, 0.01, 0);
-
-      setMainView();
-    }
-
-    function stopCamera() {
-      if (stream) stream.getTracks().forEach(t => t.stop());
-      stream = null;
-      video.srcObject = null;
-      video.style.display = 'none';
-      captureBtn.disabled = true;
-      switchCameraBtn.disabled = true;
-      toggleCameraBtn.textContent = "カメラ起動";
-      isCameraOn = false;
-      hideZoomControl();
-      hideBrightnessControl();
-      zoomFactor = 1; brightnessFactor = 0; panX = 0; panY = 0; applyVideoTransform();
-      video.style.filter = '';
-      miniCam.style.filter = '';
-      videoWrapper.style.touchAction = '';
-      setMainView();
-    }
-
-    switchCameraBtn.addEventListener('click', async () => {
-      switchCameraBtn.disabled = true;
-      currentFacingMode = (currentFacingMode === 'environment') ? 'user' : 'environment';
-      try { await startCamera(); } catch (err) {
-        currentFacingMode = (currentFacingMode === 'environment') ? 'user' : 'environment';
-        try { await startCamera(); } catch (_) {}
-        alert('カメラ切替に失敗しました');
-      } finally { switchCameraBtn.disabled = false; }
-    });
-
-    // --- Helper: GPS and EXIF utilities ---
-    function toExifDateString(d) {
-      const pad = (n) => String(n).padStart(2, '0');
-      return `${d.getFullYear()}:${pad(d.getMonth()+1)}:${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-    }
-    function decimalToDMSRational(dec) {
-      dec = Math.abs(dec);
-      const deg = Math.floor(dec);
-      const minf = (dec - deg) * 60;
-      const minutes = Math.floor(minf);
-      const sec = (minf - minutes) * 60;
-      const secNum = Math.round(sec * 100);
-      const secDen = 100;
-      return [[deg,1],[minutes,1],[secNum,secDen]];
-    }
-
-    // --- Capture: bake brightness into image and embed EXIF (date + optional GPS) ---
-    captureBtn.addEventListener('click', async () => {
-      if (!stream) return;
-      const W = video.videoWidth; const H = video.videoHeight;
-      if (!W || !H) return;
-
-      const captureTime = new Date();
-      lastCaptureMeta = { capturedAt: captureTime, coords: null };
-
-      const getPosition = () => new Promise((resolve) => {
-        if (!navigator.geolocation) return resolve(null);
-        let resolved = false;
-        const success = (pos) => { if (!resolved) { resolved = true; resolve(pos.coords); } };
-        const fail = () => { if (!resolved) { resolved = true; resolve(null); } };
-        navigator.geolocation.getCurrentPosition(success, fail, { enableHighAccuracy: true, timeout: 3000, maximumAge: 60000 });
-        setTimeout(() => { if (!resolved) { resolved = true; resolve(null); } }, 3500);
-      });
-
-      const positionPromise = getPosition();
-
-      wrapperRect = videoWrapper.getBoundingClientRect();
-      const wrapperW = Math.round(wrapperRect.width);
-      const wrapperH = Math.round(wrapperRect.height);
-      const scaleToFill = Math.max(wrapperW / W, wrapperH / H);
-      const factor = zoomFactor || 1;
-      const cropWsrc = Math.round(wrapperW / (scaleToFill * factor));
-      const cropHsrc = Math.round(wrapperH / (scaleToFill * factor));
-      const centerSourceX = W / 2 - (panX / (scaleToFill * factor));
-      const centerSourceY = H / 2 - (panY / (scaleToFill * factor));
-      let sx = Math.round(centerSourceX - cropWsrc / 2);
-      let sy = Math.round(centerSourceY - cropHsrc / 2);
-      if (sx < 0) sx = 0;
-      if (sy < 0) sy = 0;
-      if (sx + cropWsrc > W) sx = Math.max(0, W - cropWsrc);
-      if (sy + cropHsrc > H) sy = Math.max(0, H - cropHsrc);
-      const canvas = document.createElement('canvas');
-      const size = Math.min(cropWsrc, cropHsrc);
-      canvas.width = size; canvas.height = size;
-      const ctx = canvas.getContext('2d');
-
-      const cssBrightnessMultiplier = 1 + brightnessFactor;
-      try {
-        ctx.filter = `brightness(${cssBrightnessMultiplier})`;
-        ctx.drawImage(video, sx, sy, size, size, 0, 0, size, size);
-      }
-      catch (err) {
-        console.warn('drawImage failed', err);
-        ctx.filter = 'none';
-        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-      }
-
-      const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.92);
-
-      const coords = await positionPromise;
-      if (coords) lastCaptureMeta.coords = { latitude: coords.latitude, longitude: coords.longitude, altitude: coords.altitude };
-
-      try {
-        const exifObj = { "0th": {}, "Exif": {}, "GPS": {}, "1st": {}, "thumbnail": null };
-        const dateStr = toExifDateString(captureTime);
-        exifObj["0th"][piexif.ImageIFD.DateTime] = dateStr;
-        exifObj["Exif"][piexif.ExifIFD.DateTimeOriginal] = dateStr;
-        if (coords) {
-          const latRef = coords.latitude >= 0 ? "N" : "S";
-          const lonRef = coords.longitude >= 0 ? "E" : "W";
-          exifObj["GPS"][piexif.GPSIFD.GPSLatitudeRef] = latRef;
-          exifObj["GPS"][piexif.GPSIFD.GPSLongitudeRef] = lonRef;
-          exifObj["GPS"][piexif.GPSIFD.GPSLatitude] = decimalToDMSRational(coords.latitude);
-          exifObj["GPS"][piexif.GPSIFD.GPSLongitude] = decimalToDMSRational(coords.longitude);
-          if (typeof coords.altitude === 'number' && !isNaN(coords.altitude)) {
-            const altNum = Math.round(Math.abs(coords.altitude) * 100);
-            exifObj["GPS"][piexif.GPSIFD.GPSAltitude] = [altNum, 100];
-            exifObj["GPS"][piexif.GPSIFD.GPSAltitudeRef] = coords.altitude >= 0 ? 0 : 1;
-          }
-        }
-        const exifbytes = piexif.dump(exifObj);
-        const newDataUrl = piexif.insert(exifbytes, jpegDataUrl);
-        lastCapturedDataUrl = newDataUrl;
-      } catch (exifErr) {
-        console.warn('EXIF埋め込み失敗', exifErr);
-        lastCapturedDataUrl = jpegDataUrl;
-      }
-
-      preview.src = lastCapturedDataUrl;
-      overlayPreview.src = lastCapturedDataUrl;
-
-      preview.setAttribute('data-captured', 'true');
-      overlayPreview.setAttribute('data-captured', 'true');
-
-      preview.style.filter = 'none';
-      overlayPreview.style.filter = 'none';
-
+imageInput.addEventListener('change', function() {
+  if (this.files && this.files[0]) {
+    const fr = new FileReader();
+    fr.onload = function(e) {
+      preview.src = e.target.result;
+      overlayPreview.src = e.target.result;
       previewThumb.style.display = 'flex';
-      inputImage = new Image(); inputImage.crossOrigin = "anonymous"; inputImage.src = lastCapturedDataUrl;
-      inputImageForPrediction = null; // リセット
-
-      downloadBtn.disabled = false;
-
       setMainView();
-    });
+      inputImage = new Image();
+      inputImage.crossOrigin = "anonymous";
+      inputImage.src = e.target.result;
+      downloadBtn.disabled = true;
+      lastCapturedDataUrl = null;
+      lastCaptureMeta = null;
+      resultCard.style.display = 'none';
+    };
+    fr.readAsDataURL(this.files[0]);
+  }
+});
 
-    // --- Thumbnail click handlers ---
-    preview.addEventListener('click', (ev) => {
-      if (!overlayPreview.src) return;
-      if (viewState === 'MAIN_VIEW') setOverlayView(); else setMainView();
-      ev.stopPropagation();
-    });
-    overlayPreview.addEventListener('click', (ev) => { setMainView(); ev.stopPropagation(); });
+// ドラッグ&ドロップ
+const fileDrop = document.getElementById('fileDrop');
+fileDrop.addEventListener('dragover', e => { e.preventDefault(); fileDrop.style.borderColor = 'var(--sakura-400)'; });
+fileDrop.addEventListener('dragleave', () => { fileDrop.style.borderColor = ''; });
+fileDrop.addEventListener('drop', e => {
+  e.preventDefault(); fileDrop.style.borderColor = '';
+  const file = e.dataTransfer.files[0];
+  if (file && file.type.startsWith('image/')) {
+    const fr = new FileReader();
+    fr.onload = ev => {
+      preview.src = ev.target.result;
+      overlayPreview.src = ev.target.result;
+      previewThumb.style.display = 'flex';
+      setMainView();
+      inputImage = new Image(); inputImage.crossOrigin = "anonymous"; inputImage.src = ev.target.result;
+      downloadBtn.disabled = true; lastCapturedDataUrl = null; resultCard.style.display = 'none';
+    };
+    fr.readAsDataURL(file);
+  }
+});
 
-    // --- Mini camera logic (simple live feed in thumbnail area) ---
-    function showMiniCam() {
-      if (!stream) return;
-      try {
-        miniCam.srcObject = stream;
-        miniCam.muted = true;
-        miniCam.style.filter = `brightness(${1 + brightnessFactor})`;
-        miniCam.play().catch(()=>{});
-        miniCamContainer.style.display = 'block';
-        preview.style.display = 'none';
-      } catch (err) { console.warn('miniCam start failed', err); }
+toggleCameraBtn.addEventListener('click', async () => {
+  if (isCameraOn) stopCamera();
+  else { try { await startCamera(); } catch(err) { alert('カメラ起動エラー'); } }
+});
+
+async function startCamera() {
+  stopCamera();
+  const tries = [
+    { video: { facingMode: { exact: currentFacingMode } }, audio: false },
+    { video: { facingMode: currentFacingMode }, audio: false },
+    { video: true, audio: false }
+  ];
+  let got = false;
+  for (const c of tries) {
+    try { stream = await navigator.mediaDevices.getUserMedia(c); got = true; break; } catch(e){}
+  }
+  if (!got) throw new Error('カメラ取得失敗');
+  video.srcObject = stream;
+  video.style.display = 'block';
+  cameraSection.style.display = 'block';
+  captureBtn.disabled = false;
+  switchCameraBtn.disabled = false;
+  toggleCameraBtn.textContent = '⏹ 停止';
+  toggleCameraBtn.classList.add('active');
+  isCameraOn = true;
+  zoomFactor=1; panX=0; panY=0; applyVideoTransform();
+  overlayPreview.style.display = 'none';
+
+  // ハードウェアズーム検出
+  const track = stream.getVideoTracks()[0];
+  try {
+    const caps = track.getCapabilities ? track.getCapabilities() : {};
+    if (caps && typeof caps.zoom !== 'undefined') {
+      hardwareZoomRange = { min: caps.zoom.min||1, max: caps.zoom.max||1, step: caps.zoom.step||0.1 };
+      zoomSlider.min = hardwareZoomRange.min; zoomSlider.max = hardwareZoomRange.max; zoomSlider.step = hardwareZoomRange.step;
     }
-    function hideMiniCam(detach = true) {
-      miniCamContainer.style.display = 'none';
-      if (detach) { try { miniCam.srcObject = null; } catch (_) {} }
-      if (preview.src) preview.style.display = 'block';
+  } catch(_) {}
+
+  zoomSlider.min = 1; zoomSlider.max = 3; zoomSlider.step = 0.1; zoomSlider.value = 1;
+  zoomValue.textContent = '1.0x';
+  brightnessSlider.value = 0; brightnessValue.textContent = '+0.00';
+  brightnessFactor = 0; applyBrightness();
+  sliderGroup.style.display = 'block';
+  setMainView();
+}
+
+function stopCamera() {
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  stream = null; video.srcObject = null; video.style.display = 'none';
+  captureBtn.disabled = true; switchCameraBtn.disabled = true;
+  toggleCameraBtn.textContent = '📹 カメラ';
+  toggleCameraBtn.classList.remove('active');
+  isCameraOn = false;
+  sliderGroup.style.display = 'none';
+  cameraSection.style.display = preview.src ? 'block' : 'none';
+  zoomFactor=1; brightnessFactor=0; panX=0; panY=0; applyVideoTransform();
+  video.style.filter = ''; miniCam.style.filter = '';
+  setMainView();
+}
+
+switchCameraBtn.addEventListener('click', async () => {
+  switchCameraBtn.disabled = true;
+  currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
+  try { await startCamera(); } catch(_) { alert('カメラ切替失敗'); } finally { switchCameraBtn.disabled = false; }
+});
+
+// EXIF ユーティリティ
+function toExifDateString(d) {
+  const p = n => String(n).padStart(2,'0');
+  return `${d.getFullYear()}:${p(d.getMonth()+1)}:${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+function decimalToDMSRational(dec) {
+  dec = Math.abs(dec);
+  const deg = Math.floor(dec);
+  const minf = (dec - deg) * 60;
+  const minutes = Math.floor(minf);
+  const sec = Math.round((minf - minutes) * 6000);
+  return [[deg,1],[minutes,1],[sec,100]];
+}
+
+captureBtn.addEventListener('click', async () => {
+  if (!stream) return;
+  const W = video.videoWidth, H = video.videoHeight;
+  if (!W || !H) return;
+  const captureTime = new Date();
+  lastCaptureMeta = { capturedAt: captureTime, coords: null };
+  const getPos = () => new Promise(res => {
+    if (!navigator.geolocation) return res(null);
+    let done = false;
+    navigator.geolocation.getCurrentPosition(
+      pos => { if(!done){ done=true; res(pos.coords); } },
+      () => { if(!done){ done=true; res(null); } },
+      { enableHighAccuracy:true, timeout:3000, maximumAge:60000 }
+    );
+    setTimeout(() => { if(!done){ done=true; res(null); } }, 3500);
+  });
+  const posPromise = getPos();
+  wrapperRect = videoWrapper.getBoundingClientRect();
+  const wW = Math.round(wrapperRect.width), wH = Math.round(wrapperRect.height);
+  const scaleToFill = Math.max(wW/W, wH/H);
+  const factor = zoomFactor || 1;
+  const cropW = Math.round(wW / (scaleToFill * factor));
+  const cropH = Math.round(wH / (scaleToFill * factor));
+  const cx = W/2 - (panX / (scaleToFill * factor));
+  const cy = H/2 - (panY / (scaleToFill * factor));
+  let sx = Math.round(cx - cropW/2), sy = Math.round(cy - cropH/2);
+  sx = Math.max(0, Math.min(sx, W - cropW));
+  sy = Math.max(0, Math.min(sy, H - cropH));
+  const canvas = document.createElement('canvas');
+  const size = Math.min(cropW, cropH);
+  canvas.width = size; canvas.height = size;
+  const ctx = canvas.getContext('2d');
+  ctx.filter = `brightness(${1 + brightnessFactor})`;
+  ctx.drawImage(video, sx, sy, size, size, 0, 0, size, size);
+  const jpegDataUrl = canvas.toDataURL('image/jpeg', 0.92);
+  const coords = await posPromise;
+  if (coords) lastCaptureMeta.coords = { latitude: coords.latitude, longitude: coords.longitude, altitude: coords.altitude };
+  try {
+    const exifObj = {"0th":{},"Exif":{},"GPS":{},"1st":{},"thumbnail":null};
+    const dateStr = toExifDateString(captureTime);
+    exifObj["0th"][piexif.ImageIFD.DateTime] = dateStr;
+    exifObj["Exif"][piexif.ExifIFD.DateTimeOriginal] = dateStr;
+    if (coords) {
+      exifObj["GPS"][piexif.GPSIFD.GPSLatitudeRef]  = coords.latitude  >= 0 ? "N" : "S";
+      exifObj["GPS"][piexif.GPSIFD.GPSLongitudeRef] = coords.longitude >= 0 ? "E" : "W";
+      exifObj["GPS"][piexif.GPSIFD.GPSLatitude]  = decimalToDMSRational(coords.latitude);
+      exifObj["GPS"][piexif.GPSIFD.GPSLongitude] = decimalToDMSRational(coords.longitude);
     }
-    miniCamContainer.addEventListener('click', (ev) => { if (!preview.src) return; setMainView(); ev.stopPropagation(); });
-    miniCam.addEventListener('click', (ev) => { miniCamContainer.click(); ev.stopPropagation(); });
+    lastCapturedDataUrl = piexif.insert(piexif.dump(exifObj), jpegDataUrl);
+  } catch(_) { lastCapturedDataUrl = jpegDataUrl; }
+  preview.src = lastCapturedDataUrl; overlayPreview.src = lastCapturedDataUrl;
+  previewThumb.style.display = 'flex'; downloadBtn.disabled = false;
+  inputImage = new Image(); inputImage.crossOrigin = "anonymous"; inputImage.src = lastCapturedDataUrl;
+  resultCard.style.display = 'none';
+  setMainView();
+});
 
-    // --- Download button handler ---
-    downloadBtn.addEventListener('click', (ev) => {
-      if (!lastCapturedDataUrl) return;
-      let filename = 'sakura.jpg';
-      if (lastCaptureMeta && lastCaptureMeta.capturedAt) {
-        const d = lastCaptureMeta.capturedAt;
-        const pad = (n)=>String(n).padStart(2,'0');
-        filename = `sakura_${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}_${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}.jpg`;
-      }
-      const a = document.createElement('a');
-      a.href = lastCapturedDataUrl;
-      a.download = filename;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-    });
+// サムネイルトグル
+preview.addEventListener('click', ev => {
+  if (!overlayPreview.src) return;
+  if (viewState === 'MAIN_VIEW') setOverlayView(); else setMainView();
+  ev.stopPropagation();
+});
+overlayPreview.addEventListener('click', ev => { setMainView(); ev.stopPropagation(); });
 
-    // --- Zoom UI / gestures / pan ---
-    function setupZoomSlider(min, max, step, initial) {
-      zoomSlider.min = min;
-      zoomSlider.max = max;
-      zoomSlider.step = step;
-      zoomSlider.value = initial;
-      zoomValue.textContent = parseFloat(initial).toFixed(1) + "x";
-      zoomControl.style.display = 'flex';
-      zoomSlider.oninput = async (e) => {
-        const v = parseFloat(e.target.value);
-        const s = { x: 0, y: 0 };
-        await setZoom(v, s);
-        zoomValue.textContent = v.toFixed(1) + "x";
-      };
-    }
-    function hideZoomControl() { zoomControl.style.display = 'none'; zoomSlider.oninput = null; zoomFactor = 1; zoomValue.textContent = "1.0x"; }
+function showMiniCam() {
+  if (!stream) return;
+  miniCam.srcObject = stream; miniCam.muted = true;
+  miniCam.style.filter = `brightness(${1 + brightnessFactor})`;
+  miniCam.play().catch(()=>{});
+  miniCamContainer.style.display = 'block'; preview.style.display = 'none';
+}
+function hideMiniCam(detach=true) {
+  miniCamContainer.style.display = 'none';
+  if (detach) { try { miniCam.srcObject = null; } catch(_){} }
+  if (preview.src) preview.style.display = 'block';
+}
+miniCamContainer.addEventListener('click', ev => { if (!preview.src) return; setMainView(); ev.stopPropagation(); });
 
-    // --- Brightness control setup and handlers ---
-    function setupBrightnessSlider(min, max, step, initial) {
-      brightnessSlider.min = min;
-      brightnessSlider.max = max;
-      brightnessSlider.step = step;
-      brightnessSlider.value = initial;
-      brightnessValue.textContent = parseFloat(initial).toFixed(2);
-      brightnessControl.style.display = 'flex';
+downloadBtn.addEventListener('click', () => {
+  if (!lastCapturedDataUrl) return;
+  let fn = 'sakura.jpg';
+  if (lastCaptureMeta?.capturedAt) {
+    const d = lastCaptureMeta.capturedAt;
+    const p = n => String(n).padStart(2,'0');
+    fn = `sakura_${d.getFullYear()}${p(d.getMonth()+1)}${p(d.getDate())}_${p(d.getHours())}${p(d.getMinutes())}${p(d.getSeconds())}.jpg`;
+  }
+  const a = document.createElement('a'); a.href = lastCapturedDataUrl; a.download = fn;
+  document.body.appendChild(a); a.click(); a.remove();
+});
 
-      brightnessSlider.oninput = (e) => {
-        const v = parseFloat(e.target.value);
-        brightnessFactor = v;
-        brightnessValue.textContent = (v >= 0 ? "+" : "") + v.toFixed(2);
-        applyBrightness();
-      };
-      brightnessFactor = parseFloat(initial);
-      applyBrightness();
-    }
+// ズーム & 明るさ
+zoomSlider.oninput = e => {
+  const v = parseFloat(e.target.value);
+  zoomFactor = v; clampPan(); applyVideoTransform();
+  zoomValue.textContent = v.toFixed(1) + 'x';
+};
+brightnessSlider.oninput = e => {
+  const v = parseFloat(e.target.value);
+  brightnessFactor = v;
+  brightnessValue.textContent = (v >= 0 ? '+' : '') + v.toFixed(2);
+  applyBrightness();
+};
 
-    function hideBrightnessControl() {
-      brightnessControl.style.display = 'none';
-      brightnessSlider.oninput = null;
-      brightnessFactor = 0;
-      brightnessValue.textContent = "0.00";
-    }
+function applyBrightness() {
+  const c = 1 + (brightnessFactor || 0);
+  video.style.filter = `brightness(${c})`; miniCam.style.filter = `brightness(${c})`;
+}
+function applyVideoTransform() {
+  video.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${zoomFactor})`;
+}
+function clamp(v,a,b){return Math.max(a,Math.min(b,v));}
+function clampPan() {
+  const W = video.videoWidth, H = video.videoHeight;
+  if (!W || !H) return;
+  wrapperRect = videoWrapper.getBoundingClientRect();
+  const wW = wrapperRect.width, wH = wrapperRect.height;
+  const s = Math.max(wW/W, wH/H);
+  const vW = W*s*zoomFactor, vH = H*s*zoomFactor;
+  const mx = Math.max(0,(vW-wW)/2), my = Math.max(0,(vH-wH)/2);
+  panX = clamp(panX,-mx,mx); panY = clamp(panY,-my,my);
+}
 
-    function applyBrightness() {
-      const cssVal = 1 + (brightnessFactor || 0);
-      video.style.filter = `brightness(${cssVal})`;
-      miniCam.style.filter = `brightness(${cssVal})`;
-    }
+// ピンチ・パン
+let isPanning=false, isPinching=false, pinchStartDist=0, pinchStartZoom=1;
+let pinchCenter={x:0,y:0}, startPanX=0, startPanY=0, panStart={x:0,y:0};
+const dist = (a,b) => Math.hypot(b.clientX-a.clientX, b.clientY-a.clientY);
+const mid  = (a,b) => ({x:(a.clientX+b.clientX)/2, y:(a.clientY+b.clientY)/2});
 
-    function applyVideoTransform() { video.style.transform = `translate(calc(-50% + ${panX}px), calc(-50% + ${panY}px)) scale(${zoomFactor})`; }
+videoWrapper.addEventListener('touchstart', ev => {
+  if (!isCameraOn || viewState!=='MAIN_VIEW') return; ev.preventDefault();
+  wrapperRect = videoWrapper.getBoundingClientRect();
+  if (ev.touches.length===1) {
+    isPanning=true; isPinching=false;
+    startPanX=panX; startPanY=panY; panStart={x:ev.touches[0].clientX,y:ev.touches[0].clientY};
+  } else if (ev.touches.length===2) {
+    isPinching=true; isPanning=false;
+    pinchStartDist=dist(ev.touches[0],ev.touches[1]); pinchStartZoom=zoomFactor||1;
+    const m=mid(ev.touches[0],ev.touches[1]);
+    pinchCenter={x:m.x-wrapperRect.left-wrapperRect.width/2, y:m.y-wrapperRect.top-wrapperRect.height/2};
+    panStart={x:panX,y:panY};
+  }
+},{passive:false});
 
-    async function setZoom(newZoom, s) {
-      const oldZoom = zoomFactor || 1;
-      const newPanX = (panX - s.x) * (newZoom / oldZoom) + s.x;
-      const newPanY = (panY - s.y) * (newZoom / oldZoom) + s.y;
-      zoomFactor = newZoom; panX = newPanX; panY = newPanY; clampPan(); applyVideoTransform();
-      if (stream && typeof stream.getVideoTracks === 'function') {
-        const track = stream.getVideoTracks()[0];
-        try { await track.applyConstraints({ advanced: [{ zoom: clamp(zoomFactor, hardwareZoomRange.min, hardwareZoomRange.max) }] }); }
-        catch (err) {}
-      }
-      if (zoomControl.style.display !== 'none') { zoomSlider.value = zoomFactor; zoomValue.textContent = zoomFactor.toFixed(1) + 'x'; }
-    }
-    function clampPan() {
-      const W = video.videoWidth, H = video.videoHeight;
-      if (!W || !H) return;
-      wrapperRect = videoWrapper.getBoundingClientRect();
-      const wrapperW = wrapperRect.width, wrapperH = wrapperRect.height;
-      const scaleToFill = Math.max(wrapperW / W, wrapperH / H);
-      const displayedWidth = W * scaleToFill, displayedHeight = H * scaleToFill;
-      const visualWidth = displayedWidth * zoomFactor, visualHeight = displayedHeight * zoomFactor;
-      const maxPanX = Math.max(0, (visualWidth - wrapperW) / 2), maxPanY = Math.max(0, (visualHeight - wrapperH) / 2);
-      panX = clamp(panX, -maxPanX, maxPanX); panY = clamp(panY, -maxPanY, maxPanY);
-    }
-    function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+videoWrapper.addEventListener('touchmove', ev => {
+  if (!isCameraOn || viewState!=='MAIN_VIEW') return; ev.preventDefault();
+  wrapperRect = videoWrapper.getBoundingClientRect();
+  if (isPinching && ev.touches.length>=2) {
+    const d=dist(ev.touches[0],ev.touches[1]);
+    if (pinchStartDist<=0) return;
+    const newZ=clamp(pinchStartZoom*(d/pinchStartDist), parseFloat(zoomSlider.min||1), parseFloat(zoomSlider.max||3));
+    const s=pinchCenter;
+    panX=(panStart.x-s.x)*(newZ/pinchStartZoom)+s.x;
+    panY=(panStart.y-s.y)*(newZ/pinchStartZoom)+s.y;
+    zoomFactor=newZ; clampPan(); applyVideoTransform();
+    zoomSlider.value=zoomFactor; zoomValue.textContent=zoomFactor.toFixed(1)+'x';
+  } else if (isPanning && ev.touches.length===1) {
+    panX=startPanX+(ev.touches[0].clientX-panStart.x);
+    panY=startPanY+(ev.touches[0].clientY-panStart.y);
+    clampPan(); applyVideoTransform();
+  }
+},{passive:false});
 
-    // gestures (pinch/pan)
-    let isPanning = false, isPinching = false, pinchStartDist = 0, pinchStartZoom = 1;
-    let pinchCenter = {x:0,y:0}, startPanX = 0, startPanY = 0, panStart = {x:0,y:0};
-    function getTouchDist(t1,t2){const dx=t2.clientX-t1.clientX,dy=t2.clientY-t1.clientY;return Math.hypot(dx,dy);}
-    function getTouchMid(t1,t2){return {x:(t1.clientX+t2.clientX)/2,y:(t1.clientY+t2.clientY)/2};}
+videoWrapper.addEventListener('touchend', ev => {
+  if (!isCameraOn) return; ev.preventDefault();
+  if (ev.touches.length===0) { isPanning=false; isPinching=false; }
+  else if (ev.touches.length===1) {
+    isPinching=false; isPanning=true;
+    startPanX=panX; startPanY=panY; panStart={x:ev.touches[0].clientX,y:ev.touches[0].clientY};
+  }
+},{passive:false});
 
-    videoWrapper.addEventListener('touchstart', (ev) => {
-      if (!isCameraOn) return;
-      if (viewState !== 'MAIN_VIEW') return;
-      ev.preventDefault();
-      wrapperRect = videoWrapper.getBoundingClientRect();
-      if (ev.touches.length === 1) {
-        isPanning = true; isPinching = false;
-        startPanX = panX; startPanY = panY;
-        panStart = { x: ev.touches[0].clientX, y: ev.touches[0].clientY };
-      } else if (ev.touches.length === 2) {
-        isPinching = true; isPanning = false;
-        pinchStartDist = getTouchDist(ev.touches[0], ev.touches[1]);
-        pinchStartZoom = zoomFactor || 1;
-        const mid = getTouchMid(ev.touches[0], ev.touches[1]);
-        pinchCenter = { x: mid.x - wrapperRect.left - wrapperRect.width / 2, y: mid.y - wrapperRect.top - wrapperRect.height / 2 };
-        panStart = { x: panX, y: panY };
-      }
-    }, { passive: false });
+// マウス
+let isMouseDown=false, mouseStart={x:0,y:0};
+videoWrapper.addEventListener('mousedown', ev => {
+  if (!isCameraOn || viewState!=='MAIN_VIEW') return; ev.preventDefault();
+  isMouseDown=true; mouseStart={x:ev.clientX,y:ev.clientY}; startPanX=panX; startPanY=panY;
+});
+window.addEventListener('mousemove', ev => {
+  if (!isCameraOn || !isMouseDown) return;
+  panX=startPanX+(ev.clientX-mouseStart.x); panY=startPanY+(ev.clientY-mouseStart.y);
+  clampPan(); applyVideoTransform();
+});
+window.addEventListener('mouseup', () => { isMouseDown=false; });
+videoWrapper.addEventListener('wheel', ev => {
+  if (!isCameraOn || viewState!=='MAIN_VIEW') return; ev.preventDefault();
+  const newZ=clamp(zoomFactor*(ev.deltaY<0?1.05:0.95), parseFloat(zoomSlider.min||1), parseFloat(zoomSlider.max||3));
+  wrapperRect=videoWrapper.getBoundingClientRect();
+  const s={x:ev.clientX-wrapperRect.left-wrapperRect.width/2, y:ev.clientY-wrapperRect.top-wrapperRect.height/2};
+  const old=zoomFactor; panX=(panX-s.x)*(newZ/old)+s.x; panY=(panY-s.y)*(newZ/old)+s.y;
+  zoomFactor=newZ; clampPan(); applyVideoTransform();
+  zoomSlider.value=zoomFactor; zoomValue.textContent=zoomFactor.toFixed(1)+'x';
+},{passive:false});
 
-    videoWrapper.addEventListener('touchmove', (ev) => {
-      if (!isCameraOn) return;
-      if (viewState !== 'MAIN_VIEW') return;
-      ev.preventDefault();
-      wrapperRect = videoWrapper.getBoundingClientRect();
-      if (isPinching && ev.touches.length >= 2) {
-        const dist = getTouchDist(ev.touches[0], ev.touches[1]);
-        if (pinchStartDist <= 0) return;
-        let scale = dist / pinchStartDist;
-        let newZoom = pinchStartZoom * scale;
-        const minZoom = parseFloat(zoomSlider.min || 1), maxZoom = parseFloat(zoomSlider.max || 3);
-        newZoom = clamp(newZoom, minZoom, maxZoom);
-        const s = { x: pinchCenter.x, y: pinchCenter.y };
-        panX = (panStart.x - s.x) * (newZoom / pinchStartZoom) + s.x;
-        panY = (panStart.y - s.y) * (newZoom / pinchStartZoom) + s.y;
-        zoomFactor = newZoom; clampPan(); applyVideoTransform();
-        if (zoomControl.style.display !== 'none') { zoomSlider.value = zoomFactor; zoomValue.textContent = zoomFactor.toFixed(1) + 'x'; }
-      } else if (isPanning && ev.touches.length === 1) {
-        const dx = ev.touches[0].clientX - panStart.x;
-        const dy = ev.touches[0].clientY - panStart.y;
-        panX = startPanX + dx; panY = startPanY + dy; clampPan(); applyVideoTransform();
-      }
-    }, { passive: false });
+// ====== AI 判定 ======
+function preprocessImage(img, size=224) {
+  const c=document.createElement('canvas'); c.width=size; c.height=size;
+  c.getContext('2d').drawImage(img,0,0,size,size);
+  return tf.browser.fromPixels(c).expandDims(0).toFloat().div(tf.scalar(255));
+}
 
-    videoWrapper.addEventListener('touchend', (ev) => {
-      if (!isCameraOn) return;
-      if (viewState !== 'MAIN_VIEW') return;
-      ev.preventDefault();
-      if (ev.touches.length === 0) { isPanning = false; isPinching = false; }
-      else if (ev.touches.length === 1) {
-        isPinching = false; isPanning = true;
-        startPanX = panX; startPanY = panY; panStart = { x: ev.touches[0].clientX, y: ev.touches[0].clientY };
-      }
-    }, { passive: false });
+async function predict(key, img) {
+  if (!models[key]) return null;
+  const t = preprocessImage(img, 224);
+  const out = models[key].predict(t);
+  const arr = await (Array.isArray(out) ? out[0] : out).data();
+  tf.dispose([t, out]);
+  let idx=0; for(let i=1;i<arr.length;i++) if(arr[i]>arr[idx]) idx=i;
+  return { class: modelClasses[key][idx], idx, confidence: arr[idx] };
+}
 
-    let isMouseDown = false, mouseStart = {x:0,y:0};
-    videoWrapper.addEventListener('mousedown', (ev) => {
-      if (!isCameraOn) return; if (viewState !== 'MAIN_VIEW') return;
-      ev.preventDefault(); isMouseDown = true; mouseStart = { x: ev.clientX, y: ev.clientY }; startPanX = panX; startPanY = panY;
-    });
-    window.addEventListener('mousemove', (ev) => {
-      if (!isCameraOn) return; if (viewState !== 'MAIN_VIEW') return;
-      if (!isMouseDown) return;
-      const dx = ev.clientX - mouseStart.x, dy = ev.clientY - mouseStart.y;
-      panX = startPanX + dx; panY = startPanY + dy; clampPan(); applyVideoTransform();
-    });
-    window.addEventListener('mouseup', () => { if (!isCameraOn) return; isMouseDown = false; });
+function showResult(html, type) {
+  resultCard.style.display = 'block';
+  resultCard.className = `result-card ${type}`;
+  resultDiv.innerHTML = html;
+  resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
 
-    videoWrapper.addEventListener('wheel', (ev) => {
-      if (!isCameraOn) return; if (viewState !== 'MAIN_VIEW') return;
-      ev.preventDefault();
-      const delta = -ev.deltaY; const zoomChange = delta > 0 ? 1.05 : 0.95;
-      const newZoom = clamp(zoomFactor * zoomChange, parseFloat(zoomSlider.min || 1), parseFloat(zoomSlider.max || 3));
-      wrapperRect = videoWrapper.getBoundingClientRect();
-      const s = { x: ev.clientX - wrapperRect.left - wrapperRect.width/2, y: ev.clientY - wrapperRect.top - wrapperRect.height/2 };
-      setZoom(newZoom, s);
-    }, { passive: false });
+submitBtn.addEventListener('click', async () => {
+  if (!inputImage) { showResult('<div class="result-icon">📷</div><div class="result-label">画像を選んでください</div>', 'result-error'); return; }
 
-    // --- Model preprocessing & predict ---
-    function preprocessImage(img, size=224) {
-      const canvas = document.createElement('canvas'); canvas.width = size; canvas.height = size;
-      const ctx = canvas.getContext('2d'); ctx.drawImage(img, 0, 0, size, size);
-      let tensor = tf.browser.fromPixels(canvas).expandDims(0).toFloat().div(tf.scalar(255));
-      return tensor;
-    }
+  showResult('<div class="result-icon">🔍</div><div class="result-label">解析中…</div>', 'result-loading');
+  submitBtn.disabled = true;
 
-    // --- 3段階判定ロジック（判定時のみFSRCNN適用） ---
-    async function predictSakura(img) {
-      if (!models.sakura) return null;
-      const tensor = preprocessImage(img, 224);
-      const predictionTensor = models.sakura.predict(tensor);
-      let prediction;
-      if (Array.isArray(predictionTensor)) prediction = await predictionTensor[0].data();
-      else prediction = await predictionTensor.data();
-
-      let idx = 0;
-      for (let i = 1; i < prediction.length; i++) {
-        if (prediction[i] > prediction[idx]) idx = i;
-      }
-      tf.dispose(tensor);
-      tf.dispose(predictionTensor);
-      return { class: modelClasses.sakura[idx], idx: idx, confidence: prediction[idx] };
-    }
-
-    async function predictHealth(img) {
-      if (!models.health) return null;
-      const tensor = preprocessImage(img, 224);
-      const predictionTensor = models.health.predict(tensor);
-      let prediction;
-      if (Array.isArray(predictionTensor)) prediction = await predictionTensor[0].data();
-      else prediction = await predictionTensor.data();
-
-      let idx = 0;
-      for (let i = 1; i < prediction.length; i++) {
-        if (prediction[i] > prediction[idx]) idx = i;
-      }
-      tf.dispose(tensor);
-      tf.dispose(predictionTensor);
-      return { class: modelClasses.health[idx], idx: idx, confidence: prediction[idx] };
-    }
-
-    async function predictSeverity(img) {
-      if (!models.severity) return null;
-      const tensor = preprocessImage(img, 224);
-      const predictionTensor = models.severity.predict(tensor);
-      let prediction;
-      if (Array.isArray(predictionTensor)) prediction = await predictionTensor[0].data();
-      else prediction = await predictionTensor.data();
-
-      let idx = 0;
-      for (let i = 1; i < prediction.length; i++) {
-        if (prediction[i] > prediction[idx]) idx = i;
-      }
-      tf.dispose(tensor);
-      tf.dispose(predictionTensor);
-      return { class: modelClasses.severity[idx], idx: idx, confidence: prediction[idx] };
-    }
-
-    // --- フォーム送信: 3段階判定実行 ---
-    document.getElementById('sakuraForm').addEventListener('submit', async function(e) {
-      e.preventDefault();
-      const resultDiv = document.getElementById('result');
-
-      if (!inputImage) {
-        resultDiv.innerHTML = "画像を確認してください。";
+  const run = async () => {
+    try {
+      // 段階1: 桜判定
+      const s1 = await predict('sakura', inputImage);
+      if (!s1) { showResult('<div class="result-icon">⚠️</div><div class="result-label">桜判定モデル未読み込み</div>', 'result-error'); return; }
+      if (s1.idx !== 0) {
+        const conf = (s1.confidence*100).toFixed(1);
+        showResult(`<div class="result-icon">🌿</div><div class="result-label">桜ではないようです</div><span class="result-badge" style="background:#FEF3C7;color:#92400E">確信度 ${conf}%</span>`, 'result-not-sakura');
+        await sendToGoogleForm('桜以外', conf, '');
         return;
       }
 
-      resultDiv.textContent = "判定中...";
+      // 段階2: 健康度判定
+      const s2 = await predict('health', inputImage);
+      if (!s2) { showResult('<div class="result-icon">⚠️</div><div class="result-label">健康度モデル未読み込み</div>', 'result-error'); return; }
+      if (s2.idx === 0) {
+        const conf = (s2.confidence*100).toFixed(1);
+        showResult(`<div class="result-icon">🌸</div><div class="result-label">健康です</div><span class="result-badge" style="background:#D1FAE5;color:#065F46">確信度 ${conf}%</span>`, 'result-healthy');
+        await sendToGoogleForm('健康', conf, '');
+        return;
+      }
 
-      inputImage.onload = async () => {
-        try {
-          // FSRCNN超解像を適用した画像を作成（判定用のみ）
-          let imgForPrediction = inputImage;
-          if (!inputImageForPrediction) {
-            resultDiv.textContent = "画像を超解像化中...";
-            try {
-              await upscaleImageWithFSRCNN(inputImage, 2);
-              inputImageForPrediction = inputImage; // ここでは元の画像を使用（実装に応じて超解像済み画像に変更可能）
-            } catch (err) {
-              console.warn('FSRCNN処理失敗、元の画像を使用:', err);
-              inputImageForPrediction = inputImage;
-            }
-          }
-          imgForPrediction = inputImageForPrediction;
+      // 段階3: 重症度判定
+      const s3 = await predict('severity', inputImage);
+      if (!s3) {
+        showResult(`<div class="result-icon">🍂</div><div class="result-label">病気の可能性あり</div>`, 'result-mid');
+        await sendToGoogleForm('病気（重症度不明）', '--', '');
+        return;
+      }
+      const conf = (s3.confidence*100).toFixed(1);
+      const sc = s3.class;
+      let type, icon, badge;
+      if (sc.includes('初期')) {
+        type='result-early'; icon='🟡'; badge='初期段階';
+      } else if (sc.includes('中期')) {
+        type='result-mid'; icon='🟠'; badge='中期段階';
+      } else {
+        type='result-severe'; icon='🔴'; badge='深刻段階';
+      }
+      showResult(`<div class="result-icon">${icon}</div><div class="result-label">病気の可能性があります</div><span class="result-badge" style="background:rgba(0,0,0,0.06)">${badge} / 確信度 ${conf}%</span>`, type);
+      await sendToGoogleForm(`病気（${sc}）`, conf, '');
 
-          resultDiv.textContent = "判定中...";
+    } catch(err) {
+      console.error(err);
+      showResult('<div class="result-icon">⚠️</div><div class="result-label">判定に失敗しました<br><small style="font-size:0.75rem;opacity:0.6">画像やモデルを確認してください</small></div>', 'result-error');
+    } finally {
+      submitBtn.disabled = false;
+    }
+  };
 
-          // 段階1: 桜判定
-          const sakuraResult = await predictSakura(imgForPrediction);
-          if (!sakuraResult) {
-            resultDiv.innerHTML = "桜判定モデルが未読み込みです。";
-            return;
-          }
+  if (inputImage.complete && inputImage.naturalWidth) { await run(); }
+  else { inputImage.onload = run; }
+});
 
-          const isSakura = sakuraResult.idx === 0;
-          const sakuraProb = (sakuraResult.confidence * 100).toFixed(1);
-
-          if (!isSakura) {
-            resultDiv.innerHTML = `<span class="sick">⚠️ 桜ではないようです</span>`;
-            return;
-          }
-
-          // 段階2: 健康度判定（桜と判定された場合）
-          const healthResult = await predictHealth(imgForPrediction);
-          if (!healthResult) {
-            resultDiv.innerHTML = "健康度判定モデルが未読み込みです。";
-            return;
-          }
-
-          const isHealthy = healthResult.idx === 0;
-          const healthProb = (healthResult.confidence * 100).toFixed(1);
-
-          if (isHealthy) {
-            resultDiv.innerHTML = `<span class="healthy">✅ 健康です</span>`;
-            return;
-          }
-
-          // 段階3: 重症度判定（病気と判定された場合）
-          const severityResult = await predictSeverity(imgForPrediction);
-          if (!severityResult) {
-            resultDiv.innerHTML = `<span class="sick">⚠️ 病気の可能性があります</span>`;
-            return;
-          }
-
-          const severityClass = severityResult.class;
-          const severityProb = (severityResult.confidence * 100).toFixed(1);
-
-          // 重症度に応じたスタイル分け
-          let styleClass = '';
-          if (severityClass.includes('初期')) styleClass = 'early-stage';
-          else if (severityClass.includes('中期')) styleClass = 'mid-stage';
-          else if (severityClass.includes('深刻')) styleClass = 'severe-stage';
-          else styleClass = 'sick';
-
-          resultDiv.innerHTML = `<span class="${styleClass}">⚠️ 病気の可能性があります【${severityClass}】</span>`;
-
-        } catch (err) {
-          console.error(err);
-          resultDiv.innerHTML = "判定に失敗しました。画像やモデルの形式を確認してください。";
-        }
-      };
-
-      if (inputImage.complete) inputImage.onload();
-    });
-
-    // resize handling
-    window.addEventListener('resize', () => { clampPan(); applyVideoTransform(); });
-
-    // cleanup
-    window.addEventListener('beforeunload', () => { if (stream) stream.getTracks().forEach(t => t.stop()); });
-
-  </script>
+window.addEventListener('resize', () => { clampPan(); applyVideoTransform(); });
+window.addEventListener('beforeunload', () => { if (stream) stream.getTracks().forEach(t=>t.stop()); });
+</script>
 </body>
 </html>
