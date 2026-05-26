@@ -258,6 +258,138 @@
       text-align: right;
     }
 
+    /* 逆光バスター */
+    .backlight-panel {
+      margin-top: 0.75rem;
+      border-radius: var(--radius-md);
+      border: 1.5px solid var(--border-mid);
+      overflow: hidden;
+      background: var(--sakura-50);
+    }
+    .backlight-header {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.65rem 0.75rem 0.5rem;
+    }
+    .backlight-icon { font-size: 1.1rem; flex-shrink: 0; }
+    .backlight-title-wrap { flex: 1; }
+    .backlight-title {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+    }
+    .backlight-sub {
+      display: block;
+      font-size: 0.66rem;
+      color: var(--text-muted);
+      margin-top: 0.1rem;
+    }
+    .backlight-toggle-row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0.4rem;
+      padding: 0 0.75rem 0.65rem;
+    }
+    .buster-choice {
+      font-family: 'Zen Maru Gothic', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 0.55rem 0.4rem;
+      border: 1.5px solid var(--border-mid);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .buster-choice.active {
+      background: linear-gradient(135deg, #FEF3C7, #FDE68A);
+      border-color: #F59E0B;
+      color: #78350F;
+    }
+    .backlight-status {
+      padding: 0 0.75rem 0.55rem;
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      min-height: 1em;
+      line-height: 1.5;
+    }
+    .backlight-canvas { display: none; }
+
+    /* 撮影ガイドオーバーレイ */
+    .guide-overlay {
+      position: absolute;
+      inset: 0;
+      z-index: 10;
+      pointer-events: none;
+    }
+    /* フレーム枠（中央75%の正方形） */
+    .guide-frame {
+      position: absolute;
+      top: 12.5%; left: 12.5%;
+      width: 75%; height: 75%;
+      transition: border-color 0.3s;
+    }
+    .frame-corner {
+      position: absolute;
+      width: 22px; height: 22px;
+      border-color: rgba(255,255,255,0.85);
+      border-style: solid;
+    }
+    .frame-corner.tl { top:0; left:0;  border-width: 3px 0 0 3px; border-radius: 4px 0 0 0; }
+    .frame-corner.tr { top:0; right:0; border-width: 3px 3px 0 0; border-radius: 0 4px 0 0; }
+    .frame-corner.bl { bottom:0; left:0;  border-width: 0 0 3px 3px; border-radius: 0 0 0 4px; }
+    .frame-corner.br { bottom:0; right:0; border-width: 0 3px 3px 0; border-radius: 0 0 4px 0; }
+    /* OK時は緑 */
+    .guide-frame.ok .frame-corner { border-color: #4ADE80; }
+    /* NG時はオレンジ */
+    .guide-frame.warn .frame-corner { border-color: #FB923C; }
+
+    /* メッセージバナー */
+    .guide-banner {
+      position: absolute;
+      bottom: 10px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0,0,0,0.55);
+      backdrop-filter: blur(6px);
+      border-radius: 99px;
+      padding: 0.35rem 1rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      white-space: nowrap;
+      transition: opacity 0.3s;
+    }
+    .guide-icon { font-size: 0.9rem; }
+    .guide-msg {
+      font-family: 'Zen Maru Gothic', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: #fff;
+    }
+    /* OKバッジ（中央） */
+    .guide-ok {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      background: rgba(74, 222, 128, 0.25);
+      border: 2px solid #4ADE80;
+      border-radius: 99px;
+      padding: 0.3rem 1rem;
+      font-family: 'Zen Maru Gothic', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: #fff;
+      animation: okPulse 1.2s ease-in-out infinite;
+    }
+    @keyframes okPulse {
+      0%,100% { opacity: 1; transform: translate(-50%,-50%) scale(1); }
+      50%      { opacity: 0.7; transform: translate(-50%,-50%) scale(1.05); }
+    }
+
     /* サムネイル */
     .preview-thumb {
       display: none;
@@ -357,6 +489,52 @@
     .result-early    { background: #FFFBEB; border: 1.5px solid #FCD34D; color: #78350F; }
     .result-mid      { background: #FFF4E6; border: 1.5px solid #FDBA74; color: #9A3412; }
     .result-severe   { background: #FEF2F2; border: 1.5px solid #FCA5A5; color: #991B1B; }
+
+    /* 病気時の連絡先ブロック */
+    .contact-block {
+      margin-top: 1rem;
+      padding: 0.9rem 1rem;
+      background: rgba(255,255,255,0.7);
+      border-radius: var(--radius-md);
+      border: 1px solid rgba(0,0,0,0.08);
+      text-align: center;
+    }
+    .contact-title {
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin-bottom: 0.6rem;
+    }
+    .contact-tel {
+      margin-bottom: 0.6rem;
+    }
+    .tel-link {
+      display: inline-block;
+      font-size: 1.05rem;
+      font-weight: 700;
+      color: var(--sakura-800);
+      text-decoration: none;
+      padding: 0.4rem 1rem;
+      border: 1.5px solid var(--sakura-200);
+      border-radius: 99px;
+      background: var(--sakura-50);
+      transition: background 0.15s;
+    }
+    .tel-link:hover { background: var(--sakura-100); }
+    .contact-form-btn {
+      display: inline-block;
+      margin-top: 0.4rem;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(135deg, var(--sakura-600), var(--sakura-400));
+      padding: 0.5rem 1.1rem;
+      border-radius: 99px;
+      text-decoration: none;
+      box-shadow: 0 2px 8px rgba(196,77,135,0.2);
+      transition: opacity 0.15s;
+    }
+    .contact-form-btn:hover { opacity: 0.88; }
     .result-loading  { background: var(--sakura-50); border: 1.5px solid var(--border-mid); color: var(--sakura-800); }
     .result-error    { background: #F8F8F8; border: 1.5px solid #E5E7EB; color: #374151; }
 
@@ -445,12 +623,50 @@
         <button type="button" class="btn" id="switchCamera" disabled>🔄 切替</button>
         <button type="button" class="btn" id="captureBtn" disabled>✦ 撮影</button>
       </div>
+
+      <!-- 逆光バスターパネル -->
+      <div class="backlight-panel" id="backlightPanel">
+        <div class="backlight-header">
+          <span class="backlight-icon">☀️</span>
+          <div class="backlight-title-wrap">
+            <span class="backlight-title">逆光・暗所バスター</span>
+            <span class="backlight-sub">暗い写真でもAIが正確に判定できます</span>
+          </div>
+        </div>
+        <div class="backlight-toggle-row">
+          <button type="button" class="buster-choice" id="busterOff">使わない</button>
+          <button type="button" class="buster-choice active" id="busterOn">☀️ 使う（自動）</button>
+        </div>
+        <div class="backlight-status" id="backlightStatus"></div>
+        <canvas id="backlightCanvas" class="backlight-canvas" style="display:none"></canvas>
+      </div>
     </div>
 
     <div class="card-section" id="cameraSection" style="display:none">
       <div class="video-wrapper" id="videoWrapper">
         <video id="video" class="main" autoplay playsinline></video>
         <img id="overlayPreview" class="overlay-preview" alt="撮影画像プレビュー" />
+
+        <!-- 撮影ガイドオーバーレイ -->
+        <div class="guide-overlay" id="guideOverlay" style="display:none">
+          <!-- フレーム枠 -->
+          <div class="guide-frame" id="guideFrame">
+            <span class="frame-corner tl"></span>
+            <span class="frame-corner tr"></span>
+            <span class="frame-corner bl"></span>
+            <span class="frame-corner br"></span>
+          </div>
+          <!-- メッセージバナー -->
+          <div class="guide-banner" id="guideBanner">
+            <span class="guide-icon" id="guideIcon">📸</span>
+            <span class="guide-msg" id="guideMsg">カメラを向けてください</span>
+          </div>
+          <!-- OK インジケーター -->
+          <div class="guide-ok" id="guideOk" style="display:none">✓ OK</div>
+        </div>
+
+        <!-- 解析用の隠しcanvas -->
+        <canvas id="guideCanvas" style="display:none"></canvas>
       </div>
 
       <div class="slider-group" id="sliderGroup">
@@ -547,10 +763,10 @@ async function loadAllModels() {
 loadAllModels();
 
 // ====== Google フォーム送信設定（内部定数 — 研究チームのみ編集） ======
-const FORM_ACTION_URL  = "https://docs.google.com/forms/d/1RJYsCFJvcxcGAbGK2-75Zbr_s0LyHSyitkVNWQsJwAE/formResponse";
-const ENTRY_RESULT     = "entry.1319158684"; // 判定結果
-const ENTRY_CONFIDENCE = "entry.1644085124"; // 確信度(%)
-const ENTRY_MEMO       = "entry.245467202";  // メモ（任意）
+const FORM_ACTION_URL  = "https://docs.google.com/forms/d/YOUR_FORM_ID/formResponse";
+const ENTRY_RESULT     = "entry.000000001"; // 判定結果
+const ENTRY_CONFIDENCE = "entry.000000002"; // 確信度(%)
+const ENTRY_MEMO       = "entry.000000003"; // メモ（任意）
 
 async function sendToGoogleForm(resultText, confidence, memo) {
   if (!FORM_ACTION_URL || FORM_ACTION_URL.includes('YOUR_FORM_ID')) return;
@@ -586,6 +802,119 @@ const downloadBtn = document.getElementById('downloadBtn');
 const cameraSection = document.getElementById('cameraSection');
 const resultCard = document.getElementById('resultCard');
 const resultDiv = document.getElementById('result');
+
+// ====== 逆光バスター（自動解析・自動適用） ======
+let backlightOn = true; // デフォルト「使う」
+let shadowLift = 0;
+let gammaVal = 1;
+const backlightCanvas = document.getElementById('backlightCanvas');
+const backlightCtx = backlightCanvas.getContext('2d');
+const backlightStatusEl = document.getElementById('backlightStatus');
+
+// 画像の明るさ・コントラストを自動解析してパラメータを決定
+function analyzeImage(imageData) {
+  const data = imageData.data;
+  let sum = 0, count = 0;
+  let darkPixels = 0; // 0〜0.3の割合
+  let brightPixels = 0; // 0.7〜1.0の割合
+  for (let i = 0; i < data.length; i += 16) { // 間引きサンプリング
+    const r = data[i] / 255, g = data[i+1] / 255, b = data[i+2] / 255;
+    const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+    sum += lum; count++;
+    if (lum < 0.3) darkPixels++;
+    if (lum > 0.7) brightPixels++;
+  }
+  const avgLum = sum / count;
+  const darkRatio = darkPixels / count;
+  const brightRatio = brightPixels / count;
+  // コントラスト比（明部と暗部の共存 = 逆光の特徴）
+  const contrastScore = darkRatio * brightRatio * 4; // 0〜1
+  return { avgLum, darkRatio, brightRatio, contrastScore };
+}
+
+// 解析結果から最適なパラメータを決定
+function decideParams(analysis) {
+  const { avgLum, darkRatio, contrastScore } = analysis;
+  let lift = 0, gamma = 1, label = '', emoji = '';
+
+  // 逆光（暗い領域と明るい領域が共存）
+  if (contrastScore > 0.15 && darkRatio > 0.25) {
+    lift = 0.30 + contrastScore * 0.2;
+    gamma = 1.7 + contrastScore * 0.5;
+    label = '逆光を検出しました。暗部を持ち上げて補正します';
+    emoji = '🌆';
+  }
+  // 全体的に暗い（暗所・曇り）
+  else if (avgLum < 0.35) {
+    const darkness = (0.35 - avgLum) / 0.35;
+    lift = 0.15 + darkness * 0.35;
+    gamma = 1.4 + darkness * 0.8;
+    label = avgLum < 0.2 ? '暗所を検出しました。大きく明るさを補正します' : '薄暗さを検出しました。やや明るく補正します';
+    emoji = avgLum < 0.2 ? '🌙' : '🌤';
+  }
+  // 十分明るい
+  else {
+    lift = 0; gamma = 1;
+    label = '十分明るい写真です。補正は不要です';
+    emoji = '✅';
+  }
+
+  lift = Math.min(0.55, Math.max(0, lift));
+  gamma = Math.min(2.8, Math.max(1, gamma));
+  return { lift, gamma, label, emoji };
+}
+
+// シャドウリフト＋ガンマ補正をピクセル単位で適用
+function applyBacklightCorrection(imageData, lift, gamma) {
+  if (lift === 0 && gamma === 1) return imageData;
+  const data = new Uint8ClampedArray(imageData.data);
+  const invGamma = 1.0 / gamma;
+  for (let i = 0; i < data.length; i += 4) {
+    for (let c = 0; c < 3; c++) {
+      let v = data[i + c] / 255;
+      v = v + lift * (1 - v) * (1 - v);
+      v = Math.pow(Math.max(0, v), invGamma);
+      data[i + c] = Math.min(255, Math.round(v * 255));
+    }
+  }
+  return new ImageData(data, imageData.width, imageData.height);
+}
+
+function updateBacklightPreview() {
+  backlightStatusEl.textContent = '';
+  shadowLift = 0; gammaVal = 1;
+  if (!inputImage || !inputImage.naturalWidth || !backlightOn) return;
+
+  const size = 224;
+  backlightCanvas.width = size; backlightCanvas.height = size;
+  backlightCtx.drawImage(inputImage, 0, 0, size, size);
+  const raw = backlightCtx.getImageData(0, 0, size, size);
+
+  const analysis = analyzeImage(raw);
+  const params = decideParams(analysis);
+  shadowLift = params.lift;
+  gammaVal = params.gamma;
+
+  if (params.lift > 0) {
+    backlightCtx.putImageData(applyBacklightCorrection(raw, shadowLift, gammaVal), 0, 0);
+  }
+  backlightStatusEl.textContent = params.emoji + ' ' + params.label;
+}
+
+// 「使う／使わない」ボタン
+document.getElementById('busterOn').addEventListener('click', () => {
+  backlightOn = true;
+  document.getElementById('busterOn').classList.add('active');
+  document.getElementById('busterOff').classList.remove('active');
+  updateBacklightPreview();
+});
+document.getElementById('busterOff').addEventListener('click', () => {
+  backlightOn = false;
+  shadowLift = 0; gammaVal = 1;
+  document.getElementById('busterOff').classList.add('active');
+  document.getElementById('busterOn').classList.remove('active');
+  backlightStatusEl.textContent = '';
+});
 
 let inputImage = null;
 let stream = null;
@@ -625,6 +954,7 @@ imageInput.addEventListener('change', function() {
       setMainView();
       inputImage = new Image();
       inputImage.crossOrigin = "anonymous";
+      inputImage.onload = () => updateBacklightPreview();
       inputImage.src = e.target.result;
       downloadBtn.disabled = true;
       lastCapturedDataUrl = null;
@@ -699,6 +1029,7 @@ async function startCamera() {
   brightnessSlider.value = 0; brightnessValue.textContent = '+0.00';
   brightnessFactor = 0; applyBrightness();
   sliderGroup.style.display = 'block';
+  startGuide();
   setMainView();
 }
 
@@ -713,6 +1044,7 @@ function stopCamera() {
   cameraSection.style.display = preview.src ? 'block' : 'none';
   zoomFactor=1; brightnessFactor=0; panX=0; panY=0; applyVideoTransform();
   video.style.filter = ''; miniCam.style.filter = '';
+  stopGuide();
   setMainView();
 }
 
@@ -738,6 +1070,9 @@ function decimalToDMSRational(dec) {
 
 captureBtn.addEventListener('click', async () => {
   if (!stream) return;
+  // ガイドを一時停止
+  if (guideTimer) { clearInterval(guideTimer); guideTimer = null; }
+  guideOk.style.display = 'none';
   const W = video.videoWidth, H = video.videoHeight;
   if (!W || !H) return;
   const captureTime = new Date();
@@ -788,9 +1123,14 @@ captureBtn.addEventListener('click', async () => {
   } catch(_) { lastCapturedDataUrl = jpegDataUrl; }
   preview.src = lastCapturedDataUrl; overlayPreview.src = lastCapturedDataUrl;
   previewThumb.style.display = 'flex'; downloadBtn.disabled = false;
-  inputImage = new Image(); inputImage.crossOrigin = "anonymous"; inputImage.src = lastCapturedDataUrl;
+  inputImage = new Image();
+  inputImage.crossOrigin = "anonymous";
+  inputImage.onload = () => updateBacklightPreview();
+  inputImage.src = lastCapturedDataUrl;
   resultCard.style.display = 'none';
   setMainView();
+  // 撮影後ガイド再開
+  setTimeout(() => { if (isCameraOn) startGuide(); }, 800);
 });
 
 // サムネイルトグル
@@ -932,8 +1272,14 @@ videoWrapper.addEventListener('wheel', ev => {
 
 // ====== AI 判定 ======
 function preprocessImage(img, size=224) {
-  const c=document.createElement('canvas'); c.width=size; c.height=size;
-  c.getContext('2d').drawImage(img,0,0,size,size);
+  const c = document.createElement('canvas'); c.width = size; c.height = size;
+  const ctx = c.getContext('2d');
+  ctx.drawImage(img, 0, 0, size, size);
+  // 逆光バスターがONの場合、補正済みピクセルで上書き
+  if (backlightOn) {
+    const raw = ctx.getImageData(0, 0, size, size);
+    ctx.putImageData(applyBacklightCorrection(raw, shadowLift, gammaVal), 0, 0);
+  }
   return tf.browser.fromPixels(c).expandDims(0).toFloat().div(tf.scalar(255));
 }
 
@@ -985,7 +1331,7 @@ submitBtn.addEventListener('click', async () => {
       // 段階3: 重症度判定
       const s3 = await predict('severity', inputImage);
       if (!s3) {
-        showResult(`<div class="result-icon">🍂</div><div class="result-label">病気の可能性あり</div>`, 'result-mid');
+        showResult(`<div class="result-icon">🍂</div><div class="result-label">病気の可能性があります</div><div class="contact-block"><div class="contact-title">🌸 日立市さくら課にご連絡ください</div><div class="contact-tel"><a href="tel:0294-22-3111" class="tel-link">📞 0294-22-3111</a></div><a href="https://www.city.hitachi.lg.jp/cgi-bin/contacts/G006050" target="_blank" rel="noopener" class="contact-form-btn">お問い合わせフォームはこちら →</a></div>`, 'result-mid');
         await sendToGoogleForm('病気（重症度不明）', '--', '');
         return;
       }
@@ -999,7 +1345,7 @@ submitBtn.addEventListener('click', async () => {
       } else {
         type='result-severe'; icon='🔴'; badge='深刻段階';
       }
-      showResult(`<div class="result-icon">${icon}</div><div class="result-label">病気の可能性があります</div><span class="result-badge" style="background:rgba(0,0,0,0.06)">${badge} / 確信度 ${conf}%</span>`, type);
+      showResult(`<div class="result-icon">${icon}</div><div class="result-label">病気の可能性があります</div><span class="result-badge" style="background:rgba(0,0,0,0.06)">${badge} / 確信度 ${conf}%</span><div class="contact-block"><div class="contact-title">🌸 日立市さくら課にご連絡ください</div><div class="contact-tel"><a href="tel:0294-22-3111" class="tel-link">📞 0294-22-3111</a></div><a href="https://www.city.hitachi.lg.jp/cgi-bin/contacts/G006050" target="_blank" rel="noopener" class="contact-form-btn">お問い合わせフォームはこちら →</a></div>`, type);
       await sendToGoogleForm(`病気（${sc}）`, conf, '');
 
     } catch(err) {
@@ -1013,6 +1359,167 @@ submitBtn.addEventListener('click', async () => {
   if (inputImage.complete && inputImage.naturalWidth) { await run(); }
   else { inputImage.onload = run; }
 });
+
+// ====== 撮影ガイド（リアルタイム解析） ======
+const guideOverlay  = document.getElementById('guideOverlay');
+const guideFrame    = document.getElementById('guideFrame');
+const guideBanner   = document.getElementById('guideBanner');
+const guideIcon     = document.getElementById('guideIcon');
+const guideMsg      = document.getElementById('guideMsg');
+const guideOk       = document.getElementById('guideOk');
+const guideCanvas   = document.getElementById('guideCanvas');
+const guideCtx      = guideCanvas.getContext('2d');
+
+let guideTimer = null;
+let guideOkCount = 0; // OK状態が連続した回数（撮影ロックに使用）
+const GUIDE_SIZE = 96; // 解析サンプル解像度
+
+function startGuide() {
+  guideOverlay.style.display = 'block';
+  guideFrame.className = 'guide-frame';
+  guideOk.style.display = 'none';
+  setGuideBanner('📸', 'カメラを向けてください', false);
+  guideOkCount = 0;
+  if (guideTimer) clearInterval(guideTimer);
+  guideTimer = setInterval(runGuideAnalysis, 400);
+}
+
+function stopGuide() {
+  if (guideTimer) clearInterval(guideTimer);
+  guideTimer = null;
+  guideOverlay.style.display = 'none';
+  guideOkCount = 0;
+}
+
+function setGuideBanner(icon, msg, isOk) {
+  guideIcon.textContent = icon;
+  guideMsg.textContent = msg;
+  guideBanner.style.display = 'flex';
+  if (isOk) {
+    guideFrame.className = 'guide-frame ok';
+    guideOk.style.display = 'block';
+  } else {
+    guideFrame.className = 'guide-frame warn';
+    guideOk.style.display = 'none';
+  }
+}
+
+function setGuideReady() {
+  guideFrame.className = 'guide-frame ok';
+  guideOk.style.display = 'block';
+  guideIcon.textContent = '✅';
+  guideMsg.textContent = 'シャッターを切ってください';
+}
+
+// ラプラシアン分散でピントスコアを計算（高いほどシャープ）
+function calcSharpness(imageData, w, h) {
+  const d = imageData.data;
+  let sum = 0, count = 0;
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
+      const idx = (y * w + x) * 4;
+      // グレースケール輝度
+      const c  = 0.299*d[idx]+0.587*d[idx+1]+0.114*d[idx+2];
+      const t  = 0.299*d[idx-w*4]+0.587*d[idx-w*4+1]+0.114*d[idx-w*4+2];
+      const b  = 0.299*d[idx+w*4]+0.587*d[idx+w*4+1]+0.114*d[idx+w*4+2];
+      const l  = 0.299*d[idx-4]+0.587*d[idx-3]+0.114*d[idx-2];
+      const r  = 0.299*d[idx+4]+0.587*d[idx+5]+0.114*d[idx+6];
+      const lap = Math.abs(4*c - t - b - l - r);
+      sum += lap; count++;
+    }
+  }
+  return count > 0 ? sum / count : 0;
+}
+
+// 中央領域の平均輝度（0〜1）
+function calcCenterBrightness(imageData, w, h) {
+  const d = imageData.data;
+  const x0=Math.floor(w*0.25), x1=Math.floor(w*0.75);
+  const y0=Math.floor(h*0.25), y1=Math.floor(h*0.75);
+  let sum=0, count=0;
+  for (let y=y0;y<y1;y++) {
+    for (let x=x0;x<x1;x++) {
+      const i=(y*w+x)*4;
+      sum += 0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
+      count++;
+    }
+  }
+  return count>0 ? sum/count/255 : 0;
+}
+
+// エッジ密度（被写体の存在感）
+function calcEdgeDensity(imageData, w, h) {
+  const d = imageData.data;
+  const cx=Math.floor(w/2), cy=Math.floor(h/2);
+  const rx=Math.floor(w*0.3), ry=Math.floor(h*0.3);
+  let edgeCount=0, total=0;
+  for (let y=cy-ry;y<cy+ry;y++) {
+    for (let x=cx-rx;x<cx+rx;x++) {
+      if (x<1||y<1||x>=w-1||y>=h-1) continue;
+      const idx=(y*w+x)*4;
+      const c =0.299*d[idx]+0.587*d[idx+1]+0.114*d[idx+2];
+      const r =0.299*d[idx+4]+0.587*d[idx+5]+0.114*d[idx+6];
+      const b =0.299*d[idx+w*4]+0.587*d[idx+w*4+1]+0.114*d[idx+w*4+2];
+      if (Math.abs(c-r)>15 || Math.abs(c-b)>15) edgeCount++;
+      total++;
+    }
+  }
+  return total>0 ? edgeCount/total : 0;
+}
+
+async function runGuideAnalysis() {
+  if (!isCameraOn || !video.videoWidth || viewState !== 'MAIN_VIEW') return;
+
+  const W = video.videoWidth, H = video.videoHeight;
+  const size = GUIDE_SIZE;
+  guideCanvas.width = size; guideCanvas.height = size;
+
+  // 中央の正方形を切り出してサンプリング
+  const crop = Math.min(W, H);
+  const sx = (W - crop) / 2, sy = (H - crop) / 2;
+  guideCtx.drawImage(video, sx, sy, crop, crop, 0, 0, size, size);
+  const imageData = guideCtx.getImageData(0, 0, size, size);
+
+  const sharpness   = calcSharpness(imageData, size, size);
+  const brightness  = calcCenterBrightness(imageData, size, size);
+  const edgeDensity = calcEdgeDensity(imageData, size, size);
+
+  // しきい値（チューニング可能）
+  const SHARP_OK    = 6.0;   // ラプラシアン分散のOK閾値
+  const SHARP_WARN  = 2.5;   // ピンボケ判定閾値
+  const EDGE_OK     = 0.08;  // エッジ密度のOK閾値（被写体あり）
+  const BRIGHT_LOW  = 0.06;  // 暗すぎ判定
+  const BRIGHT_HIGH = 0.92;  // 明るすぎ判定
+
+  // 判定ロジック（優先度順）
+  if (brightness < BRIGHT_LOW) {
+    setGuideBanner('🌑', '暗すぎます。明るい場所に移動してください', false);
+    guideOkCount = 0;
+  } else if (brightness > BRIGHT_HIGH) {
+    setGuideBanner('☀️', '明るすぎます。影の中に入るか角度を変えてください', false);
+    guideOkCount = 0;
+  } else if (edgeDensity < EDGE_OK) {
+    setGuideBanner('🔍', '被写体をフレームに入れてください', false);
+    guideOkCount = 0;
+  } else if (sharpness < SHARP_WARN) {
+    setGuideBanner('💫', 'ピンボケです。もっと近づいてください', false);
+    guideOkCount = 0;
+  } else if (sharpness < SHARP_OK) {
+    setGuideBanner('📐', 'もう少し近づくか、手ブレに注意してください', false);
+    guideOkCount = 0;
+  } else {
+    // OK
+    guideOkCount++;
+    if (guideOkCount >= 2) {
+      setGuideReady();
+    } else {
+      setGuideBanner('✅', 'シャッターを切ってください', true);
+    }
+  }
+}
+
+// 撮影後にガイドを一時非表示→再開
+const origCaptureBtnHandler = captureBtn.onclick;
 
 window.addEventListener('resize', () => { clampPan(); applyVideoTransform(); });
 window.addEventListener('beforeunload', () => { if (stream) stream.getTracks().forEach(t=>t.stop()); });
