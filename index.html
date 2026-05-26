@@ -535,6 +535,61 @@
       transition: opacity 0.15s;
     }
     .contact-form-btn:hover { opacity: 0.88; }
+
+    /* ヒートマップ */
+    .heatmap-section {
+      margin: 1rem 1.25rem 1.25rem;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1.5px solid rgba(220,38,38,0.25);
+      background: rgba(255,255,255,0.6);
+    }
+    .heatmap-header {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.55rem 0.8rem;
+      background: rgba(220,38,38,0.07);
+      border-bottom: 1px solid rgba(220,38,38,0.12);
+    }
+    .heatmap-header-text {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: #991B1B;
+      flex: 1;
+    }
+    .heatmap-legend {
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+      font-size: 0.62rem;
+      color: #9CA3AF;
+    }
+    .legend-bar {
+      width: 48px; height: 6px;
+      border-radius: 3px;
+      background: linear-gradient(to right, #3B82F6, #22C55E, #EAB308, #EF4444);
+    }
+    .heatmap-canvas-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1/1;
+      background: #111;
+    }
+    .heatmap-canvas-wrap canvas {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+    #hmOrigCanvas { opacity: 1; }
+    #hmHeatCanvas { opacity: 0.62; mix-blend-mode: screen; }
+    .heatmap-note {
+      padding: 0.45rem 0.8rem;
+      font-size: 0.66rem;
+      color: #6B7280;
+      line-height: 1.6;
+    }
     .result-loading  { background: var(--sakura-50); border: 1.5px solid var(--border-mid); color: var(--sakura-800); }
     .result-error    { background: #F8F8F8; border: 1.5px solid #E5E7EB; color: #374151; }
 
@@ -706,6 +761,27 @@
   <!-- 結果 -->
   <div class="result-card" id="resultCard">
     <div class="result-inner" id="result"></div>
+    <!-- ヒートマップ（病気判定時のみ表示・result-card内） -->
+    <div id="heatmapCard" style="display:none">
+      <div class="heatmap-section">
+        <div class="heatmap-header">
+          <span>🔥</span>
+          <span class="heatmap-header-text">ここが怪しい！ AIの注目エリア</span>
+          <div class="heatmap-legend">
+            <span>低</span>
+            <div class="legend-bar"></div>
+            <span>高</span>
+          </div>
+        </div>
+        <div class="heatmap-canvas-wrap">
+          <canvas id="hmOrigCanvas"></canvas>
+          <canvas id="hmHeatCanvas"></canvas>
+        </div>
+        <div class="heatmap-note">
+          赤いほどAIが「病気の証拠」として強く注目している領域です。青〜緑は参考程度です。
+        </div>
+      </div>
+    </div>
   </div>
 
   <p class="footer-note">
@@ -1300,10 +1376,161 @@ function showResult(html, type) {
   resultCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
+
+// ====== Grad-CAM ヒートマップ ======
+const heatmapCard   = document.getElementById('heatmapCard');
+const hmOrigCanvas  = document.getElementById('hmOrigCanvas');
+const hmHeatCanvas  = document.getElementById('hmHeatCanvas');
+const hmOrigCtx     = hmOrigCanvas.getContext('2d');
+const hmHeatCtx     = hmHeatCanvas.getContext('2d');
+
+// 熱カラーマップ（青→緑→黄→赤）
+function heatColor(t) {
+  // t: 0〜1
+  const colors = [
+    [59,130,246],   // blue
+    [34,197,94],    // green
+    [234,179,8],    // yellow
+    [239,68,68],    // red
+  ];
+  const scaled = t * (colors.length - 1);
+  const lo = Math.floor(scaled), hi = Math.min(lo + 1, colors.length - 1);
+  const f = scaled - lo;
+  return colors[lo].map((c, i) => Math.round(c + f * (colors[hi][i] - c)));
+}
+
+// モデルの最終Conv層名を推定して取得
+function getLastConvLayer(model) {
+  for (let i = model.layers.length - 1; i >= 0; i--) {
+    const l = model.layers[i];
+    if (l.getClassName().toLowerCase().includes('conv')) return l;
+  }
+  return null;
+}
+
+async function computeGradCAM(model, img, targetClassIdx) {
+  const SIZE = 224;
+
+  // 入力テンソル作成（逆光補正込み）
+  const inputCanvas = document.createElement('canvas');
+  inputCanvas.width = SIZE; inputCanvas.height = SIZE;
+  const inputCtx = inputCanvas.getContext('2d');
+  inputCtx.drawImage(img, 0, 0, SIZE, SIZE);
+  if (backlightOn) {
+    const raw = inputCtx.getImageData(0, 0, SIZE, SIZE);
+    inputCtx.putImageData(applyBacklightCorrection(raw, shadowLift, gammaVal), 0, 0);
+  }
+
+  const lastConv = getLastConvLayer(model);
+  if (!lastConv) return null;
+
+  // lastConvの出力と最終出力を同時に得るサブモデル
+  let featureModel, predModel;
+  try {
+    featureModel = tf.model({ inputs: model.inputs, outputs: lastConv.output });
+    predModel    = tf.model({ inputs: model.inputs, outputs: model.outputs });
+  } catch(e) {
+    console.warn('Grad-CAM: サブモデル作成失敗', e);
+    return null;
+  }
+
+  const inputTensor = tf.browser.fromPixels(inputCanvas)
+    .expandDims(0).toFloat().div(tf.scalar(255));
+
+  // 勾配計算
+  const { grads, convOutput } = await tf.tidy(() => {
+    const convOut = featureModel.predict(inputTensor); // [1, H, W, C]
+    const gradsVal = tf.grad(x => {
+      const preds = predModel.predict(x);
+      // ターゲットクラスのスコアのみ
+      return preds.slice([0, targetClassIdx], [1, 1]).squeeze();
+    })(inputTensor);
+    return { grads: gradsVal, convOutput: convOut };
+  });
+
+  // チャネル方向の平均勾配（Global Average Pooling）→ 重み
+  const weights   = tf.tidy(() => grads.mean([0, 1, 2]));          // [C]
+  const convOutSq = tf.tidy(() => convOutput.squeeze([0]));         // [H, W, C]
+
+  // 加重和 → ReLU
+  const cam = await tf.tidy(() => {
+    const weighted = convOutSq.mul(weights.reshape([1, 1, -1]));   // [H, W, C]
+    return weighted.sum(-1).relu();                                  // [H, W]
+  }).data();
+
+  const [camH, camW] = convOutput.shape.slice(1, 3);
+
+  // 正規化（0〜1）
+  let minV = Infinity, maxV = -Infinity;
+  for (const v of cam) { if (v < minV) minV = v; if (v > maxV) maxV = v; }
+  const range = maxV - minV || 1;
+  const normCam = Array.from(cam).map(v => (v - minV) / range);
+
+  tf.dispose([grads, convOutput, weights, convOutSq, inputTensor, featureModel, predModel]);
+
+  return { normCam, camH, camW };
+}
+
+async function renderHeatmap(img, normCam, camH, camW) {
+  const DISP = 320; // 表示解像度
+
+  // 元画像を描画
+  hmOrigCanvas.width = hmOrigCanvas.height = DISP;
+  hmOrigCtx.drawImage(img, 0, 0, DISP, DISP);
+  if (backlightOn) {
+    const raw = hmOrigCtx.getImageData(0, 0, DISP, DISP);
+    hmOrigCtx.putImageData(applyBacklightCorrection(raw, shadowLift, gammaVal), 0, 0);
+  }
+
+  // ヒートマップをDISPサイズに双線形補間して描画
+  hmHeatCanvas.width = hmHeatCanvas.height = DISP;
+  const heatImgData = hmHeatCtx.createImageData(DISP, DISP);
+  const scale = DISP / camW; // camH==camW前提（正方形入力）
+
+  for (let py = 0; py < DISP; py++) {
+    for (let px = 0; px < DISP; px++) {
+      // 双線形補間
+      const cx = px / scale, cy = py / scale;
+      const x0 = Math.floor(cx), y0 = Math.floor(cy);
+      const x1 = Math.min(x0 + 1, camW - 1), y1 = Math.min(y0 + 1, camH - 1);
+      const fx = cx - x0, fy = cy - y0;
+      const v = normCam[y0*camW+x0]*(1-fx)*(1-fy)
+               + normCam[y0*camW+x1]*fx*(1-fy)
+               + normCam[y1*camW+x0]*(1-fx)*fy
+               + normCam[y1*camW+x1]*fx*fy;
+
+      const [r, g, b] = heatColor(v);
+      const alpha = Math.round(v * 210); // 高スコアほど不透明
+      const idx = (py * DISP + px) * 4;
+      heatImgData.data[idx]   = r;
+      heatImgData.data[idx+1] = g;
+      heatImgData.data[idx+2] = b;
+      heatImgData.data[idx+3] = alpha;
+    }
+  }
+  hmHeatCtx.putImageData(heatImgData, 0, 0);
+  heatmapCard.style.display = 'block';
+  heatmapCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+async function runGradCAM(img) {
+  heatmapCard.style.display = 'none';
+  if (!models.health) return;
+  try {
+    // 健康モデルの「病気」クラス（idx=1）を対象にGrad-CAM
+    const result = await computeGradCAM(models.health, img, 1);
+    if (!result) return;
+    await renderHeatmap(img, result.normCam, result.camH, result.camW);
+  } catch(e) {
+    console.warn('Grad-CAM 失敗:', e);
+  }
+}
+
 submitBtn.addEventListener('click', async () => {
   if (!inputImage) { showResult('<div class="result-icon">📷</div><div class="result-label">画像を選んでください</div>', 'result-error'); return; }
 
   showResult('<div class="result-icon">🔍</div><div class="result-label">解析中…</div>', 'result-loading');
+  heatmapCard.style.display = 'none';
   submitBtn.disabled = true;
 
   const run = async () => {
@@ -1331,8 +1558,9 @@ submitBtn.addEventListener('click', async () => {
       // 段階3: 重症度判定
       const s3 = await predict('severity', inputImage);
       if (!s3) {
-        showResult(`<div class="result-icon">🍂</div><div class="result-label">病気の可能性があります</div><div class="contact-block"><div class="contact-title">🌸 日立市さくら課にご連絡ください</div><div class="contact-tel"><a href="tel:0294-22-3111" class="tel-link">📞 0294-22-3111</a></div><a href="https://www.city.hitachi.lg.jp/cgi-bin/contacts/G006050" target="_blank" rel="noopener" class="contact-form-btn">お問い合わせフォームはこちら →</a></div>`, 'result-mid');
+        showResult(`<div class="result-icon">🍂</div><div class="result-label">病気の可能性があります</div><div class="contact-block"><div class="contact-title">🌸 日立市さくら課にご連絡ください</div><div class="contact-tel"><a href="tel:0294-22-3111" class="tel-link">📞 0294-22-3111</a></div><a href="https://www.city.hitachi.lg.jp/shisei/shinososhiki/1004565/1004570.html" target="_blank" rel="noopener" class="contact-form-btn">お問い合わせフォームはこちら →</a></div>`, 'result-mid');
         await sendToGoogleForm('病気（重症度不明）', '--', '');
+        await runGradCAM(inputImage);
         return;
       }
       const conf = (s3.confidence*100).toFixed(1);
@@ -1345,8 +1573,9 @@ submitBtn.addEventListener('click', async () => {
       } else {
         type='result-severe'; icon='🔴'; badge='深刻段階';
       }
-      showResult(`<div class="result-icon">${icon}</div><div class="result-label">病気の可能性があります</div><span class="result-badge" style="background:rgba(0,0,0,0.06)">${badge} / 確信度 ${conf}%</span><div class="contact-block"><div class="contact-title">🌸 日立市さくら課にご連絡ください</div><div class="contact-tel"><a href="tel:0294-22-3111" class="tel-link">📞 0294-22-3111</a></div><a href="https://www.city.hitachi.lg.jp/cgi-bin/contacts/G006050" target="_blank" rel="noopener" class="contact-form-btn">お問い合わせフォームはこちら →</a></div>`, type);
+      showResult(`<div class="result-icon">${icon}</div><div class="result-label">病気の可能性があります</div><span class="result-badge" style="background:rgba(0,0,0,0.06)">${badge} / 確信度 ${conf}%</span><div class="contact-block"><div class="contact-title">🌸 日立市さくら課にご連絡ください</div><div class="contact-tel"><a href="tel:0294-22-3111" class="tel-link">📞 0294-22-3111</a></div><a href="https://www.city.hitachi.lg.jp/shisei/shinososhiki/1004565/1004570.html" target="_blank" rel="noopener" class="contact-form-btn">お問い合わせフォームはこちら →</a></div>`, type);
       await sendToGoogleForm(`病気（${sc}）`, conf, '');
+      await runGradCAM(inputImage);
 
     } catch(err) {
       console.error(err);
