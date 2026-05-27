@@ -160,7 +160,63 @@
     .file-drop-icon { font-size: 1.8rem; margin-bottom: 0.4rem; }
     .file-drop-text { font-size: 0.82rem; color: var(--text-secondary); }
 
-    /* カメラボタン群 */
+    /* カメラ起動ボタン */
+    .btn-open-camera {
+      display: block;
+      width: 100%;
+      margin-top: 0.75rem;
+      text-align: center;
+      justify-content: center;
+    }
+
+    /* iOSカメララッパー（全画面） */
+    .ios-camera-wrap {
+      position: fixed;
+      inset: 0;
+      z-index: 9000;
+      background: var(--bg);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      overflow: hidden;
+    }
+    /* 全画面中は背景スクロール禁止 */
+    body.camera-open {
+      overflow: hidden;
+    }
+    /* カメラ本体：幅100%・高さ16:9・上下余白なし */
+    .ios-camera-inner {
+      /* 上下余白なし: 高さ=画面全高、幅=9/16（画面幅を超えない） */
+      height: 100dvh;
+      width: min(100vw, calc(100dvh * 9 / 16));
+      display: flex;
+      flex-direction: column;
+      background: #000;
+      border-radius: 0;
+      overflow: hidden;
+    }
+    /* 映像エリアはコントロールバー以外の残り全体 */
+    .ios-camera-wrap .video-wrapper {
+      flex: 1;
+      width: 100%;
+      aspect-ratio: unset;
+    }
+    /* カメラ切替中フラッシュ */
+    .cam-switching-overlay {
+      position: absolute;
+      inset: 0;
+      background: #000;
+      z-index: 50;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.18s;
+    }
+    .cam-switching-overlay.flash {
+      opacity: 1;
+    }
+
+    /* カメラボタン群（旧・互換用に残す） */
     .btn-row {
       display: grid;
       grid-template-columns: 1fr 1fr 1fr;
@@ -193,10 +249,8 @@
       position: relative;
       width: 100%;
       aspect-ratio: 1 / 1;
-      background: #1a0a10;
+      background: #000;
       overflow: hidden;
-      border-radius: var(--radius-md);
-      margin-top: 0.75rem;
     }
     video.main {
       position: absolute;
@@ -219,44 +273,215 @@
     }
 
     /* スライダーコントロール */
-    .slider-group {
-      margin-top: 0.6rem;
+    /* iOSズームバー */
+    .ios-zoom-bar {
+      background: rgba(0,0,0,0.85);
+      padding: 0.5rem 1rem;
       display: none;
-    }
-    .slider-row {
-      display: flex;
+      flex-direction: column;
       align-items: center;
-      gap: 0.6rem;
-      margin-top: 0.4rem;
+      gap: 0.35rem;
     }
-    .slider-label {
-      font-size: 0.68rem;
-      color: var(--text-muted);
-      min-width: 40px;
+    .ios-zoom-pills {
+      display: flex;
+      gap: 0.5rem;
     }
-    .slider-row input[type="range"] {
-      flex: 1;
-      height: 3px;
+    .zoom-pill {
+      font-family: 'Zen Maru Gothic', sans-serif;
+      font-size: 0.75rem;
+      font-weight: 700;
+      color: rgba(255,255,255,0.7);
+      background: rgba(255,255,255,0.12);
+      border: none;
+      border-radius: 99px;
+      padding: 0.25rem 0.7rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .zoom-pill.active { background: rgba(255,220,0,0.85); color: #000; }
+    .ios-zoom-slider {
+      width: 80%;
+      height: 2px;
       -webkit-appearance: none;
       appearance: none;
-      background: var(--sakura-100);
-      border-radius: 2px;
+      background: rgba(255,255,255,0.25);
+      border-radius: 1px;
       outline: none;
     }
-    .slider-row input[type="range"]::-webkit-slider-thumb {
+    .ios-zoom-slider::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 16px; height: 16px;
+      width: 14px; height: 14px;
       border-radius: 50%;
-      background: var(--sakura-600);
+      background: #fff;
       cursor: pointer;
-      box-shadow: 0 1px 4px rgba(196,77,135,0.3);
     }
-    .slider-val {
-      font-size: 0.72rem;
-      color: var(--text-secondary);
-      min-width: 38px;
+    .ios-zoom-val {
+      font-size: 0.7rem;
+      color: rgba(255,255,255,0.55);
+    }
+
+    /* 縦明るさスライダー（映像内右端） */
+    .ios-brightness-wrap {
+      position: absolute;
+      right: 10px;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 20;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.2rem;
+    }
+    .ios-brightness-track {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0.3rem;
+    }
+    .ios-bright-icon { font-size: 0.85rem; }
+    .ios-brightness-slider {
+      -webkit-appearance: slider-vertical;
+      appearance: slider-vertical;
+      writing-mode: vertical-lr;
+      direction: rtl;
+      width: 4px;
+      height: 100px;
+      cursor: pointer;
+      accent-color: #FFD60A;
+      opacity: 0.85;
+    }
+    .ios-bright-val {
+      font-size: 0.6rem;
+      color: rgba(255,255,255,0.6);
+      background: rgba(0,0,0,0.4);
+      border-radius: 4px;
+      padding: 0.1rem 0.2rem;
+    }
+
+    /* iOSコントロールバー */
+    .ios-controls {
+      background: #000;
+      padding: 1rem 1.5rem 1.2rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-shrink: 0;
+    }
+
+    /* 左サムネイル */
+    .ios-thumb-wrap {
+      width: 52px; height: 52px;
+      border-radius: 8px;
+      overflow: hidden;
+      border: 2px solid rgba(255,255,255,0.3);
+      background: #111;
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .ios-thumb-img {
+      width: 100%; height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    /* シャッターボタン */
+    .ios-shutter {
+      width: 70px; height: 70px;
+      border-radius: 50%;
+      border: 4px solid #fff;
+      background: rgba(255,255,255,0.92);
+      cursor: pointer;
+      transition: transform 0.1s, background 0.1s;
+      position: relative;
+      flex-shrink: 0;
+    }
+    .ios-shutter::after {
+      content: '';
+      position: absolute;
+      inset: 5px;
+      border-radius: 50%;
+      background: #fff;
+    }
+    .ios-shutter:active { transform: scale(0.93); background: rgba(200,200,200,0.9); }
+    .ios-shutter:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* カメラ切替ボタン */
+    .ios-switch {
+      width: 52px; height: 52px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(255,255,255,0.15);
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.15s;
+      flex-shrink: 0;
+    }
+    .ios-switch:hover { background: rgba(255,255,255,0.25); }
+    .ios-switch:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    /* 閉じるボタン：カメラ映像内の左上にオーバーレイ */
+    .ios-close-btn {
+      position: absolute;
+      top: calc(12px + env(safe-area-inset-top));
+      left: 12px;
+      z-index: 30;
+      background: rgba(0,0,0,0.45);
+      border: none;
+      color: #fff;
+      font-family: 'Zen Maru Gothic', sans-serif;
+      font-size: 0.78rem;
+      font-weight: 700;
+      padding: 0.35rem 0.85rem;
+      border-radius: 99px;
+      cursor: pointer;
+      backdrop-filter: blur(6px);
+      -webkit-backdrop-filter: blur(6px);
+      transition: background 0.15s;
+    }
+    .ios-close-btn:hover { background: rgba(0,0,0,0.65); }
+
+    /* 右上バスターボタン */
+    .ios-buster-btn {
+      position: absolute;
+      top: calc(12px + env(safe-area-inset-top)); right: 12px;
+      z-index: 20;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      border: 1.5px solid rgba(255,255,255,0.5);
+      background: rgba(0,0,0,0.4);
+      font-size: 1rem;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      transition: all 0.15s;
+      backdrop-filter: blur(4px);
+    }
+    .ios-buster-btn.on {
+      background: rgba(251,191,36,0.85);
+      border-color: #FCD34D;
+    }
+    .ios-buster-status {
+      position: absolute;
+      top: 52px; right: 8px;
+      z-index: 20;
+      background: rgba(0,0,0,0.55);
+      color: #fff;
+      font-size: 0.62rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 8px;
+      max-width: 120px;
       text-align: right;
+      backdrop-filter: blur(4px);
+      line-height: 1.4;
     }
+
+    /* 旧スライダー関連（互換） */
+    .slider-group { display: none; }
+    .slider-row { display: flex; align-items: center; gap: 0.6rem; margin-top: 0.4rem; }
+    .slider-label { font-size: 0.68rem; color: var(--text-muted); min-width: 40px; }
+    .slider-val { font-size: 0.72rem; color: var(--text-secondary); min-width: 38px; text-align: right; }
 
     /* 逆光バスター */
     .backlight-panel {
@@ -673,79 +898,103 @@
         <p class="file-drop-text">タップして写真を選択<br><span style="font-size:0.72rem;opacity:0.7">またはここにドロップ</span></p>
       </div>
 
-      <div class="btn-row">
-        <button type="button" class="btn" id="toggleCamera">📹 カメラ</button>
-        <button type="button" class="btn" id="switchCamera" disabled>🔄 切替</button>
-        <button type="button" class="btn" id="captureBtn" disabled>✦ 撮影</button>
-      </div>
-
-      <!-- 逆光バスターパネル -->
-      <div class="backlight-panel" id="backlightPanel">
-        <div class="backlight-header">
-          <span class="backlight-icon">☀️</span>
-          <div class="backlight-title-wrap">
-            <span class="backlight-title">逆光・暗所バスター</span>
-            <span class="backlight-sub">暗い写真でもAIが正確に判定できます</span>
-          </div>
-        </div>
-        <div class="backlight-toggle-row">
-          <button type="button" class="buster-choice" id="busterOff">使わない</button>
-          <button type="button" class="buster-choice active" id="busterOn">☀️ 使う（自動）</button>
-        </div>
-        <div class="backlight-status" id="backlightStatus"></div>
-        <canvas id="backlightCanvas" class="backlight-canvas" style="display:none"></canvas>
-      </div>
+      <!-- カメラ起動ボタン（カメラOFF時のみ表示） -->
+      <button type="button" class="btn btn-open-camera" id="toggleCamera">📹 カメラを起動する</button>
     </div>
 
-    <div class="card-section" id="cameraSection" style="display:none">
+    <!-- iOSスタイル カメラビュー（カメラON時に表示） -->
+    <div class="ios-camera-wrap" id="iosCameraWrap" style="display:none">
+
+      <!-- カメラ本体（9:16） -->
+      <div class="ios-camera-inner">
+
+      <!-- 映像エリア -->
       <div class="video-wrapper" id="videoWrapper">
+        <!-- 閉じるボタン：映像内の左上にオーバーレイ -->
+        <button type="button" class="ios-close-btn" id="closeCameraBtn">✕ 閉じる</button>
         <video id="video" class="main" autoplay playsinline></video>
         <img id="overlayPreview" class="overlay-preview" alt="撮影画像プレビュー" />
 
         <!-- 撮影ガイドオーバーレイ -->
         <div class="guide-overlay" id="guideOverlay" style="display:none">
-          <!-- フレーム枠 -->
           <div class="guide-frame" id="guideFrame">
             <span class="frame-corner tl"></span>
             <span class="frame-corner tr"></span>
             <span class="frame-corner bl"></span>
             <span class="frame-corner br"></span>
           </div>
-          <!-- メッセージバナー -->
           <div class="guide-banner" id="guideBanner">
             <span class="guide-icon" id="guideIcon">📸</span>
             <span class="guide-msg" id="guideMsg">カメラを向けてください</span>
           </div>
-          <!-- OK インジケーター -->
           <div class="guide-ok" id="guideOk" style="display:none">✓ OK</div>
         </div>
 
+        <!-- 右上: バスターON/OFFボタン -->
+        <button type="button" class="ios-buster-btn" id="busterToggleOverlay" title="逆光バスター">☀️</button>
+        <!-- バスターON時のステータス -->
+        <div class="ios-buster-status" id="backlightStatus" style="display:none"></div>
+
         <!-- 解析用の隠しcanvas -->
         <canvas id="guideCanvas" style="display:none"></canvas>
+        <canvas id="backlightCanvas" style="display:none"></canvas>
+        <!-- カメラ切替フラッシュ -->
+        <div class="cam-switching-overlay" id="camSwitchOverlay"></div>
+
+        <!-- 明るさスライダー（縦・映像内右端） -->
+        <div class="ios-brightness-wrap" id="brightnessSideWrap" style="display:none">
+          <div class="ios-brightness-track">
+            <span class="ios-bright-icon top">☀️</span>
+            <input type="range" id="brightnessSlider" min="-1" max="1" step="0.01" value="0"
+                   class="ios-brightness-slider" orient="vertical" />
+            <span class="ios-bright-icon bot">🌑</span>
+          </div>
+          <span class="ios-bright-val" id="brightnessValue">0</span>
+        </div>
       </div>
 
-      <div class="slider-group" id="sliderGroup">
-        <div class="slider-row">
-          <span class="slider-label">ズーム</span>
-          <input type="range" id="zoomSlider" min="1" max="3" step="0.1" value="1" />
-          <span class="slider-val" id="zoomValue">1.0x</span>
+      <!-- ズームバー（映像の直下・中央） -->
+      <div class="ios-zoom-bar" id="sliderGroup" style="display:none">
+        <div class="ios-zoom-pills" id="zoomPills">
+          <button class="zoom-pill active" data-zoom="1">1×</button>
+          <button class="zoom-pill" data-zoom="2">2×</button>
+          <button class="zoom-pill" data-zoom="3">3×</button>
         </div>
-        <div class="slider-row">
-          <span class="slider-label">明るさ</span>
-          <input type="range" id="brightnessSlider" min="-1" max="1" step="0.01" value="0" />
-          <span class="slider-val" id="brightnessValue">+0.00</span>
-        </div>
+        <input type="range" id="zoomSlider" min="1" max="3" step="0.1" value="1" class="ios-zoom-slider" />
+        <span class="ios-zoom-val" id="zoomValue">1.0×</span>
       </div>
+
+      <!-- 下部コントロールバー（iOSスタイル） -->
+      <div class="ios-controls">
+        <!-- 左: サムネイル（最後の撮影 / アップロード画像） -->
+        <div class="ios-thumb-wrap" id="iosThumbWrap">
+          <img id="preview" class="ios-thumb-img" alt="プレビュー" />
+          <div class="mini-camera" id="miniCamContainer" style="display:none">
+            <video id="miniCam" autoplay playsinline muted></video>
+          </div>
+        </div>
+
+        <!-- 中央: シャッターボタン -->
+        <button type="button" class="ios-shutter" id="captureBtn" disabled></button>
+
+        <!-- 右: カメラ切替ボタン -->
+        <button type="button" class="ios-switch" id="switchCamera" disabled>
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="28" height="28">
+            <path d="M1 4v6h6M23 20v-6h-6"/>
+            <path d="M20.5 9A9 9 0 0 0 5.6 5.6L1 10m22 4l-4.6 4.4A9 9 0 0 1 3.5 15"/>
+          </svg>
+        </button>
+      </div>
+
+      </div><!-- /ios-camera-inner -->
     </div>
 
+    <!-- サムネイル行（カメラOFF時の撮影済み表示） -->
     <div class="card-section">
-      <div class="preview-thumb" id="previewThumb">
-        <img class="thumb-img" id="preview" alt="プレビュー" />
-        <div class="mini-camera" id="miniCamContainer">
-          <video id="miniCam" autoplay playsinline muted></video>
-        </div>
+      <div class="preview-thumb" id="previewThumb" style="display:none">
+        <img class="thumb-img" id="previewOffline" alt="プレビュー" />
         <div class="thumb-info">
-          <p>撮影済み</p>
+          <p>撮影済み / 選択済み</p>
           <p style="font-size:0.68rem;opacity:0.6;margin-top:0.2rem">タップで確認</p>
         </div>
         <button type="button" class="btn-download" id="downloadBtn" disabled>⬇ 保存</button>
@@ -867,7 +1116,7 @@ const videoWrapper = document.getElementById('videoWrapper');
 const toggleCameraBtn = document.getElementById('toggleCamera');
 const switchCameraBtn = document.getElementById('switchCamera');
 const captureBtn = document.getElementById('captureBtn');
-const sliderGroup = document.getElementById('sliderGroup');
+const sliderGroup = document.getElementById('sliderGroup');      // iOSズームバー
 const zoomSlider = document.getElementById('zoomSlider');
 const zoomValue = document.getElementById('zoomValue');
 const brightnessSlider = document.getElementById('brightnessSlider');
@@ -875,9 +1124,39 @@ const brightnessValue = document.getElementById('brightnessValue');
 const miniCamContainer = document.getElementById('miniCamContainer');
 const miniCam = document.getElementById('miniCam');
 const downloadBtn = document.getElementById('downloadBtn');
-const cameraSection = document.getElementById('cameraSection');
+const iosCameraWrap = document.getElementById('iosCameraWrap');
+const brightnessSideWrap = document.getElementById('brightnessSideWrap');
+const iosThumbWrap = document.getElementById('iosThumbWrap');
 const resultCard = document.getElementById('resultCard');
 const resultDiv = document.getElementById('result');
+
+// 閉じるボタン
+document.getElementById('closeCameraBtn').addEventListener('click', () => stopCamera());
+
+// ズームピル
+document.querySelectorAll('.zoom-pill').forEach(pill => {
+  pill.addEventListener('click', () => {
+    const z = parseFloat(pill.dataset.zoom);
+    zoomSlider.value = z;
+    zoomFactor = z; panX=0; panY=0; clampPan(); applyVideoTransform();
+    zoomValue.textContent = z.toFixed(1) + '×';
+    document.querySelectorAll('.zoom-pill').forEach(p => p.classList.remove('active'));
+    pill.classList.add('active');
+  });
+});
+
+// バスターオーバーレイボタン
+const busterOverlayBtn = document.getElementById('busterToggleOverlay');
+busterOverlayBtn.addEventListener('click', () => {
+  backlightOn = !backlightOn;
+  busterOverlayBtn.classList.toggle('on', backlightOn);
+  const statusEl = document.getElementById('backlightStatus');
+  statusEl.style.display = backlightOn ? 'block' : 'none';
+  // busterOn/busterOff ボタンも同期（存在する場合のみ）
+  document.getElementById('busterOn')?.classList.toggle('active', backlightOn);
+  document.getElementById('busterOff')?.classList.toggle('active', !backlightOn);
+  if (inputImage && inputImage.naturalWidth) updateBacklightPreview();
+});
 
 // ====== 逆光バスター（自動解析・自動適用） ======
 let backlightOn = true; // デフォルト「使う」
@@ -978,17 +1257,21 @@ function updateBacklightPreview() {
 }
 
 // 「使う／使わない」ボタン
-document.getElementById('busterOn').addEventListener('click', () => {
+// busterOn/Off（オーバーレイボタンと連動、DOM上は残骸として存在しない場合もあるためガード）
+const _busterOnBtn  = document.getElementById('busterOn');
+const _busterOffBtn = document.getElementById('busterOff');
+if (_busterOnBtn) _busterOnBtn.addEventListener('click', () => {
   backlightOn = true;
-  document.getElementById('busterOn').classList.add('active');
-  document.getElementById('busterOff').classList.remove('active');
+  _busterOnBtn.classList.add('active');
+  if (_busterOffBtn) _busterOffBtn.classList.remove('active');
+  if (busterOverlayBtn) { busterOverlayBtn.classList.add('on'); document.getElementById('backlightStatus').style.display='block'; }
   updateBacklightPreview();
 });
-document.getElementById('busterOff').addEventListener('click', () => {
-  backlightOn = false;
-  shadowLift = 0; gammaVal = 1;
-  document.getElementById('busterOff').classList.add('active');
-  document.getElementById('busterOn').classList.remove('active');
+if (_busterOffBtn) _busterOffBtn.addEventListener('click', () => {
+  backlightOn = false; shadowLift = 0; gammaVal = 1;
+  _busterOffBtn.classList.add('active');
+  if (_busterOnBtn) _busterOnBtn.classList.remove('active');
+  if (busterOverlayBtn) { busterOverlayBtn.classList.remove('on'); document.getElementById('backlightStatus').style.display='none'; }
   backlightStatusEl.textContent = '';
 });
 
@@ -1028,6 +1311,7 @@ imageInput.addEventListener('change', function() {
       overlayPreview.src = e.target.result;
       previewThumb.style.display = 'flex';
       setMainView();
+      if (iosThumbWrap) { const ti = iosThumbWrap.querySelector('img'); if(ti) ti.src = e.target.result; }
       inputImage = new Image();
       inputImage.crossOrigin = "anonymous";
       inputImage.onload = () => updateBacklightPreview();
@@ -1081,11 +1365,11 @@ async function startCamera() {
   if (!got) throw new Error('カメラ取得失敗');
   video.srcObject = stream;
   video.style.display = 'block';
-  cameraSection.style.display = 'block';
+  iosCameraWrap.style.display = 'flex';
+  document.body.classList.add('camera-open');   // スクロール禁止・全画面
+  toggleCameraBtn.style.display = 'none';
   captureBtn.disabled = false;
   switchCameraBtn.disabled = false;
-  toggleCameraBtn.textContent = '⏹ 停止';
-  toggleCameraBtn.classList.add('active');
   isCameraOn = true;
   zoomFactor=1; panX=0; panY=0; applyVideoTransform();
   overlayPreview.style.display = 'none';
@@ -1104,7 +1388,8 @@ async function startCamera() {
   zoomValue.textContent = '1.0x';
   brightnessSlider.value = 0; brightnessValue.textContent = '+0.00';
   brightnessFactor = 0; applyBrightness();
-  sliderGroup.style.display = 'block';
+  sliderGroup.style.display = 'flex';
+  brightnessSideWrap.style.display = 'flex';
   startGuide();
   setMainView();
 }
@@ -1113,11 +1398,12 @@ function stopCamera() {
   if (stream) stream.getTracks().forEach(t => t.stop());
   stream = null; video.srcObject = null; video.style.display = 'none';
   captureBtn.disabled = true; switchCameraBtn.disabled = true;
-  toggleCameraBtn.textContent = '📹 カメラ';
-  toggleCameraBtn.classList.remove('active');
   isCameraOn = false;
   sliderGroup.style.display = 'none';
-  cameraSection.style.display = preview.src ? 'block' : 'none';
+  brightnessSideWrap.style.display = 'none';
+  iosCameraWrap.style.display = 'none';
+  document.body.classList.remove('camera-open');
+  toggleCameraBtn.style.display = 'block';
   zoomFactor=1; brightnessFactor=0; panX=0; panY=0; applyVideoTransform();
   video.style.filter = ''; miniCam.style.filter = '';
   stopGuide();
@@ -1127,7 +1413,34 @@ function stopCamera() {
 switchCameraBtn.addEventListener('click', async () => {
   switchCameraBtn.disabled = true;
   currentFacingMode = currentFacingMode === 'environment' ? 'user' : 'environment';
-  try { await startCamera(); } catch(_) { alert('カメラ切替失敗'); } finally { switchCameraBtn.disabled = false; }
+
+  // ビデオのみフラッシュで隠す（UIは維持）
+  const overlay = document.getElementById('camSwitchOverlay');
+  overlay.classList.add('flash');
+  video.style.display = 'none';
+
+  // ストリームだけ停止・再取得（stopCamera()は呼ばない＝全画面UIを維持）
+  if (stream) stream.getTracks().forEach(t => t.stop());
+  stream = null;
+
+  const tries = [
+    { video: { facingMode: { exact: currentFacingMode } }, audio: false },
+    { video: { facingMode: currentFacingMode }, audio: false },
+    { video: true, audio: false }
+  ];
+  let got = false;
+  for (const c of tries) {
+    try { stream = await navigator.mediaDevices.getUserMedia(c); got = true; break; } catch(e) {}
+  }
+  if (!got) { alert('カメラ切替失敗'); switchCameraBtn.disabled = false; overlay.classList.remove('flash'); return; }
+
+  video.srcObject = stream;
+  await new Promise(res => { video.onloadedmetadata = res; });
+  video.style.display = 'block';
+
+  // フラッシュを消す
+  setTimeout(() => overlay.classList.remove('flash'), 80);
+  switchCameraBtn.disabled = false;
 });
 
 // EXIF ユーティリティ
@@ -1199,6 +1512,8 @@ captureBtn.addEventListener('click', async () => {
   } catch(_) { lastCapturedDataUrl = jpegDataUrl; }
   preview.src = lastCapturedDataUrl; overlayPreview.src = lastCapturedDataUrl;
   previewThumb.style.display = 'flex'; downloadBtn.disabled = false;
+  // iosThumb（カメラ内左下）にも反映
+  if (iosThumbWrap) { const ti = iosThumbWrap.querySelector('img'); if(ti) ti.src = lastCapturedDataUrl; }
   inputImage = new Image();
   inputImage.crossOrigin = "anonymous";
   inputImage.onload = () => updateBacklightPreview();
@@ -1215,6 +1530,28 @@ preview.addEventListener('click', ev => {
   if (viewState === 'MAIN_VIEW') setOverlayView(); else setMainView();
   ev.stopPropagation();
 });
+// カメラOFF時サムネイル（previewOffline）のクリック
+const previewOffline = document.getElementById('previewOffline');
+if (previewOffline) {
+  previewOffline.addEventListener('click', ev => {
+    // overlayPreviewを全画面で見せる（簡易）
+    if (overlayPreview.src) {
+      overlayPreview.style.display = 'block';
+      overlayPreview.style.position = 'fixed';
+      overlayPreview.style.inset = '0';
+      overlayPreview.style.zIndex = '9999';
+      overlayPreview.style.objectFit = 'contain';
+      overlayPreview.style.background = '#000';
+      overlayPreview.onclick = () => { overlayPreview.style.cssText = ''; overlayPreview.style.display = 'none'; };
+    }
+    ev.stopPropagation();
+  });
+  // ファイル選択・撮影後にpreviewOfflineにも反映
+  const _syncOffline = (src) => { previewOffline.src = src; previewThumb.style.display = 'flex'; };
+  // MutationObserver でpreview.srcの変化を監視
+  new MutationObserver(() => { if(preview.src) _syncOffline(preview.src); })
+    .observe(preview, { attributes: true, attributeFilter: ['src'] });
+}
 overlayPreview.addEventListener('click', ev => { setMainView(); ev.stopPropagation(); });
 
 function showMiniCam() {
