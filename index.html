@@ -427,7 +427,7 @@
       position: absolute;
       top: calc(12px + env(safe-area-inset-top));
       left: 12px;
-      z-index: 30;
+      z-index: 40;
       background: rgba(0,0,0,0.45);
       border: none;
       color: #fff;
@@ -439,6 +439,9 @@
       cursor: pointer;
       backdrop-filter: blur(6px);
       -webkit-backdrop-filter: blur(6px);
+      /* タップ領域を広げる */
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
       transition: background 0.15s;
     }
     .ios-close-btn:hover { background: rgba(0,0,0,0.65); }
@@ -447,7 +450,7 @@
     .ios-buster-btn {
       position: absolute;
       top: calc(12px + env(safe-area-inset-top)); right: 12px;
-      z-index: 20;
+      z-index: 40;
       width: 36px; height: 36px;
       border-radius: 50%;
       border: 1.5px solid rgba(255,255,255,0.5);
@@ -457,6 +460,10 @@
       display: flex; align-items: center; justify-content: center;
       transition: all 0.15s;
       backdrop-filter: blur(4px);
+    }
+    .ios-buster-btn {
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
     }
     .ios-buster-btn.on {
       background: rgba(251,191,36,0.85);
@@ -1619,7 +1626,10 @@ const dist = (a,b) => Math.hypot(b.clientX-a.clientX, b.clientY-a.clientY);
 const mid  = (a,b) => ({x:(a.clientX+b.clientX)/2, y:(a.clientY+b.clientY)/2});
 
 videoWrapper.addEventListener('touchstart', ev => {
-  if (!isCameraOn || viewState!=='MAIN_VIEW') return; ev.preventDefault();
+  if (!isCameraOn || viewState!=='MAIN_VIEW') return;
+  // ボタン要素へのタッチは横取りしない
+  if (ev.target.closest('button, input, a')) return;
+  ev.preventDefault();
   wrapperRect = videoWrapper.getBoundingClientRect();
   if (ev.touches.length===1) {
     isPanning=true; isPinching=false;
@@ -1634,7 +1644,9 @@ videoWrapper.addEventListener('touchstart', ev => {
 },{passive:false});
 
 videoWrapper.addEventListener('touchmove', ev => {
-  if (!isCameraOn || viewState!=='MAIN_VIEW') return; ev.preventDefault();
+  if (!isCameraOn || viewState!=='MAIN_VIEW') return;
+  if (ev.target.closest('button, input, a')) return;
+  ev.preventDefault();
   wrapperRect = videoWrapper.getBoundingClientRect();
   if (isPinching && ev.touches.length>=2) {
     const d=dist(ev.touches[0],ev.touches[1]);
@@ -1653,7 +1665,9 @@ videoWrapper.addEventListener('touchmove', ev => {
 },{passive:false});
 
 videoWrapper.addEventListener('touchend', ev => {
-  if (!isCameraOn) return; ev.preventDefault();
+  if (!isCameraOn) return;
+  if (ev.target.closest('button, input, a')) return;
+  ev.preventDefault();
   if (ev.touches.length===0) { isPanning=false; isPinching=false; }
   else if (ev.touches.length===1) {
     isPinching=false; isPanning=true;
