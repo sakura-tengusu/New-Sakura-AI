@@ -398,9 +398,10 @@
       border-radius: 8px;
       overflow: hidden;
       border: 2px solid rgba(255,255,255,0.15);
-      background: transparent; /* 撮影前は透明 */
+      background: transparent;
       flex-shrink: 0;
       cursor: default;
+      position: relative;   /* mini-cameraのabsolute基準 */
     }
     .ios-thumb-wrap.has-image {
       border-color: rgba(255,255,255,0.4);
@@ -679,16 +680,17 @@
       flex-shrink: 0;
     }
     .mini-camera {
-      width: 76px; height: 76px;
-      border-radius: var(--radius-sm);
+      width: 100%; height: 100%;
+      border-radius: 0;
       overflow: hidden;
-      background: #1a0a10;
-      border: 1.5px solid var(--border-mid);
+      background: #000;
+      border: none;
       display: none;
       cursor: pointer;
-      flex-shrink: 0;
+      position: absolute;
+      inset: 0;
     }
-    .mini-camera video { width: 100%; height: 100%; object-fit: cover; }
+    .mini-camera video { width: 100%; height: 100%; object-fit: cover; display: block; }
     .thumb-info { flex: 1; }
     .thumb-info p { font-size: 0.75rem; color: var(--text-secondary); }
     .btn-download {
@@ -1447,7 +1449,10 @@ async function startCamera() {
   } catch(_) {}
 
   zoomSlider.min = 1; zoomSlider.max = 3; zoomSlider.step = 0.1; zoomSlider.value = 1;
-  zoomValue.textContent = '1.0x';
+  zoomValue.textContent = '1.0×';
+  document.querySelectorAll('.zoom-pill').forEach(p => {
+    p.classList.toggle('active', p.dataset.zoom === '1');
+  });
   brightnessSlider.value = 0; brightnessValue.textContent = '+0.00';
   brightnessFactor = 0; applyBrightness();
   updateBrightUI(0); // バグ1修正: バーの位置を0にリセット
@@ -1669,10 +1674,18 @@ downloadBtn.addEventListener('click', () => {
 });
 
 // ズーム & 明るさ
+// ズームピルをzoom値に合わせてアクティブ表示する
+function updateZoomPills(v) {
+  document.querySelectorAll('.zoom-pill').forEach(p => {
+    p.classList.toggle('active', parseFloat(p.dataset.zoom) === Math.round(v));
+  });
+}
+
 zoomSlider.oninput = e => {
   const v = parseFloat(e.target.value);
   zoomFactor = v; clampPan(); applyVideoTransform();
-  zoomValue.textContent = v.toFixed(1) + 'x';
+  zoomValue.textContent = v.toFixed(1) + '×';
+  updateZoomPills(v);
 };
 brightnessSlider.oninput = e => {
   const v = parseFloat(e.target.value);
@@ -1793,7 +1806,8 @@ videoWrapper.addEventListener('touchmove', ev => {
     panX=(panStart.x-s.x)*(newZ/pinchStartZoom)+s.x;
     panY=(panStart.y-s.y)*(newZ/pinchStartZoom)+s.y;
     zoomFactor=newZ; clampPan(); applyVideoTransform();
-    zoomSlider.value=zoomFactor; zoomValue.textContent=zoomFactor.toFixed(1)+'x';
+    zoomSlider.value=zoomFactor; zoomValue.textContent=zoomFactor.toFixed(1)+'×';
+    updateZoomPills(zoomFactor);
   } else if (isPanning && ev.touches.length===1) {
     panX=startPanX+(ev.touches[0].clientX-panStart.x);
     panY=startPanY+(ev.touches[0].clientY-panStart.y);
@@ -1815,7 +1829,10 @@ videoWrapper.addEventListener('touchend', ev => {
 // マウス
 let isMouseDown=false, mouseStart={x:0,y:0};
 videoWrapper.addEventListener('mousedown', ev => {
-  if (!isCameraOn || viewState!=='MAIN_VIEW') return; ev.preventDefault();
+  if (!isCameraOn || viewState!=='MAIN_VIEW') return;
+  // input・button・a上のマウス操作は横取りしない
+  if (ev.target.closest('input, button, a')) return;
+  ev.preventDefault();
   isMouseDown=true; mouseStart={x:ev.clientX,y:ev.clientY}; startPanX=panX; startPanY=panY;
 });
 window.addEventListener('mousemove', ev => {
@@ -1831,7 +1848,8 @@ videoWrapper.addEventListener('wheel', ev => {
   const s={x:ev.clientX-wrapperRect.left-wrapperRect.width/2, y:ev.clientY-wrapperRect.top-wrapperRect.height/2};
   const old=zoomFactor; panX=(panX-s.x)*(newZ/old)+s.x; panY=(panY-s.y)*(newZ/old)+s.y;
   zoomFactor=newZ; clampPan(); applyVideoTransform();
-  zoomSlider.value=zoomFactor; zoomValue.textContent=zoomFactor.toFixed(1)+'x';
+  zoomSlider.value=zoomFactor; zoomValue.textContent=zoomFactor.toFixed(1)+'×';
+  updateZoomPills(zoomFactor);
 },{passive:false});
 
 // ====== AI 判定 ======
