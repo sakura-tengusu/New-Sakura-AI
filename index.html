@@ -266,7 +266,7 @@
       position: absolute;
       inset: 0;
       width: 100%; height: 100%;
-      object-fit: cover;
+      object-fit: fill;   /* 撮影画像のアスペクト比=wrapper比なのでfillで完全一致 */
       display: none;
       z-index: 5;
       cursor: pointer;
@@ -900,6 +900,150 @@
       padding: 1.5rem 1.5rem 0;
       line-height: 1.8;
     }
+
+    /* 使い方モーダル */
+    .howto-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 99998;
+      background: rgba(0,0,0,0.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 1.25rem;
+      opacity: 0;
+      transition: opacity 0.12s;
+    }
+    .howto-box {
+      background: var(--surface);
+      border-radius: var(--radius-xl);
+      width: 100%;
+      max-width: 400px;
+      max-height: 88dvh;
+      overflow-y: auto;
+      position: relative;
+      box-shadow: 0 12px 48px rgba(0,0,0,0.3);
+      padding: 1.75rem 1.5rem 1.5rem;
+    }
+    .howto-close {
+      position: absolute;
+      top: 14px; right: 14px;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      border: none;
+      background: rgba(0,0,0,0.08);
+      color: var(--text-secondary);
+      font-size: 1rem;
+      font-weight: 700;
+      cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .howto-close:hover { background: rgba(0,0,0,0.14); }
+    .howto-title {
+      font-family: 'Noto Serif JP', serif;
+      font-size: 1.1rem;
+      color: var(--sakura-800);
+      margin-bottom: 1.2rem;
+      padding-right: 2rem;
+      line-height: 1.5;
+    }
+    .howto-step {
+      display: flex;
+      gap: 0.85rem;
+      align-items: flex-start;
+      margin-bottom: 1rem;
+    }
+    .howto-step:last-child { margin-bottom: 0; }
+    .howto-num {
+      flex-shrink: 0;
+      width: 28px; height: 28px;
+      border-radius: 50%;
+      background: linear-gradient(135deg, var(--sakura-600), var(--sakura-400));
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+    }
+    .howto-step-body { flex: 1; }
+    .howto-step-title {
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 0.2rem;
+    }
+    .howto-step-desc {
+      font-size: 0.74rem;
+      color: var(--text-secondary);
+      line-height: 1.65;
+    }
+    .howto-divider {
+      border: none;
+      border-top: 1px solid var(--border);
+      margin: 1rem 0;
+    }
+    .howto-note {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      line-height: 1.7;
+      text-align: center;
+    }
+    .howto-start-btn {
+      display: block;
+      width: 100%;
+      margin-top: 1.25rem;
+      padding: 0.85rem;
+      font-family: 'Zen Maru Gothic', sans-serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: #fff;
+      background: linear-gradient(135deg, var(--sakura-600), var(--sakura-400));
+      border: none;
+      border-radius: 99px;
+      cursor: pointer;
+      letter-spacing: 0.06em;
+      box-shadow: 0 3px 12px rgba(196,77,135,0.25);
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+
+    /* 全画面ライトボックス */
+    .lightbox {
+      position: fixed;
+      inset: 0;
+      z-index: 99999;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      opacity: 0;
+      transition: opacity 0.06s;
+    }
+    .lightbox img {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+      display: block;
+      pointer-events: none;
+    }
+    .lightbox-close {
+      position: absolute;
+      top: calc(10px + env(safe-area-inset-top));
+      right: 12px;
+      color: #fff;
+      font-size: 1.1rem;
+      font-weight: 700;
+      width: 44px; height: 44px;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.5);
+      border-radius: 50%;
+      cursor: pointer;
+      pointer-events: auto;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
   </style>
 </head>
 <body>
@@ -1045,8 +1189,8 @@
 
     <!-- サムネイル行（カメラOFF時の撮影済み表示） -->
     <div class="card-section">
-      <div class="preview-thumb" id="previewThumb" style="display:none">
-        <img class="thumb-img" id="previewOffline" alt="プレビュー" />
+      <div class="preview-thumb" id="previewThumb" style="display:none" title="タップで拡大">
+        <img class="thumb-img" id="previewOffline" alt="プレビュー" style="cursor:pointer" />
         <div class="thumb-info">
           <p>撮影済み / 選択済み</p>
           <p style="font-size:0.68rem;opacity:0.6;margin-top:0.2rem">タップで確認</p>
@@ -1091,6 +1235,59 @@
     カメラのご使用にはブラウザの許可が必要です<br>
     位置情報はダウンロード写真のEXIFのみに使用します
   </p>
+</div>
+
+<!-- 使い方モーダル -->
+<div class="howto-overlay" id="howtoOverlay">
+  <div class="howto-box">
+    <button class="howto-close" id="howtoClose">✕</button>
+    <p class="howto-title">🌸 てんぐすん。の使い方</p>
+
+    <div class="howto-step">
+      <div class="howto-num">1</div>
+      <div class="howto-step-body">
+        <p class="howto-step-title">写真を用意する</p>
+        <p class="howto-step-desc">「📷 カメラを起動する」でその場で撮影するか、ギャラリーから画像を選択してください。</p>
+      </div>
+    </div>
+
+    <div class="howto-step">
+      <div class="howto-num">2</div>
+      <div class="howto-step-body">
+        <p class="howto-step-title">撮影のコツ</p>
+        <p class="howto-step-desc">カメラ画面の枠（ガイド）が緑色になったら撮影のサインです。桜の枝・葉が枠内に収まるよう近づいてください。</p>
+      </div>
+    </div>
+
+    <div class="howto-step">
+      <div class="howto-num">3</div>
+      <div class="howto-step-body">
+        <p class="howto-step-title">逆光・暗所バスター（☀️）</p>
+        <p class="howto-step-desc">暗い場所や逆光で撮る場合、カメラ右上の☀️をタップするとAIが自動で明るさを補正します。</p>
+      </div>
+    </div>
+
+    <div class="howto-step">
+      <div class="howto-num">4</div>
+      <div class="howto-step-body">
+        <p class="howto-step-title">AI診断する</p>
+        <p class="howto-step-desc">「🌸 AIで診断する」ボタンを押すと、桜かどうか・健康か病気かを自動で判定します。</p>
+      </div>
+    </div>
+
+    <div class="howto-step">
+      <div class="howto-num">5</div>
+      <div class="howto-step-body">
+        <p class="howto-step-title">病気と判定されたら</p>
+        <p class="howto-step-desc">AIが注目した部位がヒートマップで表示されます。日立市さくら課（📞 0294-22-3111）にご連絡ください。</p>
+      </div>
+    </div>
+
+    <hr class="howto-divider" />
+    <p class="howto-note">※ AIの判定は参考情報です。最終判断は専門家にご相談ください。<br>カメラ・位置情報の許可が必要な場合があります。</p>
+
+    <button class="howto-start-btn" id="howtoStartBtn">さっそく使ってみる 🌸</button>
+  </div>
 </div>
 
 <script>
@@ -1140,6 +1337,28 @@ async function loadAllModels() {
   }
 }
 loadAllModels();
+
+// ====== 使い方モーダル ======
+(function() {
+  const overlay = document.getElementById('howtoOverlay');
+  if (!overlay) return;
+
+  function closeHowto() {
+    overlay.style.opacity = '0';
+    setTimeout(() => overlay.style.display = 'none', 120);
+  }
+
+  // 起動時に表示（セッション中1回のみ）
+  if (!sessionStorage.getItem('howto_seen')) {
+    requestAnimationFrame(() => requestAnimationFrame(() => { overlay.style.opacity = '1'; }));
+    sessionStorage.setItem('howto_seen', '1');
+  } else {
+    overlay.style.display = 'none';
+  }
+
+  document.getElementById('howtoClose').addEventListener('click', closeHowto);
+  document.getElementById('howtoStartBtn').addEventListener('click', closeHowto);
+})();
 
 // ====== Google フォーム送信設定（内部定数 — 研究チームのみ編集） ======
 const FORM_ACTION_URL  = "https://docs.google.com/forms/d/YOUR_FORM_ID/formResponse";
@@ -1558,28 +1777,44 @@ captureBtn.addEventListener('click', async () => {
   });
   const posPromise = getPos();
   wrapperRect = videoWrapper.getBoundingClientRect();
-  const wW = Math.round(wrapperRect.width), wH = Math.round(wrapperRect.height);
-  const scaleToFill = Math.max(wW/W, wH/H);
+  const wW = wrapperRect.width, wH = wrapperRect.height;
+
+  // videoは min-width:100% min-height:100% → object-fit:cover相当でwrapperを埋める
+  // scaleToFill: videoをwrapperにcoverするスケール
+  const scaleToFill = Math.max(wW / W, wH / H);
+  // zoom factor
   const factor = zoomFactor || 1;
-  const cropW = Math.round(wW / (scaleToFill * factor));
-  const cropH = Math.round(wH / (scaleToFill * factor));
-  const cx = W/2 - (panX / (scaleToFill * factor));
-  const cy = H/2 - (panY / (scaleToFill * factor));
-  let sx = Math.round(cx - cropW/2), sy = Math.round(cy - cropH/2);
-  sx = Math.max(0, Math.min(sx, W - cropW));
-  sy = Math.max(0, Math.min(sy, H - cropH));
+  const totalScale = scaleToFill * factor;
+
+  // wrapperに表示されているビデオの範囲（ビデオ座標系でのピクセル数）
+  const visW = wW / totalScale;  // wrapperの幅に対応するビデオピクセル数
+  const visH = wH / totalScale;  // wrapperの高さに対応するビデオピクセル数
+
+  // パン込みの中心（ビデオ座標系）
+  const cx = W / 2 - panX / totalScale;
+  const cy = H / 2 - panY / totalScale;
+
+  // 切り出し起点
+  let sx = cx - visW / 2;
+  let sy = cy - visH / 2;
+  sx = Math.max(0, Math.min(sx, W - visW));
+  sy = Math.max(0, Math.min(sy, H - visH));
+
+  // 出力Canvasはwrapperと完全に同じアスペクト比
+  // → overlayPreview(object-fit:cover)と一致し、ズレなし
+  const outW = Math.round(visW);
+  const outH = Math.round(visH);
   const canvas = document.createElement('canvas');
-  const size = Math.min(cropW, cropH);
-  canvas.width = size; canvas.height = size;
+  canvas.width  = outW;
+  canvas.height = outH;
   const ctx = canvas.getContext('2d');
 
-  // まずフィルターなしで描画
   ctx.filter = 'none';
-  ctx.drawImage(video, sx, sy, size, size, 0, 0, size, size);
+  ctx.drawImage(video, sx, sy, visW, visH, 0, 0, outW, outH);
 
   // 明るさ補正：ctx.filterがSafariで効かない場合があるためピクセル操作で適用
   if (brightnessFactor !== 0) {
-    const imgData = ctx.getImageData(0, 0, size, size);
+    const imgData = ctx.getImageData(0, 0, outW, outH);
     const d = imgData.data;
     const factor = 1 + brightnessFactor; // 0〜2
     for (let i = 0; i < d.length; i += 4) {
@@ -1650,10 +1885,33 @@ if (iosThumbWrap) {
 }
 // カメラOFF時サムネイル（previewOffline）のクリック
 const previewOffline = document.getElementById('previewOffline');
+function openLightbox(src) {
+  if (!src) return;
+  const lb = document.createElement('div');
+  lb.className = 'lightbox';
+  lb.innerHTML = `<img src="${src}" alt="撮影画像"><div class="lightbox-close" id="lbClose">✕</div>`;
+  document.body.appendChild(lb);
+  // 追加直後にtransitionを発火させてフェードイン
+  requestAnimationFrame(() => requestAnimationFrame(() => { lb.style.opacity = '1'; }));
+
+  function closeLightbox() {
+    lb.style.opacity = '0';
+    lb.style.transition = 'opacity 0.06s';
+    setTimeout(() => lb.remove(), 65);
+  }
+
+  // ✕ボタン周辺のみ閉じる
+  document.getElementById('lbClose').addEventListener('click', e => {
+    closeLightbox();
+    e.stopPropagation();
+  });
+}
+
 if (previewOffline) {
   previewOffline.addEventListener('click', ev => {
-    // カメラ起動中は何もしない（overlayPreviewの全画面表示は行わない）
     if (isCameraOn) { ev.stopPropagation(); return; }
+    const src = previewOffline.src || (preview && preview.src);
+    openLightbox(src);
     ev.stopPropagation();
   });
   // ファイル選択・撮影後にpreviewOfflineにも反映
