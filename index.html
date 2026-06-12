@@ -85,9 +85,30 @@
 
     /* ヘッダー */
     .app-header {
-      padding: 2.5rem 1.5rem 1.5rem;
+      padding: 1.2rem 1.5rem 1.5rem;
       text-align: center;
     }
+    .header-top-row {
+      display: flex;
+      justify-content: flex-start;
+      margin-bottom: 0.5rem;
+    }
+    .howto-reopen-btn {
+      font-family: 'Zen Maru Gothic', sans-serif;
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-muted);
+      background: rgba(0,0,0,0.05);
+      border: 1.5px solid var(--border-mid);
+      border-radius: 99px;
+      padding: 0.28rem 0.75rem;
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      transition: background 0.15s;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .howto-reopen-btn:hover { background: rgba(0,0,0,0.1); }
     .header-emblem {
       width: 68px;
       height: 68px;
@@ -1071,6 +1092,9 @@
 
   <!-- ヘッダー -->
   <header class="app-header">
+    <div class="header-top-row">
+      <button class="howto-reopen-btn" id="howtoReopenBtn">使い方</button>
+    </div>
     <div class="header-emblem">🌸</div>
     <h1 class="app-title">てんぐすん。</h1>
     <p class="app-subtitle">桜の健康をAIで診断します</p>
@@ -1358,6 +1382,15 @@ loadAllModels();
 
   document.getElementById('howtoClose').addEventListener('click', closeHowto);
   document.getElementById('howtoStartBtn').addEventListener('click', closeHowto);
+
+  // 再表示ボタン
+  const reopenBtn = document.getElementById('howtoReopenBtn');
+  if (reopenBtn) {
+    reopenBtn.addEventListener('click', () => {
+      overlay.style.display = 'flex';
+      requestAnimationFrame(() => requestAnimationFrame(() => { overlay.style.opacity = '1'; }));
+    });
+  }
 })();
 
 // ====== Google フォーム送信設定（内部定数 — 研究チームのみ編集） ======
@@ -1581,10 +1614,10 @@ imageInput.addEventListener('change', function() {
     const fr = new FileReader();
     fr.onload = function(e) {
       preview.src = e.target.result;
-      overlayPreview.src = e.target.result;
+      overlayPreview.removeAttribute('src'); // ファイル選択画像はカメラ内プレビューに使わない
       previewThumb.style.display = 'flex';
       setMainView();
-      if (iosThumbWrap) { const ti = iosThumbWrap.querySelector('img'); if(ti) ti.src = e.target.result; iosThumbWrap.classList.add('has-image'); }
+      // iosThumbWrap にはカメラ撮影画像のみ反映（ファイル選択画像は表示しない）
       inputImage = new Image();
       inputImage.crossOrigin = "anonymous";
       inputImage.onload = () => updateBacklightPreview();
@@ -1609,7 +1642,7 @@ fileDrop.addEventListener('drop', e => {
     const fr = new FileReader();
     fr.onload = ev => {
       preview.src = ev.target.result;
-      overlayPreview.src = ev.target.result;
+      overlayPreview.removeAttribute('src'); // ファイル選択画像はカメラ内プレビューに使わない
       previewThumb.style.display = 'flex';
       setMainView();
       inputImage = new Image(); inputImage.crossOrigin = "anonymous"; inputImage.src = ev.target.result;
@@ -1643,15 +1676,14 @@ async function startCamera() {
   toggleCameraBtn.style.display = 'none';
   captureBtn.disabled = false;
   switchCameraBtn.disabled = false;
-  // バグ3: 撮影前はサムネイルをクリアして壊れた画像アイコンを消す
-  if (!lastCapturedDataUrl) {
-    const ti = iosThumbWrap ? iosThumbWrap.querySelector('img') : null;
-    if (ti) ti.removeAttribute('src');
-    if (iosThumbWrap) iosThumbWrap.classList.remove('has-image');
+  // カメラ起動時: iosThumbWrapはカメラ撮影済みのみ表示
+  const iosTi = iosThumbWrap ? iosThumbWrap.querySelector('img') : null;
+  if (lastCapturedDataUrl) {
+    if (iosTi) iosTi.src = lastCapturedDataUrl;
+    if (iosThumbWrap) iosThumbWrap.classList.add('has-image');
   } else {
-    // 撮影済みがあれば表示を維持
-    const ti = iosThumbWrap ? iosThumbWrap.querySelector('img') : null;
-    if (ti && lastCapturedDataUrl) { ti.src = lastCapturedDataUrl; iosThumbWrap.classList.add('has-image'); }
+    if (iosTi) iosTi.removeAttribute('src');
+    if (iosThumbWrap) iosThumbWrap.classList.remove('has-image');
   }
   isCameraOn = true;
   zoomFactor=1; panX=0; panY=0; applyVideoTransform();
@@ -1863,22 +1895,21 @@ captureBtn.addEventListener('click', async () => {
 // サムネイルトグル
 preview.addEventListener('click', ev => {
   if (isCameraOn) {
-    // カメラ起動中：撮影済み画像がある場合のみoverlayと切替
-    if (!overlayPreview.src) { ev.stopPropagation(); return; }
+    // カメラ起動中：カメラで撮影した画像がある場合のみ切替
+    if (!lastCapturedDataUrl) { ev.stopPropagation(); return; }
     if (viewState === 'MAIN_VIEW') setOverlayView(); else setMainView();
     ev.stopPropagation();
     return;
   }
-  if (!overlayPreview.src) return;
-  if (viewState === 'MAIN_VIEW') setOverlayView(); else setMainView();
   ev.stopPropagation();
 });
 
 // iosThumbWrap自体のクリックでも同様に切替
 if (iosThumbWrap) {
   iosThumbWrap.addEventListener('click', ev => {
-    if (!isCameraOn) return; // カメラOFF時はpreview側で処理
-    if (!overlayPreview.src) { ev.stopPropagation(); return; }
+    if (!isCameraOn) return;
+    // カメラで撮影した画像がある場合のみ切替（ファイル選択画像は無視）
+    if (!lastCapturedDataUrl) { ev.stopPropagation(); return; }
     if (viewState === 'MAIN_VIEW') setOverlayView(); else setMainView();
     ev.stopPropagation();
   });
