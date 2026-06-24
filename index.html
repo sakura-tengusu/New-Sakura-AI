@@ -1237,18 +1237,21 @@
       <div class="heatmap-section">
         <div class="heatmap-header">
           <span>🔥</span>
-          <span class="heatmap-header-text">ここが怪しい！ AIの注目エリア</span>
-          <div class="heatmap-legend">
+          <span class="heatmap-header-text" id="heatmapHeaderText">ここが怪しい！ AIの注目エリア</span>
+          <div class="heatmap-legend" id="heatmapLegend">
             <span>低</span>
             <div class="legend-bar"></div>
             <span>高</span>
           </div>
         </div>
-        <div class="heatmap-canvas-wrap">
+        <div id="heatmapLoading" style="display:none; padding:1.5rem; text-align:center; font-size:0.75rem; color:#999;">
+          少し時間がかかります
+        </div>
+        <div class="heatmap-canvas-wrap" id="heatmapCanvasWrap">
           <canvas id="hmOrigCanvas"></canvas>
           <canvas id="hmHeatCanvas"></canvas>
         </div>
-        <div class="heatmap-note">
+        <div class="heatmap-note" id="heatmapNote">
           赤いほどAIが「病気の証拠」として強く注目している領域です。青〜緑は参考程度です。
         </div>
       </div>
@@ -2212,75 +2215,127 @@ function heatColor(t) {
 }
 
 // モデルの最終Conv層名を推定して取得
+// Teachable Machineのモデルは MobileNet がネストしたサブモデルになっていることが多いため、
+// model.layers だけでなく、サブモデル内部も再帰的に探索する
 function getLastConvLayer(model) {
-  for (let i = model.layers.length - 1; i >= 0; i--) {
-    const l = model.layers[i];
-    if (l.getClassName().toLowerCase().includes('conv')) return l;
-  }
-  return null;
-}
+  // まずモデル構造をログに出して確認できるようにする
+  console.log('[Grad-CAM] モデル層構成:', model.layers.map(l => `${l.name} (${l.getClassName()})`));
 
-async function computeGradCAM(model, img, targetClassIdx) {
-  const SIZE = 224;
+  function searchLayers(layers, depth = 0) {
+    // 後ろから探索（最後の畳み込み層を優先）
+    for (let i = layers.length - 1; i >= 0; i--) {
+      const l = layers[i];
+      const className = l.getClassName().toLowerCase();
 
-  // 入力テンソル作成（逆光補正込み）
-  const inputCanvas = document.createElement('canvas');
-  inputCanvas.width = SIZE; inputCanvas.height = SIZE;
-  const inputCtx = inputCanvas.getContext('2d');
-  inputCtx.drawImage(img, 0, 0, SIZE, SIZE);
-  if (backlightOn) {
-    const raw = inputCtx.getImageData(0, 0, SIZE, SIZE);
-    inputCtx.putImageData(applyBacklightCorrection(raw, shadowLift, gammaVal), 0, 0);
-  }
+      // ネストされたサブモデル/レイヤーがあれば中も探索
+      if (l.layers && l.layers.length > 0 && depth < 5) {
+        const nested = searchLayers(l.layers, depth + 1);
+        if (nested) return nested;
+      }
 
-  const lastConv = getLastConvLayer(model);
-  if (!lastConv) return null;
-
-  // lastConvの出力と最終出力を同時に得るサブモデル
-  let featureModel, predModel;
-  try {
-    featureModel = tf.model({ inputs: model.inputs, outputs: lastConv.output });
-    predModel    = tf.model({ inputs: model.inputs, outputs: model.outputs });
-  } catch(e) {
-    console.warn('Grad-CAM: サブモデル作成失敗', e);
+      // Conv系レイヤー（Conv2D, DepthwiseConv2D, SeparableConv2D等）
+      if (className.includes('conv')) {
+        console.log(`[Grad-CAM] 畳み込み層を発見: ${l.name} (${className}), depth=${depth}`);
+        return l;
+      }
+    }
     return null;
   }
 
-  const inputTensor = tf.browser.fromPixels(inputCanvas)
-    .expandDims(0).toFloat().div(tf.scalar(255));
+  const found = searchLayers(model.layers);
+  if (!found) {
+    console.warn('[Grad-CAM] 畳み込み層が見つかりませんでした。model.layers構造:', model.layers);
+  }
+  return found;
+}
 
-  // 勾配計算
-  const { grads, convOutput } = await tf.tidy(() => {
-    const convOut = featureModel.predict(inputTensor); // [1, H, W, C]
-    const gradsVal = tf.grad(x => {
-      const preds = predModel.predict(x);
-      // ターゲットクラスのスコアのみ
-      return preds.slice([0, targetClassIdx], [1, 1]).squeeze();
-    })(inputTensor);
-    return { grads: gradsVal, convOutput: convOut };
-  });
+async function computeGradCAM(model, img, targetClassIdx) {
+  // ===== Occlusion（遮蔽）ベースのヒートマップ =====
+  // Conv層やtf.gradの中間テンソル問題を避け、モデル構造に依存しない確実な方法。
+  // 画像を格子状に分割し、各マスを灰色で隠して再判定 → スコアの下がり方が大きい
+  // マスほど「AIがそこを見て判断していた」とみなし、赤く強調する。
 
-  // チャネル方向の平均勾配（Global Average Pooling）→ 重み
-  const weights   = tf.tidy(() => grads.mean([0, 1, 2]));          // [C]
-  const convOutSq = tf.tidy(() => convOutput.squeeze([0]));         // [H, W, C]
+  const SIZE = 224;
+  const GRID = 5; // 格子数（多いほど精度は上がるが計算回数も増える）
+  const CELL = SIZE / GRID;
 
-  // 加重和 → ReLU
-  const cam = await tf.tidy(() => {
-    const weighted = convOutSq.mul(weights.reshape([1, 1, -1]));   // [H, W, C]
-    return weighted.sum(-1).relu();                                  // [H, W]
-  }).data();
+  // 入力画像を準備（逆光補正込み）
+  const baseCanvas = document.createElement('canvas');
+  baseCanvas.width = SIZE; baseCanvas.height = SIZE;
+  const baseCtx = baseCanvas.getContext('2d');
+  baseCtx.drawImage(img, 0, 0, SIZE, SIZE);
+  if (backlightOn) {
+    const raw = baseCtx.getImageData(0, 0, SIZE, SIZE);
+    baseCtx.putImageData(applyBacklightCorrection(raw, shadowLift, gammaVal), 0, 0);
+  }
 
-  const [camH, camW] = convOutput.shape.slice(1, 3);
+  // ベーススコア（遮蔽なし）
+  async function scoreOf(canvas) {
+    const t = tf.tidy(() => tf.browser.fromPixels(canvas).expandDims(0).toFloat().div(tf.scalar(255)));
+    const out = model.predict(t);
+    const arr = await (Array.isArray(out) ? out[0] : out).data();
+    tf.dispose([t, out]);
+    return arr[targetClassIdx];
+  }
+
+  let baseScore;
+  try {
+    baseScore = await scoreOf(baseCanvas);
+  } catch (e) {
+    console.error('Occlusionヒートマップ: ベーススコア計算失敗', e);
+    return null;
+  }
+
+  // 各セルを遮蔽してスコアの低下量を測定
+  const scores = new Array(GRID * GRID).fill(0);
+  const avgColor = '#888'; // 中間グレーで遮蔽
+
+  // 処理するセルのインデックス一覧を事前に配列化（forループを使わない）
+  const cellIndices = Array.from({ length: GRID * GRID }, (_, i) => i);
+
+  // 1セルだけ処理する関数
+  async function processCell(idx) {
+    const gy = Math.floor(idx / GRID);
+    const gx = idx % GRID;
+
+    const occCanvas = document.createElement('canvas');
+    occCanvas.width = SIZE; occCanvas.height = SIZE;
+    const occCtx = occCanvas.getContext('2d');
+    occCtx.drawImage(baseCanvas, 0, 0);
+    occCtx.fillStyle = avgColor;
+    occCtx.fillRect(gx * CELL, gy * CELL, CELL, CELL);
+
+    try {
+      const s = await scoreOf(occCanvas);
+      scores[idx] = Math.max(0, baseScore - s);
+    } catch (e) {
+      scores[idx] = 0;
+    }
+  }
+
+  // setTimeoutチェーンで1件ずつ非同期に処理（forループ・whileループを使わない）
+  function runQueue(indices) {
+    return new Promise((resolve) => {
+      function step(remaining) {
+        if (remaining.length === 0) { resolve(); return; }
+        const [head, ...rest] = remaining;
+        setTimeout(() => {
+          processCell(head).then(() => step(rest));
+        }, 0);
+      }
+      step(indices);
+    });
+  }
+
+  await runQueue(cellIndices);
 
   // 正規化（0〜1）
-  let minV = Infinity, maxV = -Infinity;
-  for (const v of cam) { if (v < minV) minV = v; if (v > maxV) maxV = v; }
-  const range = maxV - minV || 1;
-  const normCam = Array.from(cam).map(v => (v - minV) / range);
+  let minV = Math.min(...scores);
+  let maxV = Math.max(...scores);
+  const range = (maxV - minV) || 1e-6;
+  const normCam = scores.map(v => (v - minV) / range);
 
-  tf.dispose([grads, convOutput, weights, convOutSq, inputTensor, featureModel, predModel]);
-
-  return { normCam, camH, camW };
+  return { normCam, camH: GRID, camW: GRID };
 }
 
 async function renderHeatmap(img, normCam, camH, camW) {
@@ -2299,42 +2354,71 @@ async function renderHeatmap(img, normCam, camH, camW) {
   const heatImgData = hmHeatCtx.createImageData(DISP, DISP);
   const scale = DISP / camW; // camH==camW前提（正方形入力）
 
-  for (let py = 0; py < DISP; py++) {
-    for (let px = 0; px < DISP; px++) {
-      // 双線形補間
-      const cx = px / scale, cy = py / scale;
-      const x0 = Math.floor(cx), y0 = Math.floor(cy);
-      const x1 = Math.min(x0 + 1, camW - 1), y1 = Math.min(y0 + 1, camH - 1);
-      const fx = cx - x0, fy = cy - y0;
-      const v = normCam[y0*camW+x0]*(1-fx)*(1-fy)
-               + normCam[y0*camW+x1]*fx*(1-fy)
-               + normCam[y1*camW+x0]*(1-fx)*fy
-               + normCam[y1*camW+x1]*fx*fy;
+  // forループを使わず、ピクセル座標の配列をforEachで処理
+  Array.from({ length: DISP * DISP }, (_, p) => p).forEach((p) => {
+    const py = Math.floor(p / DISP);
+    const px = p % DISP;
 
-      const [r, g, b] = heatColor(v);
-      const alpha = Math.round(v * 210); // 高スコアほど不透明
-      const idx = (py * DISP + px) * 4;
-      heatImgData.data[idx]   = r;
-      heatImgData.data[idx+1] = g;
-      heatImgData.data[idx+2] = b;
-      heatImgData.data[idx+3] = alpha;
-    }
-  }
+    // 双線形補間
+    const cx = px / scale, cy = py / scale;
+    const x0 = Math.floor(cx), y0 = Math.floor(cy);
+    const x1 = Math.min(x0 + 1, camW - 1), y1 = Math.min(y0 + 1, camH - 1);
+    const fx = cx - x0, fy = cy - y0;
+    const v = normCam[y0*camW+x0]*(1-fx)*(1-fy)
+             + normCam[y0*camW+x1]*fx*(1-fy)
+             + normCam[y1*camW+x0]*(1-fx)*fy
+             + normCam[y1*camW+x1]*fx*fy;
+
+    const [r, g, b] = heatColor(v);
+    const alpha = Math.round(v * 210); // 高スコアほど不透明
+    const idx = (py * DISP + px) * 4;
+    heatImgData.data[idx]   = r;
+    heatImgData.data[idx+1] = g;
+    heatImgData.data[idx+2] = b;
+    heatImgData.data[idx+3] = alpha;
+  });
   hmHeatCtx.putImageData(heatImgData, 0, 0);
   heatmapCard.style.display = 'block';
   heatmapCard.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 }
 
 async function runGradCAM(img) {
+  const headerText   = document.getElementById('heatmapHeaderText');
+  const loadingEl    = document.getElementById('heatmapLoading');
+  const canvasWrap   = document.getElementById('heatmapCanvasWrap');
+  const noteEl       = document.getElementById('heatmapNote');
+  const legendEl     = document.getElementById('heatmapLegend');
+
   heatmapCard.style.display = 'none';
   if (!models.health) return;
+
   try {
-    // 健康モデルの「病気」クラス（idx=1）を対象にGrad-CAM
+    // ヒートマップ計算中はローディング表示に切り替え
+    heatmapCard.style.display = 'block';
+    if (headerText) headerText.textContent = '注目エリアを計算中…';
+    if (loadingEl)  loadingEl.style.display = 'block';
+    if (canvasWrap) canvasWrap.style.display = 'none';
+    if (noteEl)     noteEl.style.display = 'none';
+    if (legendEl)   legendEl.style.display = 'none';
+
+    // 健康モデルの「病気」クラス（idx=1）を対象にOcclusionヒートマップ
     const result = await computeGradCAM(models.health, img, 1);
-    if (!result) return;
+
+    if (headerText) headerText.textContent = 'ここが怪しい！ AIの注目エリア';
+    if (loadingEl)  loadingEl.style.display = 'none';
+    if (canvasWrap) canvasWrap.style.display = 'block';
+    if (noteEl)     noteEl.style.display = 'block';
+    if (legendEl)   legendEl.style.display = 'flex';
+
+    if (!result) {
+      console.warn('ヒートマップ: 計算結果がnullでした（上のエラーログを確認してください）');
+      heatmapCard.style.display = 'none';
+      return;
+    }
     await renderHeatmap(img, result.normCam, result.camH, result.camW);
   } catch(e) {
-    console.warn('Grad-CAM 失敗:', e);
+    console.error('ヒートマップ計算 失敗:', e);
+    heatmapCard.style.display = 'none';
   }
 }
 
