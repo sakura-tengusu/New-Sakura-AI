@@ -1400,14 +1400,34 @@ loadAllModels();
 const FORM_ACTION_URL  = "https://docs.google.com/forms/d/e/1FAIpQLSfmu6pjGJWYpcZw_-IYTZLraYS5VyqhY8eklDJdfGvCtRlRNg/formResponse";
 const ENTRY_RESULT     = "entry.1319158684"; // 判定結果
 const ENTRY_CONFIDENCE = "entry.1644085124"; // 確信度(%)
-const ENTRY_MEMO       = "entry.245467202";  // 画像URL
+const ENTRY_MEMO       = "entry.245467202";  // 位置情報・撮影時刻
+
+// 画像URLの代わりに「撮影時刻」と「位置情報（緯度,経度）」をテキストで生成
+// カメラ撮影でない（ファイル選択した）場合はlastCaptureMetaが無いため、その旨を記載
+function buildCaptureInfo() {
+  if (!lastCaptureMeta || !lastCaptureMeta.capturedAt) {
+    return 'ファイル選択画像（撮影情報なし）';
+  }
+  const d = lastCaptureMeta.capturedAt;
+  const pad = n => String(n).padStart(2, '0');
+  const dateStr = `${d.getFullYear()}/${pad(d.getMonth()+1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`;
+
+  let locStr = '位置情報なし';
+  if (lastCaptureMeta.coords) {
+    const { latitude, longitude } = lastCaptureMeta.coords;
+    locStr = `緯度${latitude.toFixed(5)}, 経度${longitude.toFixed(5)} (https://maps.google.com/?q=${latitude},${longitude})`;
+  }
+  return `撮影時刻: ${dateStr} / ${locStr}`;
+}
 
 async function sendToGoogleForm(resultText, confidence, memo) {
   if (!FORM_ACTION_URL || FORM_ACTION_URL.includes('YOUR_FORM_ID')) return;
+  // memoが明示的に渡されなかった場合は自動生成（撮影時刻・位置情報）
+  const finalMemo = (memo && memo.length > 0) ? memo : buildCaptureInfo();
   const body = new URLSearchParams();
   if (ENTRY_RESULT)     body.append(ENTRY_RESULT,     resultText);
   if (ENTRY_CONFIDENCE) body.append(ENTRY_CONFIDENCE, confidence);
-  if (ENTRY_MEMO)       body.append(ENTRY_MEMO,       memo || '');
+  if (ENTRY_MEMO)       body.append(ENTRY_MEMO,       finalMemo);
   try {
     await fetch(FORM_ACTION_URL, { method: 'POST', mode: 'no-cors', body });
   } catch(err) {
