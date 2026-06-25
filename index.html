@@ -1397,10 +1397,10 @@ loadAllModels();
 })();
 
 // ====== Google フォーム送信設定（内部定数 — 研究チームのみ編集） ======
-const FORM_ACTION_URL  = "https://docs.google.com/forms/d/YOUR_FORM_ID/formResponse";
-const ENTRY_RESULT     = "entry.000000001"; // 判定結果
-const ENTRY_CONFIDENCE = "entry.000000002"; // 確信度(%)
-const ENTRY_MEMO       = "entry.000000003"; // メモ（任意）
+const FORM_ACTION_URL  = "https://docs.google.com/forms/d/e/1FAIpQLSfmu6pjGJWYpcZw_-IYTZLraYS5VyqhY8eklDJdfGvCtRlRNg/formResponse";
+const ENTRY_RESULT     = "entry.1319158684"; // 判定結果
+const ENTRY_CONFIDENCE = "entry.1644085124"; // 確信度(%)
+const ENTRY_MEMO       = "entry.245467202";  // 画像URL
 
 async function sendToGoogleForm(resultText, confidence, memo) {
   if (!FORM_ACTION_URL || FORM_ACTION_URL.includes('YOUR_FORM_ID')) return;
@@ -1478,53 +1478,135 @@ const backlightStatusEl = document.getElementById('backlightStatus');
 // 画像の明るさ・コントラストを自動解析してパラメータを決定
 function analyzeImage(imageData) {
   const data = imageData.data;
-  let sum = 0, count = 0;
-  let darkPixels = 0; // 0〜0.3の割合
-  let brightPixels = 0; // 0.7〜1.0の割合
-  for (let i = 0; i < data.length; i += 16) { // 間引きサンプリング
-    const r = data[i] / 255, g = data[i+1] / 255, b = data[i+2] / 255;
-    const lum = 0.299 * r + 0.587 * g + 0.114 * b;
-    sum += lum; count++;
-    if (lum < 0.3) darkPixels++;
-    if (lum > 0.7) brightPixels++;
+  const w = imageData.width, h = imageData.height;
+
+  // ヒストグラム（256階調）で輝度分布を正確に把握
+  const hist = new Array(256).fill(0);
+  let sum = 0, sumSq = 0, count = 0;
+
+  // 中央領域（被写体が写りやすい中心70%）と周辺（背景・空など）を分けて集計
+  const cx0 = Math.floor(w * 0.15), cx1 = Math.floor(w * 0.85);
+  const cy0 = Math.floor(h * 0.15), cy1 = Math.floor(h * 0.85);
+  let centerSum = 0, centerCount = 0;
+  let edgeSum = 0, edgeCount = 0;
+
+  for (let i = 0; i < data.length; i += 4) {
+    const px = (i / 4) % w;
+    const py = Math.floor((i / 4) / w);
+
+    const r = data[i], g = data[i+1], b = data[i+2];
+    // 知覚輝度（Rec.601）
+    const lumByte = 0.299 * r + 0.587 * g + 0.114 * b; // 0〜255
+    const lum = lumByte / 255;
+
+    hist[Math.min(255, Math.round(lumByte))]++;
+    sum += lum; sumSq += lum * lum; count++;
+
+    const inCenter = px >= cx0 && px < cx1 && py >= cy0 && py < cy1;
+    if (inCenter) { centerSum += lum; centerCount++; }
+    else { edgeSum += lum; edgeCount++; }
   }
+
   const avgLum = sum / count;
-  const darkRatio = darkPixels / count;
-  const brightRatio = brightPixels / count;
-  // コントラスト比（明部と暗部の共存 = 逆光の特徴）
-  const contrastScore = darkRatio * brightRatio * 4; // 0〜1
-  return { avgLum, darkRatio, brightRatio, contrastScore };
+  const variance = sumSq / count - avgLum * avgLum;
+  const stdDev = Math.sqrt(Math.max(0, variance)); // コントラストの強さ
+
+  const centerLum = centerCount > 0 ? centerSum / centerCount : avgLum;
+  const edgeLum   = edgeCount   > 0 ? edgeSum   / edgeCount   : avgLum;
+
+  // ヒストグラムから暗部・明部の割合を正確に算出
+  let darkCount = 0, midCount = 0, brightCount = 0;
+  let clippedDarkCount = 0, clippedBrightCount = 0; // 完全に潰れた黒つぶれ・白飛び
+  for (let v = 0; v < 256; v++) {
+    if (v < 5)   clippedDarkCount += hist[v];
+    if (v > 250) clippedBrightCount += hist[v];
+    if (v < 77)        darkCount += hist[v];        // < 0.3
+    else if (v < 178)  midCount += hist[v];          // 0.3-0.7
+    else               brightCount += hist[v];       // > 0.7
+  }
+  const darkRatio   = darkCount / count;
+  const brightRatio = brightCount / count;
+  const clippedDarkRatio   = clippedDarkCount / count;
+  const clippedBrightRatio = clippedBrightCount / count;
+
+  // 逆光スコア：「中央(被写体)が暗い」かつ「周辺(背景)が明るい」ときに高くなる
+  // 単純なdark*brightの共存だけでなく、空間的な位置関係も考慮
+  const backlitScore = Math.max(0, edgeLum - centerLum) * 2; // 0〜1程度
+
+  // 一般的な明暗共存コントラスト（逆光以外のシーンでも起きるが補助指標として使う）
+  const coexistScore = Math.min(1, darkRatio * brightRatio * 4);
+
+  return {
+    avgLum, stdDev, centerLum, edgeLum,
+    darkRatio, brightRatio,
+    clippedDarkRatio, clippedBrightRatio,
+    backlitScore, coexistScore
+  };
 }
 
 // 解析結果から最適なパラメータを決定
 function decideParams(analysis) {
-  const { avgLum, darkRatio, contrastScore } = analysis;
+  const {
+    avgLum, stdDev, centerLum, edgeLum,
+    darkRatio, clippedDarkRatio, clippedBrightRatio,
+    backlitScore, coexistScore
+  } = analysis;
+
   let lift = 0, gamma = 1, label = '', emoji = '';
 
-  // 逆光（暗い領域と明るい領域が共存）
-  if (contrastScore > 0.15 && darkRatio > 0.25) {
-    lift = 0.30 + contrastScore * 0.2;
-    gamma = 1.7 + contrastScore * 0.5;
-    label = '逆光を検出しました。暗部を持ち上げて補正します';
+  // ===== 逆光判定（中央が暗く、周辺が明るい空間パターンを重視） =====
+  const isBacklit = (backlitScore > 0.12 && centerLum < 0.45) ||
+                     (coexistScore > 0.18 && darkRatio > 0.3);
+
+  if (isBacklit) {
+    // 中央被写体の暗さに応じて補正量を決定（背景は明るいので持ち上げ過多を防ぐ）
+    const darkness = Math.max(0, 0.5 - centerLum) / 0.5; // 0〜1
+    lift  = 0.28 + darkness * 0.27 + backlitScore * 0.15;
+    gamma = 1.6  + darkness * 0.7  + backlitScore * 0.3;
+    label = '逆光を検出しました。被写体を中心に明るさを補正します';
     emoji = '🌆';
   }
-  // 全体的に暗い（暗所・曇り）
-  else if (avgLum < 0.35) {
-    const darkness = (0.35 - avgLum) / 0.35;
-    lift = 0.15 + darkness * 0.35;
-    gamma = 1.4 + darkness * 0.8;
-    label = avgLum < 0.2 ? '暗所を検出しました。大きく明るさを補正します' : '薄暗さを検出しました。やや明るく補正します';
-    emoji = avgLum < 0.2 ? '🌙' : '🌤';
+  // ===== 全体暗所・薄暗い判定（標準偏差も見てコントラスト不足を判定） =====
+  else if (avgLum < 0.38) {
+    const darkness = (0.38 - avgLum) / 0.38; // 0〜1
+    // コントラストが低い（stdDevが小さい）ほど、より強く持ち上げる
+    const lowContrastBoost = stdDev < 0.12 ? 0.12 : 0;
+    lift  = 0.14 + darkness * 0.38 + lowContrastBoost;
+    gamma = 1.35 + darkness * 0.95 + lowContrastBoost * 0.5;
+
+    if (avgLum < 0.15) {
+      label = '暗所を検出しました。大きく明るさを補正します';
+      emoji = '🌙';
+    } else if (avgLum < 0.25) {
+      label = '薄暗さを検出しました。明るさを補正します';
+      emoji = '🌃';
+    } else {
+      label = 'やや薄暗い場面です。軽く補正します';
+      emoji = '🌤';
+    }
   }
-  // 十分明るい
+  // ===== 黒つぶれが多い場合は追加補正（暗所判定に入らないケースもカバー） =====
+  else if (clippedDarkRatio > 0.18) {
+    lift  = 0.20 + clippedDarkRatio * 0.4;
+    gamma = 1.5  + clippedDarkRatio * 0.8;
+    label = '一部が黒つぶれしています。暗部を補正します';
+    emoji = '⬛';
+  }
+  // ===== 白飛びが多い場合は補正しない（持ち上げても改善しないため） =====
+  else if (clippedBrightRatio > 0.25) {
+    lift = 0; gamma = 1;
+    label = '白飛びが多い写真です。日陰での撮影をおすすめします';
+    emoji = '⚠️';
+  }
+  // ===== 十分明るい =====
   else {
     lift = 0; gamma = 1;
     label = '十分明るい写真です。補正は不要です';
     emoji = '✅';
   }
 
-  lift = Math.min(0.55, Math.max(0, lift));
-  gamma = Math.min(2.8, Math.max(1, gamma));
+  lift  = Math.min(0.6, Math.max(0, lift));
+  gamma = Math.min(3.0, Math.max(1, gamma));
   return { lift, gamma, label, emoji };
 }
 
@@ -1533,12 +1615,24 @@ function applyBacklightCorrection(imageData, lift, gamma) {
   if (lift === 0 && gamma === 1) return imageData;
   const data = new Uint8ClampedArray(imageData.data);
   const invGamma = 1.0 / gamma;
+
+  // 補正量に応じてコントラストを軽く引き締める強さを決める
+  // （持ち上げ・ガンマを強くかけるほど画像が眠くなりやすいため、その分を補う）
+  const contrastBoost = Math.min(0.35, lift * 0.5 + (gamma - 1) * 0.08);
+
   for (let i = 0; i < data.length; i += 4) {
     for (let c = 0; c < 3; c++) {
       let v = data[i + c] / 255;
+      // シャドウリフト：暗部を持ち上げる
       v = v + lift * (1 - v) * (1 - v);
+      // ガンマ補正：中間〜暗部をさらに明るく
       v = Math.pow(Math.max(0, v), invGamma);
-      data[i + c] = Math.min(255, Math.round(v * 255));
+      // コントラスト引き締め（0.5を基準にしたS字カーブで眠さを軽減）
+      if (contrastBoost > 0) {
+        v = (v - 0.5) * (1 + contrastBoost) + 0.5;
+      }
+      v = Math.max(0, Math.min(1, v));
+      data[i + c] = Math.round(v * 255);
     }
   }
   return new ImageData(data, imageData.width, imageData.height);
@@ -2497,7 +2591,7 @@ const guideCtx      = guideCanvas.getContext('2d');
 
 let guideTimer = null;
 let guideOkCount = 0; // OK状態が連続した回数（撮影ロックに使用）
-const GUIDE_SIZE = 96; // 解析サンプル解像度
+const GUIDE_SIZE = 128; // 解析サンプル解像度（96→128でノイズ耐性UP）
 
 function startGuide() {
   guideOverlay.style.display = 'block';
@@ -2506,7 +2600,7 @@ function startGuide() {
   setGuideBanner('📸', 'カメラを向けてください', false);
   guideOkCount = 0;
   if (guideTimer) clearInterval(guideTimer);
-  guideTimer = setInterval(runGuideAnalysis, 400);
+  guideTimer = setInterval(runGuideAnalysis, 250); // 400→250msで応答性UP
 }
 
 function stopGuide() {
@@ -2537,60 +2631,112 @@ function setGuideReady() {
 }
 
 // ラプラシアン分散でピントスコアを計算（高いほどシャープ）
-function calcSharpness(imageData, w, h) {
-  const d = imageData.data;
-  let sum = 0, count = 0;
+// グレースケール変換（再利用するためキャッシュ可能な形に）
+function toGrayscale(d, w, h) {
+  const gray = new Float32Array(w * h);
+  for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+    gray[p] = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+  }
+  return gray;
+}
+
+// ラプラシアン分散（ピンボケ検出）。輝度の平均で正規化し露出差の影響を減らす
+// RGBA(ImageData)をグレースケール配列(Uint8/Float)に変換
+function toGrayscale(imageData) {
+  const data = imageData.data;
+  const len = imageData.width * imageData.height;
+  const gray = new Float32Array(len);
+  for (let p = 0; p < len; p++) {
+    const i = p * 4;
+    gray[p] = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
+  }
+  return gray;
+}
+
+function calcSharpness(gray, w, h) {
+  let sum = 0, sumSq = 0, count = 0;
+  let lumSum = 0;
   for (let y = 1; y < h - 1; y++) {
     for (let x = 1; x < w - 1; x++) {
-      const idx = (y * w + x) * 4;
-      // グレースケール輝度
-      const c  = 0.299*d[idx]+0.587*d[idx+1]+0.114*d[idx+2];
-      const t  = 0.299*d[idx-w*4]+0.587*d[idx-w*4+1]+0.114*d[idx-w*4+2];
-      const b  = 0.299*d[idx+w*4]+0.587*d[idx+w*4+1]+0.114*d[idx+w*4+2];
-      const l  = 0.299*d[idx-4]+0.587*d[idx-3]+0.114*d[idx-2];
-      const r  = 0.299*d[idx+4]+0.587*d[idx+5]+0.114*d[idx+6];
-      const lap = Math.abs(4*c - t - b - l - r);
-      sum += lap; count++;
+      const idx = y * w + x;
+      const c = gray[idx];
+      const t = gray[idx - w];
+      const b = gray[idx + w];
+      const l = gray[idx - 1];
+      const r = gray[idx + 1];
+      const lap = 4*c - t - b - l - r;
+      sum += lap; sumSq += lap * lap; count++;
+      lumSum += c;
     }
   }
-  return count > 0 ? sum / count : 0;
+  const avgLum = lumSum / count;
+  const variance = sumSq / count - (sum / count) * (sum / count);
+  // 露出（明るさ）で正規化：暗い画像はコントラストが下がりラプラシアン値も下がるため補正
+  const exposureNorm = Math.max(0.35, Math.min(1, avgLum / 110));
+  return variance / (exposureNorm * exposureNorm);
 }
 
-// 中央領域の平均輝度（0〜1）
-function calcCenterBrightness(imageData, w, h) {
-  const d = imageData.data;
-  const x0=Math.floor(w*0.25), x1=Math.floor(w*0.75);
-  const y0=Math.floor(h*0.25), y1=Math.floor(h*0.75);
-  let sum=0, count=0;
+// 中央領域の平均輝度（0〜1）＋ コントラスト
+function calcCenterBrightness(gray, w, h) {
+  const x0=Math.floor(w*0.2), x1=Math.floor(w*0.8);
+  const y0=Math.floor(h*0.2), y1=Math.floor(h*0.8);
+  let sum=0, sumSq=0, count=0;
   for (let y=y0;y<y1;y++) {
     for (let x=x0;x<x1;x++) {
-      const i=(y*w+x)*4;
-      sum += 0.299*d[i]+0.587*d[i+1]+0.114*d[i+2];
-      count++;
+      const v = gray[y*w+x];
+      sum += v; sumSq += v*v; count++;
     }
   }
-  return count>0 ? sum/count/255 : 0;
+  const mean = count>0 ? sum/count : 0;
+  const variance = count>0 ? (sumSq/count - mean*mean) : 0;
+  return { brightness: mean/255, contrast: Math.sqrt(Math.max(0,variance))/255 };
 }
 
-// エッジ密度（被写体の存在感）
-function calcEdgeDensity(imageData, w, h) {
-  const d = imageData.data;
+// エッジ密度（被写体の存在感）。固定しきい値ではなく局所コントラストの相対比較で判定
+function calcEdgeDensity(gray, w, h) {
   const cx=Math.floor(w/2), cy=Math.floor(h/2);
-  const rx=Math.floor(w*0.3), ry=Math.floor(h*0.3);
-  let edgeCount=0, total=0;
-  for (let y=cy-ry;y<cy+ry;y++) {
-    for (let x=cx-rx;x<cx+rx;x++) {
-      if (x<1||y<1||x>=w-1||y>=h-1) continue;
-      const idx=(y*w+x)*4;
-      const c =0.299*d[idx]+0.587*d[idx+1]+0.114*d[idx+2];
-      const r =0.299*d[idx+4]+0.587*d[idx+5]+0.114*d[idx+6];
-      const b =0.299*d[idx+w*4]+0.587*d[idx+w*4+1]+0.114*d[idx+w*4+2];
-      if (Math.abs(c-r)>15 || Math.abs(c-b)>15) edgeCount++;
+  const rx=Math.floor(w*0.32), ry=Math.floor(h*0.32);
+  let edgeStrengthSum = 0, total=0;
+  const y0 = Math.max(1, cy-ry), y1 = Math.min(h-1, cy+ry);
+  const x0 = Math.max(1, cx-rx), x1 = Math.min(w-1, cx+rx);
+  for (let y=y0;y<y1;y++) {
+    for (let x=x0;x<x1;x++) {
+      const idx = y*w+x;
+      const c = gray[idx];
+      const r = gray[idx+1];
+      const b = gray[idx+w];
+      // 勾配の大きさ（Sobel風の簡易版）を連続値として蓄積
+      const gx = Math.abs(c - r);
+      const gy = Math.abs(c - b);
+      edgeStrengthSum += Math.sqrt(gx*gx + gy*gy);
       total++;
     }
   }
-  return total>0 ? edgeCount/total : 0;
+  // 0〜1にスケーリング（経験的な正規化係数）
+  return total>0 ? Math.min(1, (edgeStrengthSum / total) / 20) : 0;
 }
+
+// 直前フレームとの差分でカメラの動き（手ブレ）を検出
+let prevGrayForMotion = null;
+function calcMotionAmount(gray, w, h) {
+  if (!prevGrayForMotion || prevGrayForMotion.length !== gray.length) {
+    prevGrayForMotion = gray.slice();
+    return 0;
+  }
+  let diffSum = 0;
+  const step = 4; // 間引きして高速化
+  let count = 0;
+  for (let i = 0; i < gray.length; i += step) {
+    diffSum += Math.abs(gray[i] - prevGrayForMotion[i]);
+    count++;
+  }
+  prevGrayForMotion = gray.slice();
+  return count > 0 ? diffSum / count : 0; // 0〜255スケール、大きいほど動きが大きい
+}
+
+// ガイド判定のヒステリシス用：直近の判定状態を保持してちらつきを防ぐ
+let guideLastState = null;
+let guideStateStreak = 0;
 
 async function runGuideAnalysis() {
   if (!isCameraOn || !video.videoWidth || viewState !== 'MAIN_VIEW') return;
@@ -2605,40 +2751,65 @@ async function runGuideAnalysis() {
   guideCtx.drawImage(video, sx, sy, crop, crop, 0, 0, size, size);
   const imageData = guideCtx.getImageData(0, 0, size, size);
 
-  const sharpness   = calcSharpness(imageData, size, size);
-  const brightness  = calcCenterBrightness(imageData, size, size);
-  const edgeDensity = calcEdgeDensity(imageData, size, size);
+  // RGBA → グレースケールに正しく変換してから各解析関数へ渡す
+  const gray = toGrayscale(imageData);
 
-  // しきい値（チューニング可能）
-  const SHARP_OK    = 6.0;   // ラプラシアン分散のOK閾値
-  const SHARP_WARN  = 2.5;   // ピンボケ判定閾値
-  const EDGE_OK     = 0.08;  // エッジ密度のOK閾値（被写体あり）
-  const BRIGHT_LOW  = 0.06;  // 暗すぎ判定
-  const BRIGHT_HIGH = 0.92;  // 明るすぎ判定
+  const sharpness    = calcSharpness(gray, size, size);
+  const centerInfo   = calcCenterBrightness(gray, size, size); // {brightness, contrast}
+  const brightness   = centerInfo.brightness;
+  const contrast     = centerInfo.contrast;
+  const edgeDensity  = calcEdgeDensity(gray, size, size);
+  const motionAmount = calcMotionAmount(gray, size, size); // 0〜255、大きいほど手ブレ
 
-  // 判定ロジック（優先度順）
+  // しきい値
+  const SHARP_OK     = 6.0;   // ラプラシアン分散のOK閾値
+  const SHARP_WARN   = 2.5;   // ピンボケ判定閾値
+  const EDGE_OK      = 0.08;  // エッジ密度のOK閾値（被写体あり）
+  const BRIGHT_LOW   = 0.06;  // 暗すぎ判定
+  const BRIGHT_HIGH  = 0.92;  // 明るすぎ判定
+  const MOTION_WARN  = 6.0;   // 手ブレ判定（フレーム間差分）
+
+  // 今回フレームの判定結果を決める
+  let state, icon, msg, isOk = false;
+
   if (brightness < BRIGHT_LOW) {
-    setGuideBanner('🌑', '暗すぎます。明るい場所に移動してください', false);
-    guideOkCount = 0;
+    state = 'dark'; icon = '🌑'; msg = '暗すぎます。明るい場所に移動してください';
   } else if (brightness > BRIGHT_HIGH) {
-    setGuideBanner('☀️', '明るすぎます。影の中に入るか角度を変えてください', false);
-    guideOkCount = 0;
+    state = 'bright'; icon = '☀️'; msg = '明るすぎます。影の中に入るか角度を変えてください';
   } else if (edgeDensity < EDGE_OK) {
-    setGuideBanner('🔍', '被写体をフレームに入れてください', false);
-    guideOkCount = 0;
+    state = 'nosubject'; icon = '🔍'; msg = '被写体をフレームに入れてください';
+  } else if (motionAmount > MOTION_WARN) {
+    state = 'motion'; icon = '✋'; msg = '手ブレしています。カメラを安定させてください';
   } else if (sharpness < SHARP_WARN) {
-    setGuideBanner('💫', 'ピンボケです。もっと近づいてください', false);
-    guideOkCount = 0;
+    state = 'blur'; icon = '💫'; msg = 'ピンボケです。もっと近づいてください';
   } else if (sharpness < SHARP_OK) {
-    setGuideBanner('📐', 'もう少し近づくか、手ブレに注意してください', false);
-    guideOkCount = 0;
+    state = 'softfocus'; icon = '📐'; msg = 'もう少し近づくか、手ブレに注意してください';
   } else {
-    // OK
-    guideOkCount++;
-    if (guideOkCount >= 2) {
-      setGuideReady();
+    state = 'ok'; icon = '✅'; msg = 'シャッターを切ってください'; isOk = true;
+  }
+
+  // ヒステリシス：直前と同じ状態が連続したときのみ表示を切り替える
+  // → カメラのわずかな揺れでメッセージがチカチカ変わるのを防ぐ
+  if (state === guideLastState) {
+    guideStateStreak++;
+  } else {
+    guideLastState = state;
+    guideStateStreak = 1;
+  }
+
+  // 2フレーム連続で同じ判定が出てから表示を更新（チラつき防止）
+  const STREAK_NEEDED = 2;
+  if (guideStateStreak >= STREAK_NEEDED || guideOkCount === 0) {
+    if (isOk) {
+      guideOkCount++;
+      if (guideOkCount >= 2) {
+        setGuideReady();
+      } else {
+        setGuideBanner(icon, msg, true);
+      }
     } else {
-      setGuideBanner('✅', 'シャッターを切ってください', true);
+      guideOkCount = 0;
+      setGuideBanner(icon, msg, false);
     }
   }
 }
