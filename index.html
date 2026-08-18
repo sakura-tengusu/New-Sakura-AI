@@ -1010,6 +1010,35 @@
       line-height: 1.7;
       text-align: center;
     }
+    /* 設定トグル */
+    .settings-toggle {
+      flex-shrink: 0;
+      cursor: pointer;
+    }
+    .settings-toggle input { display: none; }
+    .toggle-track {
+      display: block;
+      width: 44px;
+      height: 26px;
+      border-radius: 99px;
+      background: var(--border-mid);
+      position: relative;
+      transition: background 0.2s;
+    }
+    .toggle-thumb {
+      position: absolute;
+      top: 3px;
+      left: 3px;
+      width: 20px;
+      height: 20px;
+      border-radius: 50%;
+      background: #fff;
+      box-shadow: 0 1px 4px rgba(0,0,0,0.18);
+      transition: transform 0.2s;
+    }
+    .settings-toggle input:checked + .toggle-track { background: var(--sakura-400); }
+    .settings-toggle input:checked + .toggle-track .toggle-thumb { transform: translateX(18px); }
+
     .howto-start-btn {
       display: block;
       width: 100%;
@@ -1094,7 +1123,7 @@
   <header class="app-header">
     <div class="header-top-row">
       <button class="howto-reopen-btn" id="howtoReopenBtn">使い方</button>
-      <button class="howto-reopen-btn" id="contactReopenBtn">📮 報告・お問い合わせ</button>
+      <button class="howto-reopen-btn" id="contactReopenBtn">⚙️ 設定</button>
     </div>
     <div class="header-emblem">🌸</div>
     <h1 class="app-title">てんぐすん。</h1>
@@ -1318,20 +1347,38 @@
   </div>
 </div>
 
-<!-- 報告・お問い合わせモーダル -->
+<!-- 設定モーダル -->
 <div class="howto-overlay" id="contactOverlay">
   <div class="howto-box">
     <button class="howto-close" id="contactClose">✕</button>
-    <p class="howto-title">📮 報告・お問い合わせ</p>
+    <p class="howto-title">⚙️ 設定</p>
 
-    <div class="howto-step">
-      <div class="howto-step-body">
-        <p class="howto-step-desc">アプリの使い方など、お問い合わせはこちら</p>
+    <!-- 背景の花びら -->
+    <div class="howto-step" style="align-items:center;gap:1rem;">
+      <div class="howto-step-body" style="flex:1;">
+        <p class="howto-step-title">🌸 背景の花びらを表示する</p>
+        <p class="howto-step-desc" style="margin-top:0.25rem;">画面に花びらが舞うアニメーションを表示します。</p>
       </div>
+      <label class="settings-toggle">
+        <input type="checkbox" id="settingPetals" checked>
+        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+      </label>
+    </div>
+
+    <!-- データ収集協力 -->
+    <div class="howto-step" style="align-items:center;gap:1rem;margin-top:0.75rem;">
+      <div class="howto-step-body" style="flex:1;">
+        <p class="howto-step-title">📊 データ収集に協力する</p>
+        <p class="howto-step-desc" style="margin-top:0.25rem;">判定結果を匿名で送信し、AI改善に役立てます。</p>
+      </div>
+      <label class="settings-toggle">
+        <input type="checkbox" id="settingDataCollect" checked>
+        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+      </label>
     </div>
 
     <hr class="howto-divider" />
-    <p class="howto-note">hitachi1.sakura.tengusu@gmail.com</p>
+    <p class="howto-note" style="text-align:center;">お問い合わせ<br><a href="mailto:hitachi1.sakura.tengusu@gmail.com" style="color:var(--sakura-600);text-decoration:none;">hitachi1.sakura.tengusu@gmail.com</a></p>
 
     <button class="howto-start-btn" id="contactCloseBtn">閉じる</button>
   </div>
@@ -1416,25 +1463,52 @@ loadAllModels();
   }
 })();
 
-// ====== 報告・お問い合わせモーダル ======
+// ====== 設定モーダル ======
 (function() {
   const overlay = document.getElementById('contactOverlay');
   if (!overlay) return;
   overlay.style.display = 'none';
 
-  function openContact() {
+  function openSettings() {
     overlay.style.display = 'flex';
     requestAnimationFrame(() => requestAnimationFrame(() => { overlay.style.opacity = '1'; }));
   }
-  function closeContact() {
+  function closeSettings() {
     overlay.style.opacity = '0';
     setTimeout(() => overlay.style.display = 'none', 120);
   }
 
-  document.getElementById('contactReopenBtn')?.addEventListener('click', openContact);
-  document.getElementById('contactClose')?.addEventListener('click', closeContact);
-  document.getElementById('contactCloseBtn')?.addEventListener('click', closeContact);
+  document.getElementById('contactReopenBtn')?.addEventListener('click', openSettings);
+  document.getElementById('contactClose')?.addEventListener('click', closeSettings);
+  document.getElementById('contactCloseBtn')?.addEventListener('click', closeSettings);
+
+  // 花びら設定
+  const petalToggle = document.getElementById('settingPetals');
+  const petals = document.querySelectorAll('.petal');
+  const savedPetals = localStorage.getItem('setting_petals');
+  if (savedPetals === 'false') {
+    petalToggle.checked = false;
+    petals.forEach(p => p.style.display = 'none');
+  }
+  petalToggle.addEventListener('change', () => {
+    const on = petalToggle.checked;
+    petals.forEach(p => p.style.display = on ? '' : 'none');
+    localStorage.setItem('setting_petals', on);
+  });
+
+  // データ収集設定
+  const dataToggle = document.getElementById('settingDataCollect');
+  const savedData = localStorage.getItem('setting_data_collect');
+  if (savedData === 'false') dataToggle.checked = false;
+  dataToggle.addEventListener('change', () => {
+    localStorage.setItem('setting_data_collect', dataToggle.checked);
+  });
 })();
+
+// データ収集が有効かを返すグローバル関数
+function isDataCollectEnabled() {
+  return localStorage.getItem('setting_data_collect') !== 'false';
+}
 
 // ====== Google フォーム送信設定（内部定数 — 研究チームのみ編集） ======
 const FORM_ACTION_URL  = "https://docs.google.com/forms/d/e/1FAIpQLSfzrm_dAlpOVwUHIY98jUDxHcuh1BwQ2zE1QBWZlmvz52BR7w/formResponse";
@@ -1461,6 +1535,7 @@ function buildCaptureInfo() {
 }
 
 async function sendToGoogleForm(resultText, confidence, memo) {
+  if (!isDataCollectEnabled()) return;
   if (!FORM_ACTION_URL || FORM_ACTION_URL.includes('YOUR_FORM_ID')) return;
   // memoが明示的に渡されなかった場合は自動生成（撮影時刻・位置情報）
   const finalMemo = (memo && memo.length > 0) ? memo : buildCaptureInfo();
