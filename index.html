@@ -34,6 +34,28 @@
       --radius-xl: 32px;
     }
 
+    body.dark-mode {
+      --bg: #1a0d12;
+      --surface: #241018;
+      --border: rgba(244, 114, 168, 0.18);
+      --border-mid: rgba(244, 114, 168, 0.32);
+      --text-primary: #f8e4ef;
+      --text-secondary: #e0a0c8;
+      --text-muted: #9a6080;
+      --sakura-50: #2a1020;
+      --sakura-100: #3d1830;
+      --sakura-200: #5a2444;
+    }
+    body.dark-mode .card { background: #2a1020; }
+    body.dark-mode .howto-box { background: #241018; color: var(--text-primary); }
+    body.dark-mode .file-drop { background: #2a1020; }
+    body.dark-mode .result-card { background: #2a1020; }
+    body.dark-mode .result-ok, body.dark-mode .result-healthy { background: #0d2a1a !important; border-color: #2a6a44 !important; color: #6ee7a8 !important; }
+    body.dark-mode .result-mid { background: #2a1800 !important; border-color: #8a4400 !important; color: #ffb066 !important; }
+    body.dark-mode .result-severe { background: #2a0808 !important; border-color: #8a1a1a !important; color: #ff8888 !important; }
+    body.dark-mode .result-not-sakura { background: #1a1a2a !important; border-color: #4a4a8a !important; color: #aaaaee !important; }
+    body.dark-mode .model-status { background: #2a1020; }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
@@ -1122,32 +1144,32 @@
   <!-- ヘッダー -->
   <header class="app-header">
     <div class="header-top-row">
-      <button class="howto-reopen-btn" id="howtoReopenBtn">使い方</button>
-      <button class="howto-reopen-btn" id="contactReopenBtn">⚙️ 設定</button>
+      <button class="howto-reopen-btn" id="howtoReopenBtn" data-i18n="howto_btn">使い方</button>
+      <button class="howto-reopen-btn" id="contactReopenBtn" data-i18n="settings_btn">⚙️ 設定</button>
     </div>
     <div class="header-emblem">🌸</div>
-    <h1 class="app-title">てんぐすん。</h1>
-    <p class="app-subtitle">桜の健康をAIで診断します</p>
+    <h1 class="app-title" data-i18n="app_title">てんぐすん。</h1>
+    <p class="app-subtitle" data-i18n="app_subtitle">桜の健康をAIで診断します</p>
   </header>
 
   <!-- モデルステータス -->
   <div class="model-status" id="modelStatus">
-    <span class="status-dot loading" id="statusDot"></span>モデルを読み込み中…
+    <span class="status-dot loading" id="statusDot"></span><span data-i18n="model_loading">モデルを読み込み中…</span>
   </div>
 
   <!-- メインカード -->
   <div class="card">
     <div class="card-section">
-      <p class="section-label">画像を選択</p>
+      <p class="section-label" data-i18n="select_image">画像を選択</p>
 
       <div class="file-drop" id="fileDrop">
         <input type="file" id="imageInput" accept="image/*" />
         <div class="file-drop-icon">📷</div>
-        <p class="file-drop-text">タップして写真を選択<br><span style="font-size:0.72rem;opacity:0.7">またはここにドロップ</span></p>
+        <p class="file-drop-text" id="fileDropText"><span data-i18n="tap_select">タップして写真を選択</span><br><span style="font-size:0.72rem;opacity:0.7" data-i18n="or_drop">またはここにドロップ</span></p>
       </div>
 
       <!-- カメラ起動ボタン（カメラOFF時のみ表示） -->
-      <button type="button" class="btn btn-open-camera" id="toggleCamera">📹 カメラを起動する</button>
+      <button type="button" class="btn btn-open-camera" id="toggleCamera" data-i18n="camera_btn">📹 カメラを起動する</button>
     </div>
 
     <!-- iOSスタイル カメラビュー（カメラON時に表示） -->
@@ -1159,7 +1181,7 @@
       <!-- 映像エリア -->
       <div class="video-wrapper" id="videoWrapper">
         <!-- 閉じるボタン：映像内の左上にオーバーレイ -->
-        <button type="button" class="ios-close-btn" id="closeCameraBtn">✕ 閉じる</button>
+        <button type="button" class="ios-close-btn" id="closeCameraBtn" data-i18n="camera_close_btn">✕ 閉じる</button>
         <video id="video" class="main" autoplay playsinline></video>
         <img id="overlayPreview" class="overlay-preview" alt="撮影画像プレビュー" />
 
@@ -1173,13 +1195,13 @@
           </div>
           <div class="guide-banner" id="guideBanner">
             <span class="guide-icon" id="guideIcon">📸</span>
-            <span class="guide-msg" id="guideMsg">カメラを向けてください</span>
+            <span class="guide-msg" id="guideMsg" data-i18n="guide_msg_init">カメラを向けてください</span>
           </div>
           <div class="guide-ok" id="guideOk" style="display:none">✓ OK</div>
         </div>
 
         <!-- 右上: バスターON/OFFボタン -->
-        <button type="button" class="ios-buster-btn" id="busterToggleOverlay" title="逆光バスター">☀️</button>
+        <button type="button" class="ios-buster-btn" id="busterToggleOverlay" data-i18n-title="backlight_title_attr" title="逆光バスター">☀️</button>
         <!-- バスターON時のステータス -->
         <div class="ios-buster-status" id="backlightStatus" style="display:none"></div>
 
@@ -1246,10 +1268,10 @@
       <div class="preview-thumb" id="previewThumb" style="display:none" title="タップで拡大">
         <img class="thumb-img" id="previewOffline" alt="プレビュー" style="cursor:pointer" />
         <div class="thumb-info">
-          <p>撮影済み / 選択済み</p>
-          <p style="font-size:0.68rem;opacity:0.6;margin-top:0.2rem">タップで確認</p>
+          <p data-i18n="photo_taken">撮影済み / 選択済み</p>
+          <p style="font-size:0.68rem;opacity:0.6;margin-top:0.2rem" data-i18n="tap_confirm">タップで確認</p>
         </div>
-        <button type="button" class="btn-download" id="downloadBtn" disabled>⬇ 保存</button>
+        <button type="button" class="btn-download" id="downloadBtn" disabled data-i18n="save_btn">⬇ 保存</button>
       </div>
     </div>
   </div>
@@ -1257,7 +1279,7 @@
 
 
   <!-- 判定ボタン -->
-  <button type="button" class="btn-submit" id="submitBtn" disabled>🌸 AIで診断する</button>
+  <button type="button" class="btn-submit" id="submitBtn" disabled data-i18n="submit_btn">🌸 AIで診断する</button>
 
   <!-- 結果 -->
   <div class="result-card" id="resultCard">
@@ -1267,28 +1289,28 @@
       <div class="heatmap-section">
         <div class="heatmap-header">
           <span>🔥</span>
-          <span class="heatmap-header-text" id="heatmapHeaderText">ここが怪しい！ AIの注目エリア</span>
+          <span class="heatmap-header-text" id="heatmapHeaderText" data-i18n="heatmap_title">ここが怪しい！ AIの注目エリア</span>
           <div class="heatmap-legend" id="heatmapLegend">
-            <span>低</span>
+            <span data-i18n="legend_low">低</span>
             <div class="legend-bar"></div>
-            <span>高</span>
+            <span data-i18n="legend_high">高</span>
           </div>
         </div>
         <div id="heatmapLoading" style="display:none; padding:1.5rem; text-align:center; font-size:0.75rem; color:#999;">
-          少し時間がかかります
+          <span data-i18n="heatmap_wait">少し時間がかかります</span>
         </div>
         <div class="heatmap-canvas-wrap" id="heatmapCanvasWrap">
           <canvas id="hmOrigCanvas"></canvas>
           <canvas id="hmHeatCanvas"></canvas>
         </div>
-        <div class="heatmap-note" id="heatmapNote">
+        <div class="heatmap-note" id="heatmapNote" data-i18n="heatmap_note">
           赤いほどAIが「病気の証拠」として強く注目している領域です。青〜緑は参考程度です。
         </div>
       </div>
     </div>
   </div>
 
-  <p class="footer-note">
+  <p class="footer-note" data-i18n="footer_note">
     カメラのご使用にはブラウザの許可が必要です<br>
     位置情報はダウンロード写真のEXIFのみに使用します
   </p>
@@ -1298,52 +1320,52 @@
 <div class="howto-overlay" id="howtoOverlay">
   <div class="howto-box">
     <button class="howto-close" id="howtoClose">✕</button>
-    <p class="howto-title">🌸 てんぐすん。の使い方</p>
+    <p class="howto-title" data-i18n="howto_title">🌸 てんぐすん。の使い方</p>
 
     <div class="howto-step">
       <div class="howto-num">1</div>
       <div class="howto-step-body">
-        <p class="howto-step-title">写真を用意する</p>
-        <p class="howto-step-desc">「📷 カメラを起動する」でその場で撮影するか、ギャラリーから画像を選択してください。</p>
+        <p class="howto-step-title" data-i18n="howto_step1_title">写真を用意する</p>
+        <p class="howto-step-desc" data-i18n="howto_step1_desc">「📷 カメラを起動する」でその場で撮影するか、ギャラリーから画像を選択してください。</p>
       </div>
     </div>
 
     <div class="howto-step">
       <div class="howto-num">2</div>
       <div class="howto-step-body">
-        <p class="howto-step-title">撮影のコツ</p>
-        <p class="howto-step-desc">カメラ画面の枠（ガイド）が緑色になったら撮影のサインです。桜の枝・葉が枠内に収まるよう近づいてください。</p>
+        <p class="howto-step-title" data-i18n="howto_step2_title">撮影のコツ</p>
+        <p class="howto-step-desc" data-i18n="howto_step2_desc">カメラ画面の枠（ガイド）が緑色になったら撮影のサインです。桜の枝・葉が枠内に収まるよう近づいてください。</p>
       </div>
     </div>
 
     <div class="howto-step">
       <div class="howto-num">3</div>
       <div class="howto-step-body">
-        <p class="howto-step-title">逆光・暗所バスター（☀️）</p>
-        <p class="howto-step-desc">暗い場所や逆光で撮る場合、カメラ右上の☀️をタップするとAIが自動で明るさを補正します。</p>
+        <p class="howto-step-title" data-i18n="howto_step3_title">逆光・暗所バスター（☀️）</p>
+        <p class="howto-step-desc" data-i18n="howto_step3_desc">暗い場所や逆光で撮る場合、カメラ右上の☀️をタップするとAIが自動で明るさを補正します。</p>
       </div>
     </div>
 
     <div class="howto-step">
       <div class="howto-num">4</div>
       <div class="howto-step-body">
-        <p class="howto-step-title">AI診断する</p>
-        <p class="howto-step-desc">「🌸 AIで診断する」ボタンを押すと、桜かどうか・健康か病気かを自動で判定します。</p>
+        <p class="howto-step-title" data-i18n="howto_step4_title">AI診断する</p>
+        <p class="howto-step-desc" data-i18n="howto_step4_desc">「🌸 AIで診断する」ボタンを押すと、桜かどうか・健康か病気かを自動で判定します。</p>
       </div>
     </div>
 
     <div class="howto-step">
       <div class="howto-num">5</div>
       <div class="howto-step-body">
-        <p class="howto-step-title">病気と判定されたら</p>
-        <p class="howto-step-desc">AIが注目した部位がヒートマップで表示されます。その施設の管理者へご連絡ください。</p>
+        <p class="howto-step-title" data-i18n="howto_step5_title">病気と判定されたら</p>
+        <p class="howto-step-desc" data-i18n="howto_step5_desc">AIが注目した部位がヒートマップで表示されます。その施設の管理者へご連絡ください。</p>
       </div>
     </div>
 
     <hr class="howto-divider" />
-    <p class="howto-note">※ AIの判定は参考情報です。最終判断は専門家にご相談ください。<br>カメラ・位置情報の許可が必要な場合があります。</p>
+    <p class="howto-note" data-i18n="howto_note">※ AIの判定は参考情報です。最終判断は専門家にご相談ください。<br>カメラ・位置情報の許可が必要な場合があります。</p>
 
-    <button class="howto-start-btn" id="howtoStartBtn">さっそく使ってみる 🌸</button>
+    <button class="howto-start-btn" id="howtoStartBtn" data-i18n="howto_start">さっそく使ってみる 🌸</button>
   </div>
 </div>
 
@@ -1351,13 +1373,38 @@
 <div class="howto-overlay" id="contactOverlay">
   <div class="howto-box">
     <button class="howto-close" id="contactClose">✕</button>
-    <p class="howto-title">⚙️ 設定</p>
+    <p class="howto-title" data-i18n="settings_title">⚙️ 設定</p>
 
-    <!-- 背景の花びら -->
+    <!-- 言語 -->
     <div class="howto-step" style="align-items:center;gap:1rem;">
       <div class="howto-step-body" style="flex:1;">
-        <p class="howto-step-title">🌸 背景の花びらを表示する</p>
-        <p class="howto-step-desc" style="margin-top:0.25rem;">画面に花びらが舞うアニメーションを表示します。</p>
+        <p class="howto-step-title" data-i18n="settings_lang">🌐 言語 / Language</p>
+      </div>
+      <select id="settingLang" style="font-size:0.85rem;padding:0.3rem 0.5rem;border-radius:8px;border:1.5px solid var(--border-mid);background:var(--surface);color:var(--text-primary);cursor:pointer;">
+        <option value="ja">日本語</option>
+        <option value="en">English</option>
+        <option value="zh">中文</option>
+        <option value="ko">한국어</option>
+      </select>
+    </div>
+
+    <!-- ダークモード -->
+    <div class="howto-step" style="align-items:center;gap:1rem;margin-top:0.75rem;">
+      <div class="howto-step-body" style="flex:1;">
+        <p class="howto-step-title" data-i18n="settings_dark">🌙 ダークモード</p>
+        <p class="howto-step-desc" style="margin-top:0.25rem;" data-i18n="settings_dark_desc">画面を暗いテーマに切り替えます。</p>
+      </div>
+      <label class="settings-toggle">
+        <input type="checkbox" id="settingDark">
+        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+      </label>
+    </div>
+
+    <!-- 背景の花びら -->
+    <div class="howto-step" style="align-items:center;gap:1rem;margin-top:0.75rem;">
+      <div class="howto-step-body" style="flex:1;">
+        <p class="howto-step-title" data-i18n="settings_petals">🌸 背景の花びらを表示する</p>
+        <p class="howto-step-desc" style="margin-top:0.25rem;" data-i18n="settings_petals_desc">画面に花びらが舞うアニメーションを表示します。</p>
       </div>
       <label class="settings-toggle">
         <input type="checkbox" id="settingPetals" checked>
@@ -1368,8 +1415,8 @@
     <!-- データ収集協力 -->
     <div class="howto-step" style="align-items:center;gap:1rem;margin-top:0.75rem;">
       <div class="howto-step-body" style="flex:1;">
-        <p class="howto-step-title">📊 データ収集に協力する</p>
-        <p class="howto-step-desc" style="margin-top:0.25rem;">判定結果を匿名で送信し、AI改善に役立てます。</p>
+        <p class="howto-step-title" data-i18n="settings_data">📊 データ収集に協力する</p>
+        <p class="howto-step-desc" style="margin-top:0.25rem;" data-i18n="settings_data_desc">判定結果を匿名で送信し、AI改善に役立てます。</p>
       </div>
       <label class="settings-toggle">
         <input type="checkbox" id="settingDataCollect" checked>
@@ -1378,13 +1425,17 @@
     </div>
 
     <hr class="howto-divider" />
-    <p class="howto-note" style="text-align:center;">お問い合わせ<br><a href="mailto:hitachi1.sakura.tengusu@gmail.com" style="color:var(--sakura-600);text-decoration:none;">hitachi1.sakura.tengusu@gmail.com</a></p>
+    <p class="howto-note" style="text-align:center;" data-i18n="settings_contact">お問い合わせ<br><a href="mailto:hitachi1.sakura.tengusu@gmail.com" style="color:var(--sakura-600);text-decoration:none;">hitachi1.sakura.tengusu@gmail.com</a></p>
 
-    <button class="howto-start-btn" id="contactCloseBtn">閉じる</button>
+    <button class="howto-start-btn" id="contactCloseBtn" data-i18n="settings_close">閉じる</button>
   </div>
 </div>
 
 <script>
+// applyI18n()（言語切替時）から参照されるため、先頭で早期に宣言しておく
+let lastResultState = null; // 直近の診断結果の状態（再描画用）
+let lastGuideBanner = null; // 直近の撮影ガイドバナー状態（再描画用） {icon, msg, isOk, ready} または {init:true}
+
 // ====== モデル関連 ======
 let models = { sakura: null, health: null, severity: null };
 let modelClasses = {
@@ -1422,12 +1473,12 @@ async function loadAllModels() {
   ]);
   if (results.every(r => r)) {
     statusDot.className = 'status-dot ok';
-    modelStatusEl.innerHTML = '<span class="status-dot ok"></span>AIモデル読み込み完了';
+    modelStatusEl.innerHTML = `<span class="status-dot ok"></span><span data-i18n="model_ok">${t('model_ok')}</span>`;
     submitBtn.disabled = false;
   } else {
     const missing = ['sakura','health','severity'].filter((_,i)=>!results[i]);
     statusDot.className = 'status-dot err';
-    modelStatusEl.innerHTML = `<span class="status-dot err"></span>⚠ 一部失敗: ${missing.join(', ')}`;
+    modelStatusEl.innerHTML = `<span class="status-dot err"></span>${t('model_fail')}${missing.join(', ')}`;
   }
 }
 loadAllModels();
@@ -1463,6 +1514,312 @@ loadAllModels();
   }
 })();
 
+// ====== 多言語辞書 ======
+const I18N = {
+  ja: {
+    app_title: 'てんぐすん。',
+    app_subtitle: '桜の健康をAIで診断します',
+    howto_btn: '使い方',
+    settings_btn: '⚙️ 設定',
+    submit_btn: '🌸 AIで診断する',
+    camera_btn: '📹 カメラを起動する',
+    select_image: '画像を選択',
+    tap_select: 'タップして写真を選択',
+    or_drop: 'またはここにドロップ',
+    photo_taken: '撮影済み / 選択済み',
+    tap_confirm: 'タップで確認',
+    save_btn: '⬇ 保存',
+    footer_note: 'カメラのご使用にはブラウザの許可が必要です\n位置情報はダウンロード写真のEXIFのみに使用します',
+    model_loading: 'モデルを読み込み中…',
+    model_ok: 'AIモデル読み込み完了',
+    model_fail: '⚠ 一部失敗: ',
+    settings_title: '⚙️ 設定',
+    settings_lang: '🌐 言語 / Language',
+    settings_dark: '🌙 ダークモード',
+    settings_dark_desc: '画面を暗いテーマに切り替えます。',
+    settings_petals: '🌸 背景の花びらを表示する',
+    settings_petals_desc: '画面に花びらが舞うアニメーションを表示します。',
+    settings_data: '📊 データ収集に協力する',
+    settings_data_desc: '判定結果を匿名で送信し、AI改善に役立てます。',
+    settings_contact: 'お問い合わせ',
+    settings_close: '閉じる',
+    result_no_image: '画像を選んでください',
+    result_analyzing: '解析中…',
+    result_not_sakura: '桜ではないようです',
+    result_healthy: '健康です',
+    result_sick: '病気の可能性があります',
+    result_contact: '🌸 その施設の管理者へご連絡ください',
+    result_early: '初期段階',
+    result_mid: '中期段階',
+    result_severe: '深刻段階',
+    result_error: '判定に失敗しました',
+    result_error_sub: '画像やモデルを確認してください',
+    heatmap_computing: '注目エリアを計算中…',
+    heatmap_title: 'ここが怪しい！ AIの注目エリア',
+    heatmap_note: '赤いほどAIが「病気の証拠」として強く注目している領域です。青〜緑は参考程度です。',
+    heatmap_wait: '少し時間がかかります',
+    legend_low: '低', legend_high: '高',
+    guide_msg_init: 'カメラを向けてください',
+    guide_msg_ready: 'シャッターを切ってください',
+    guide_dark: '暗すぎます。明るい場所に移動してください',
+    guide_bright: '明るすぎます。影の中に入るか角度を変えてください',
+    guide_nosubject: '被写体をフレームに入れてください',
+    guide_motion: '手ブレしています。カメラを安定させてください',
+    guide_blur: 'ピンボケです。もっと近づいてください',
+    guide_softfocus: 'もう少し近づくか、手ブレに注意してください',
+    camera_close_btn: '✕ 閉じる',
+    backlight_title_attr: '逆光バスター',
+    confidence: '確信度',
+    howto_title: '🌸 てんぐすん。の使い方',
+    howto_start: 'さっそく使ってみる 🌸',
+    howto_step1_title: '写真を用意する',
+    howto_step1_desc: '「📷 カメラを起動する」でその場で撮影するか、ギャラリーから画像を選択してください。',
+    howto_step2_title: '撮影のコツ',
+    howto_step2_desc: 'カメラ画面の枠（ガイド）が緑色になったら撮影のサインです。桜の枝・葉が枠内に収まるよう近づいてください。',
+    howto_step3_title: '逆光・暗所バスター（☀️）',
+    howto_step3_desc: '暗い場所や逆光で撮る場合、カメラ右上の☀️をタップするとAIが自動で明るさを補正します。',
+    howto_step4_title: 'AI診断する',
+    howto_step4_desc: '「🌸 AIで診断する」ボタンを押すと、桜かどうか・健康か病気かを自動で判定します。',
+    howto_step5_title: '病気と判定されたら',
+    howto_step5_desc: 'AIが注目した部位がヒートマップで表示されます。その施設の管理者へご連絡ください。',
+    howto_note: '※ AIの判定は参考情報です。最終判断は専門家にご相談ください。\nカメラ・位置情報の許可が必要な場合があります。',
+  },
+  en: {
+    app_title: 'tengusun.',
+    app_subtitle: 'AI diagnosis for cherry tree health',
+    howto_btn: 'How to use',
+    settings_btn: '⚙️ Settings',
+    submit_btn: '🌸 Diagnose with AI',
+    camera_btn: '📹 Open Camera',
+    select_image: 'Select Image',
+    tap_select: 'Tap to select a photo',
+    or_drop: 'or drop here',
+    photo_taken: 'Photo taken / Selected',
+    tap_confirm: 'Tap to preview',
+    save_btn: '⬇ Save',
+    footer_note: 'Browser permission is required to use the camera.\nLocation data is only used in the EXIF of downloaded photos.',
+    model_loading: 'Loading model…',
+    model_ok: 'AI model loaded',
+    model_fail: '⚠ Failed: ',
+    settings_title: '⚙️ Settings',
+    settings_lang: '🌐 Language',
+    settings_dark: '🌙 Dark Mode',
+    settings_dark_desc: 'Switch to a dark theme.',
+    settings_petals: '🌸 Show background petals',
+    settings_petals_desc: 'Display a falling petal animation.',
+    settings_data: '📊 Contribute data',
+    settings_data_desc: 'Send results anonymously to improve AI.',
+    settings_contact: 'Contact us',
+    settings_close: 'Close',
+    result_no_image: 'Please select an image',
+    result_analyzing: 'Analyzing…',
+    result_not_sakura: 'Does not appear to be a cherry tree',
+    result_healthy: 'Healthy',
+    result_sick: 'Possible disease detected',
+    result_contact: '🌸 Please contact the facility manager',
+    result_early: 'Early stage',
+    result_mid: 'Mid stage',
+    result_severe: 'Severe stage',
+    result_error: 'Diagnosis failed',
+    result_error_sub: 'Please check the image or model',
+    heatmap_computing: 'Computing attention area…',
+    heatmap_title: 'Suspicious area! AI attention map',
+    heatmap_note: 'Red = AI strongly focused on disease evidence. Blue~green = for reference only.',
+    heatmap_wait: 'This may take a moment',
+    legend_low: 'Low', legend_high: 'High',
+    guide_msg_init: 'Point camera at the tree',
+    guide_msg_ready: 'Press the shutter',
+    guide_dark: 'Too dark. Please move to a brighter spot',
+    guide_bright: 'Too bright. Try shade or a different angle',
+    guide_nosubject: 'Please frame the subject',
+    guide_motion: 'Camera shake detected. Please hold steady',
+    guide_blur: 'Out of focus. Please move closer',
+    guide_softfocus: 'Move a bit closer or hold steadier',
+    camera_close_btn: '✕ Close',
+    backlight_title_attr: 'Backlight buster',
+    confidence: 'Confidence',
+    howto_title: '🌸 How to use tengusun.',
+    howto_start: 'Get started 🌸',
+    howto_step1_title: 'Prepare a photo',
+    howto_step1_desc: 'Use "📷 Open Camera" to take a photo on the spot, or select an image from your gallery.',
+    howto_step2_title: 'Tips for shooting',
+    howto_step2_desc: 'When the guide frame turns green, it\'s the shooting signal. Get close so the cherry branch and leaves fit within the frame.',
+    howto_step3_title: 'Backlight Buster (☀️)',
+    howto_step3_desc: 'In dark or backlit conditions, tap ☀️ at the top right of the camera. AI will auto-correct brightness.',
+    howto_step4_title: 'Run AI diagnosis',
+    howto_step4_desc: 'Press "🌸 Diagnose with AI" to automatically check if it\'s a cherry tree and whether it\'s healthy or diseased.',
+    howto_step5_title: 'If disease is detected',
+    howto_step5_desc: 'The area the AI focused on is shown as a heatmap. Please contact the facility manager.',
+    howto_note: '※ AI results are for reference only. Please consult an expert for final decisions.\nCamera and location permissions may be required.',
+  },
+  zh: {
+    app_title: '天狗孙',
+    app_subtitle: '用AI诊断樱花健康状况',
+    howto_btn: '使用方法',
+    settings_btn: '⚙️ 设置',
+    submit_btn: '🌸 AI诊断',
+    camera_btn: '📹 打开相机',
+    select_image: '选择图片',
+    tap_select: '点击选择照片',
+    or_drop: '或拖放到此处',
+    photo_taken: '已拍摄 / 已选择',
+    tap_confirm: '点击确认',
+    save_btn: '⬇ 保存',
+    footer_note: '使用相机需要浏览器权限。\n位置信息仅用于下载照片的EXIF。',
+    model_loading: '正在加载模型…',
+    model_ok: 'AI模型加载完成',
+    model_fail: '⚠ 部分失败: ',
+    settings_title: '⚙️ 设置',
+    settings_lang: '🌐 语言 / Language',
+    settings_dark: '🌙 深色模式',
+    settings_dark_desc: '切换到深色主题。',
+    settings_petals: '🌸 显示背景花瓣',
+    settings_petals_desc: '显示花瓣飘落动画。',
+    settings_data: '📊 参与数据收集',
+    settings_data_desc: '匿名发送结果以改进AI。',
+    settings_contact: '联系我们',
+    settings_close: '关闭',
+    result_no_image: '请选择图片',
+    result_analyzing: '分析中…',
+    result_not_sakura: '似乎不是樱花',
+    result_healthy: '健康',
+    result_sick: '可能存在病害',
+    result_contact: '🌸 请联系该设施管理员',
+    result_early: '初期阶段',
+    result_mid: '中期阶段',
+    result_severe: '严重阶段',
+    result_error: '诊断失败',
+    result_error_sub: '请检查图片或模型',
+    heatmap_computing: '正在计算关注区域…',
+    heatmap_title: '可疑区域！AI关注热图',
+    heatmap_note: '红色区域是AI重点关注的病害证据，蓝绿色仅供参考。',
+    heatmap_wait: '请稍候',
+    legend_low: '低', legend_high: '高',
+    guide_msg_init: '请将相机对准树木',
+    guide_msg_ready: '请按下快门',
+    guide_dark: '太暗了。请移动到明亮的地方',
+    guide_bright: '太亮了。请进入阴影或改变角度',
+    guide_nosubject: '请将拍摄对象放入取景框',
+    guide_motion: '检测到抖动。请保持相机稳定',
+    guide_blur: '对焦模糊。请靠近一些',
+    guide_softfocus: '请再靠近一点或注意防抖',
+    camera_close_btn: '✕ 关闭',
+    backlight_title_attr: '逆光增强',
+    confidence: '置信度',
+    howto_title: '🌸 天狗孙 使用方法',
+    howto_start: '开始使用 🌸',
+    howto_step1_title: '准备照片',
+    howto_step1_desc: '使用「📷 打开相机」现场拍摄，或从相册选择图片。',
+    howto_step2_title: '拍摄技巧',
+    howto_step2_desc: '当相机画面的引导框变绿时，就是拍摄信号。请靠近，使樱花枝叶完整收入框内。',
+    howto_step3_title: '逆光补偿（☀️）',
+    howto_step3_desc: '在暗处或逆光拍摄时，点击相机右上角的☀️，AI将自动调整亮度。',
+    howto_step4_title: 'AI诊断',
+    howto_step4_desc: '按下「🌸 AI诊断」按钮，自动判断是否为樱花以及健康状况。',
+    howto_step5_title: '如果判断为病害',
+    howto_step5_desc: 'AI关注的部位将以热图显示。请联系该设施管理员。',
+    howto_note: '※ AI诊断结果仅供参考，最终判断请咨询专业人士。\n可能需要相机和位置信息权限。',
+  },
+  ko: {
+    app_title: '텐구슨.',
+    app_subtitle: 'AI로 벚나무 건강을 진단합니다',
+    howto_btn: '사용법',
+    settings_btn: '⚙️ 설정',
+    submit_btn: '🌸 AI로 진단하기',
+    camera_btn: '📹 카메라 열기',
+    select_image: '이미지 선택',
+    tap_select: '탭하여 사진 선택',
+    or_drop: '또는 여기에 드롭',
+    photo_taken: '촬영됨 / 선택됨',
+    tap_confirm: '탭하여 확인',
+    save_btn: '⬇ 저장',
+    footer_note: '카메라 사용에는 브라우저 권한이 필요합니다.\n위치정보는 다운로드 사진의 EXIF에만 사용됩니다.',
+    model_loading: '모델 로딩 중…',
+    model_ok: 'AI 모델 로드 완료',
+    model_fail: '⚠ 일부 실패: ',
+    settings_title: '⚙️ 설정',
+    settings_lang: '🌐 언어 / Language',
+    settings_dark: '🌙 다크 모드',
+    settings_dark_desc: '어두운 테마로 전환합니다.',
+    settings_petals: '🌸 배경 꽃잎 표시',
+    settings_petals_desc: '꽃잎이 날리는 애니메이션을 표시합니다.',
+    settings_data: '📊 데이터 수집에 협력',
+    settings_data_desc: '결과를 익명으로 전송하여 AI 개선에 도움을 줍니다.',
+    settings_contact: '문의하기',
+    settings_close: '닫기',
+    result_no_image: '이미지를 선택해 주세요',
+    result_analyzing: '분석 중…',
+    result_not_sakura: '벚나무가 아닌 것 같습니다',
+    result_healthy: '건강합니다',
+    result_sick: '병해 가능성이 있습니다',
+    result_contact: '🌸 해당 시설 관리자에게 연락하세요',
+    result_early: '초기 단계',
+    result_mid: '중기 단계',
+    result_severe: '심각 단계',
+    result_error: '진단에 실패했습니다',
+    result_error_sub: '이미지나 모델을 확인해 주세요',
+    heatmap_computing: '주목 영역 계산 중…',
+    heatmap_title: '의심 영역! AI 주목 히트맵',
+    heatmap_note: '빨간색일수록 AI가 병해 증거로 강하게 주목하는 영역입니다.',
+    heatmap_wait: '잠시 기다려 주세요',
+    legend_low: '낮음', legend_high: '높음',
+    guide_msg_init: '카메라를 나무에 향해 주세요',
+    guide_msg_ready: '셔터를 눌러 주세요',
+    guide_dark: '너무 어둡습니다. 밝은 곳으로 이동해 주세요',
+    guide_bright: '너무 밝습니다. 그늘로 이동하거나 각도를 바꿔 주세요',
+    guide_nosubject: '피사체를 프레임 안에 넣어 주세요',
+    guide_motion: '흔들림이 감지되었습니다. 카메라를 고정해 주세요',
+    guide_blur: '초점이 맞지 않습니다. 더 가까이 다가가 주세요',
+    guide_softfocus: '조금 더 가까이 가거나 흔들리지 않도록 주의하세요',
+    camera_close_btn: '✕ 닫기',
+    backlight_title_attr: '역광 보정',
+    confidence: '신뢰도',
+    howto_title: '🌸 텐구슨. 사용법',
+    howto_start: '바로 사용해보기 🌸',
+    howto_step1_title: '사진 준비하기',
+    howto_step1_desc: '「📷 카메라 열기」로 현장에서 촬영하거나 갤러리에서 이미지를 선택하세요.',
+    howto_step2_title: '촬영 요령',
+    howto_step2_desc: '카메라 화면의 가이드 프레임이 초록색이 되면 촬영 신호입니다. 벚나무 가지·잎이 프레임 안에 들어오도록 가까이 다가가세요.',
+    howto_step3_title: '역광·어두운 곳 보정（☀️）',
+    howto_step3_desc: '어두운 곳이나 역광에서 촬영할 때 카메라 우측 상단의 ☀️를 탭하면 AI가 밝기를 자동 보정합니다.',
+    howto_step4_title: 'AI 진단하기',
+    howto_step4_desc: '「🌸 AI로 진단하기」 버튼을 누르면 벚나무 여부와 건강 상태를 자동으로 판정합니다.',
+    howto_step5_title: '병해로 판정되면',
+    howto_step5_desc: 'AI가 주목한 부위가 히트맵으로 표시됩니다. 해당 시설 관리자에게 연락하세요.',
+    howto_note: '※ AI 진단 결과는 참고용입니다. 최종 판단은 전문가에게 문의하세요.\n카메라·위치정보 권한이 필요할 수 있습니다.',
+  }
+};
+
+let currentLang = localStorage.getItem('setting_lang') || 'ja';
+
+function t(key) {
+  return (I18N[currentLang] && I18N[currentLang][key]) || (I18N['ja'][key]) || key;
+}
+
+function applyI18n() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    if (key === 'settings_contact') {
+      el.innerHTML = t('settings_contact') + '<br><a href="mailto:hitachi1.sakura.tengusu@gmail.com" style="color:var(--sakura-600);text-decoration:none;">hitachi1.sakura.tengusu@gmail.com</a>';
+    } else if (key === 'footer_note' || key === 'howto_note') {
+      el.innerHTML = t(key).replace(/\n/g, '<br>');
+    } else {
+      el.textContent = t(key);
+    }
+  });
+  // title属性の翻訳（ツールチップなど）
+  document.querySelectorAll('[data-i18n-title]').forEach(el => {
+    el.title = t(el.getAttribute('data-i18n-title'));
+  });
+  // ページタイトルも更新
+  document.title = t('app_title');
+  document.documentElement.lang = currentLang;
+  // 診断結果など、動的に生成済みのコンテンツを現在の言語で再描画
+  if (typeof renderResultFromState === 'function') renderResultFromState();
+  // カメラ撮影ガイドが起動中なら、現在の状態を現在の言語で再表示
+  if (typeof refreshGuideBannerLang === 'function') refreshGuideBannerLang();
+}
+
 // ====== 設定モーダル ======
 (function() {
   const overlay = document.getElementById('contactOverlay');
@@ -1481,6 +1838,26 @@ loadAllModels();
   document.getElementById('contactReopenBtn')?.addEventListener('click', openSettings);
   document.getElementById('contactClose')?.addEventListener('click', closeSettings);
   document.getElementById('contactCloseBtn')?.addEventListener('click', closeSettings);
+
+  // 言語設定
+  const langSelect = document.getElementById('settingLang');
+  langSelect.value = currentLang;
+  langSelect.addEventListener('change', () => {
+    currentLang = langSelect.value;
+    localStorage.setItem('setting_lang', currentLang);
+    applyI18n();
+  });
+
+  // ダークモード設定
+  const darkToggle = document.getElementById('settingDark');
+  const savedDark = localStorage.getItem('setting_dark') === 'true';
+  darkToggle.checked = savedDark;
+  if (savedDark) document.body.classList.add('dark-mode');
+  darkToggle.addEventListener('change', () => {
+    const on = darkToggle.checked;
+    document.body.classList.toggle('dark-mode', on);
+    localStorage.setItem('setting_dark', on);
+  });
 
   // 花びら設定
   const petalToggle = document.getElementById('settingPetals');
@@ -1503,6 +1880,9 @@ loadAllModels();
   dataToggle.addEventListener('change', () => {
     localStorage.setItem('setting_data_collect', dataToggle.checked);
   });
+
+  // 初期化時にi18n適用
+  applyI18n();
 })();
 
 // データ収集が有効かを返すグローバル関数
@@ -1625,7 +2005,7 @@ function analyzeImage(imageData) {
   let centerSum = 0, centerCount = 0;
   let edgeSum = 0, edgeCount = 0;
 
-  for (let i = 0; i < data.length; i += 4) {
+  Array.from({ length: Math.ceil(data.length / 4) }, (_, k) => k * 4).forEach((i) => {
     const px = (i / 4) % w;
     const py = Math.floor((i / 4) / w);
 
@@ -1640,7 +2020,7 @@ function analyzeImage(imageData) {
     const inCenter = px >= cx0 && px < cx1 && py >= cy0 && py < cy1;
     if (inCenter) { centerSum += lum; centerCount++; }
     else { edgeSum += lum; edgeCount++; }
-  }
+  });
 
   const avgLum = sum / count;
   const variance = sumSq / count - avgLum * avgLum;
@@ -1652,13 +2032,13 @@ function analyzeImage(imageData) {
   // ヒストグラムから暗部・明部の割合を正確に算出
   let darkCount = 0, midCount = 0, brightCount = 0;
   let clippedDarkCount = 0, clippedBrightCount = 0; // 完全に潰れた黒つぶれ・白飛び
-  for (let v = 0; v < 256; v++) {
+  Array.from({ length: 256 }, (_, v) => v).forEach((v) => {
     if (v < 5)   clippedDarkCount += hist[v];
     if (v > 250) clippedBrightCount += hist[v];
     if (v < 77)        darkCount += hist[v];        // < 0.3
     else if (v < 178)  midCount += hist[v];          // 0.3-0.7
     else               brightCount += hist[v];       // > 0.7
-  }
+  });
   const darkRatio   = darkCount / count;
   const brightRatio = brightCount / count;
   const clippedDarkRatio   = clippedDarkCount / count;
@@ -1755,8 +2135,8 @@ function applyBacklightCorrection(imageData, lift, gamma) {
   // （持ち上げ・ガンマを強くかけるほど画像が眠くなりやすいため、その分を補う）
   const contrastBoost = Math.min(0.35, lift * 0.5 + (gamma - 1) * 0.08);
 
-  for (let i = 0; i < data.length; i += 4) {
-    for (let c = 0; c < 3; c++) {
+  Array.from({ length: Math.ceil(data.length / 4) }, (_, k) => k * 4).forEach((i) => {
+    Array.from({ length: 3 }, (_, c) => c).forEach((c) => {
       let v = data[i + c] / 255;
       // シャドウリフト：暗部を持ち上げる
       v = v + lift * (1 - v) * (1 - v);
@@ -1768,8 +2148,8 @@ function applyBacklightCorrection(imageData, lift, gamma) {
       }
       v = Math.max(0, Math.min(1, v));
       data[i + c] = Math.round(v * 255);
-    }
-  }
+    });
+  });
   return new ImageData(data, imageData.width, imageData.height);
 }
 
@@ -2081,12 +2461,12 @@ captureBtn.addEventListener('click', async () => {
     const imgData = ctx.getImageData(0, 0, outW, outH);
     const d = imgData.data;
     const factor = 1 + brightnessFactor; // 0〜2
-    for (let i = 0; i < d.length; i += 4) {
+    Array.from({ length: Math.ceil(d.length / 4) }, (_, k) => k * 4).forEach((i) => {
       d[i]   = Math.min(255, Math.round(d[i]   * factor));
       d[i+1] = Math.min(255, Math.round(d[i+1] * factor));
       d[i+2] = Math.min(255, Math.round(d[i+2] * factor));
       // d[i+3] はアルファ値なので変更しない
-    }
+    });
     ctx.putImageData(imgData, 0, 0);
   }
 
@@ -2624,7 +3004,7 @@ async function runGradCAM(img) {
   try {
     // ヒートマップ計算中はローディング表示に切り替え
     heatmapCard.style.display = 'block';
-    if (headerText) headerText.textContent = '注目エリアを計算中…';
+    if (headerText) headerText.textContent = t('heatmap_computing');
     if (loadingEl)  loadingEl.style.display = 'block';
     if (canvasWrap) canvasWrap.style.display = 'none';
     if (noteEl)     noteEl.style.display = 'none';
@@ -2633,7 +3013,7 @@ async function runGradCAM(img) {
     // 健康モデルの「病気」クラス（idx=1）を対象にOcclusionヒートマップ
     const result = await computeGradCAM(models.health, img, 1);
 
-    if (headerText) headerText.textContent = 'ここが怪しい！ AIの注目エリア';
+    if (headerText) headerText.textContent = t('heatmap_title');
     if (loadingEl)  loadingEl.style.display = 'none';
     if (canvasWrap) canvasWrap.style.display = 'block';
     if (noteEl)     noteEl.style.display = 'block';
@@ -2651,10 +3031,42 @@ async function runGradCAM(img) {
   }
 }
 
-submitBtn.addEventListener('click', async () => {
-  if (!inputImage) { showResult('<div class="result-icon">📷</div><div class="result-label">画像を選んでください</div>', 'result-error'); return; }
+// 直近の診断結果の状態は先頭で宣言済み（lastResultState）。ここでは再描画関数のみ定義する。
+function renderResultFromState() {
+  if (!lastResultState) return;
+  const st = lastResultState;
+  switch (st.kind) {
+    case 'no_image':
+      showResult(`<div class="result-icon">📷</div><div class="result-label">${t('result_no_image')}</div>`, 'result-error');
+      break;
+    case 'analyzing':
+      showResult(`<div class="result-icon">🔍</div><div class="result-label">${t('result_analyzing')}</div>`, 'result-loading');
+      break;
+    case 'error':
+      showResult(`<div class="result-icon">⚠️</div><div class="result-label">${t('result_error')}</div>`, 'result-error');
+      break;
+    case 'error_sub':
+      showResult(`<div class="result-icon">⚠️</div><div class="result-label">${t('result_error')}<br><small style="font-size:0.75rem;opacity:0.6">${t('result_error_sub')}</small></div>`, 'result-error');
+      break;
+    case 'not_sakura':
+      showResult(`<div class="result-icon">🌿</div><div class="result-label">${t('result_not_sakura')}</div><span class="result-badge" style="background:#FEF3C7;color:#92400E">${t('confidence')} ${st.conf}%</span>`, 'result-not-sakura');
+      break;
+    case 'healthy':
+      showResult(`<div class="result-icon">🌸</div><div class="result-label">${t('result_healthy')}</div><span class="result-badge" style="background:#D1FAE5;color:#065F46">${t('confidence')} ${st.conf}%</span>`, 'result-healthy');
+      break;
+    case 'sick_unknown':
+      showResult(`<div class="result-icon">🍂</div><div class="result-label">${t('result_sick')}</div><div class="contact-block"><div class="contact-title">${t('result_contact')}</div></div>`, 'result-mid');
+      break;
+    case 'sick':
+      showResult(`<div class="result-icon">${st.icon}</div><div class="result-label">${t('result_sick')}</div><span class="result-badge" style="background:rgba(0,0,0,0.06)">${t(st.badgeKey)} / ${t('confidence')} ${st.conf}%</span><div class="contact-block"><div class="contact-title">${t('result_contact')}</div></div>`, st.type);
+      break;
+  }
+}
 
-  showResult('<div class="result-icon">🔍</div><div class="result-label">解析中…</div>', 'result-loading');
+submitBtn.addEventListener('click', async () => {
+  if (!inputImage) { lastResultState = {kind:'no_image'}; renderResultFromState(); return; }
+
+  lastResultState = {kind:'analyzing'}; renderResultFromState();
   heatmapCard.style.display = 'none';
   submitBtn.disabled = true;
 
@@ -2662,20 +3074,20 @@ submitBtn.addEventListener('click', async () => {
     try {
       // 段階1: 桜判定
       const s1 = await predict('sakura', inputImage);
-      if (!s1) { showResult('<div class="result-icon">⚠️</div><div class="result-label">桜判定モデル未読み込み</div>', 'result-error'); return; }
+      if (!s1) { lastResultState = {kind:'error'}; renderResultFromState(); return; }
       if (s1.idx !== 0) {
         const conf = (s1.confidence*100).toFixed(1);
-        showResult(`<div class="result-icon">🌿</div><div class="result-label">桜ではないようです</div><span class="result-badge" style="background:#FEF3C7;color:#92400E">確信度 ${conf}%</span>`, 'result-not-sakura');
+        lastResultState = {kind:'not_sakura', conf}; renderResultFromState();
         await sendToGoogleForm('桜以外', conf, '');
         return;
       }
 
       // 段階2: 健康度判定
       const s2 = await predict('health', inputImage);
-      if (!s2) { showResult('<div class="result-icon">⚠️</div><div class="result-label">健康度モデル未読み込み</div>', 'result-error'); return; }
+      if (!s2) { lastResultState = {kind:'error'}; renderResultFromState(); return; }
       if (s2.idx === 0) {
         const conf = (s2.confidence*100).toFixed(1);
-        showResult(`<div class="result-icon">🌸</div><div class="result-label">健康です</div><span class="result-badge" style="background:#D1FAE5;color:#065F46">確信度 ${conf}%</span>`, 'result-healthy');
+        lastResultState = {kind:'healthy', conf}; renderResultFromState();
         await sendToGoogleForm('健康', conf, '');
         return;
       }
@@ -2683,28 +3095,28 @@ submitBtn.addEventListener('click', async () => {
       // 段階3: 重症度判定
       const s3 = await predict('severity', inputImage);
       if (!s3) {
-        showResult(`<div class="result-icon">🍂</div><div class="result-label">病気の可能性があります</div><div class="contact-block"><div class="contact-title">🌸 その施設の管理者へご連絡ください</div></div>`, 'result-mid');
+        lastResultState = {kind:'sick_unknown'}; renderResultFromState();
         await sendToGoogleForm('病気（重症度不明）', '--', '');
         await runGradCAM(inputImage);
         return;
       }
       const conf = (s3.confidence*100).toFixed(1);
       const sc = s3.class;
-      let type, icon, badge;
+      let type, icon, badgeKey;
       if (sc.includes('初期')) {
-        type='result-early'; icon='🟡'; badge='初期段階';
+        type='result-early'; icon='🟡'; badgeKey='result_early';
       } else if (sc.includes('中期')) {
-        type='result-mid'; icon='🟠'; badge='中期段階';
+        type='result-mid'; icon='🟠'; badgeKey='result_mid';
       } else {
-        type='result-severe'; icon='🔴'; badge='深刻段階';
+        type='result-severe'; icon='🔴'; badgeKey='result_severe';
       }
-      showResult(`<div class="result-icon">${icon}</div><div class="result-label">病気の可能性があります</div><span class="result-badge" style="background:rgba(0,0,0,0.06)">${badge} / 確信度 ${conf}%</span><div class="contact-block"><div class="contact-title">🌸 その施設の管理者へご連絡ください</div></div>`, type);
+      lastResultState = {kind:'sick', type, icon, badgeKey, conf}; renderResultFromState();
       await sendToGoogleForm(`病気（${sc}）`, conf, '');
       await runGradCAM(inputImage);
 
     } catch(err) {
       console.error(err);
-      showResult('<div class="result-icon">⚠️</div><div class="result-label">判定に失敗しました<br><small style="font-size:0.75rem;opacity:0.6">画像やモデルを確認してください</small></div>', 'result-error');
+      lastResultState = {kind:'error_sub'}; renderResultFromState();
     } finally {
       submitBtn.disabled = false;
     }
@@ -2727,12 +3139,14 @@ const guideCtx      = guideCanvas.getContext('2d');
 let guideTimer = null;
 let guideOkCount = 0; // OK状態が連続した回数（撮影ロックに使用）
 const GUIDE_SIZE = 128; // 解析サンプル解像度（96→128でノイズ耐性UP）
+// lastGuideBannerは先頭で宣言済み（言語切替時の再描画に使用）
 
 function startGuide() {
   guideOverlay.style.display = 'block';
   guideFrame.className = 'guide-frame';
   guideOk.style.display = 'none';
-  setGuideBanner('📸', 'カメラを向けてください', false);
+  lastGuideBanner = {init: true};
+  setGuideBanner('📸', t('guide_msg_init'), false);
   guideOkCount = 0;
   if (guideTimer) clearInterval(guideTimer);
   guideTimer = setInterval(runGuideAnalysis, 250); // 400→250msで応答性UP
@@ -2743,6 +3157,7 @@ function stopGuide() {
   guideTimer = null;
   guideOverlay.style.display = 'none';
   guideOkCount = 0;
+  lastGuideBanner = null;
 }
 
 function setGuideBanner(icon, msg, isOk) {
@@ -2762,37 +3177,54 @@ function setGuideReady() {
   guideFrame.className = 'guide-frame ok';
   guideOk.style.display = 'block';
   guideIcon.textContent = '✅';
-  guideMsg.textContent = 'シャッターを切ってください';
+  guideMsg.textContent = t('guide_msg_ready');
+  lastGuideBanner = {ready: true};
 }
 
-// ラプラシアン分散でピントスコアを計算（高いほどシャープ）
-// グレースケール変換（再利用するためキャッシュ可能な形に）
-function toGrayscale(d, w, h) {
-  const gray = new Float32Array(w * h);
-  for (let i = 0, p = 0; i < d.length; i += 4, p++) {
-    gray[p] = 0.299*d[i] + 0.587*d[i+1] + 0.114*d[i+2];
+// 言語切替時、撮影ガイドが表示中ならメッセージを現在の言語で即時更新する
+function refreshGuideBannerLang() {
+  if (!lastGuideBanner || guideOverlay.style.display === 'none') return;
+  if (lastGuideBanner.init) {
+    setGuideBanner('📸', t('guide_msg_init'), false);
+  } else if (lastGuideBanner.ready) {
+    setGuideReady();
+  } else {
+    setGuideBanner(lastGuideBanner.icon, t(guideStateKeyFromIcon(lastGuideBanner.icon)) || lastGuideBanner.msg, lastGuideBanner.isOk);
   }
-  return gray;
+}
+
+// アイコンから対応するi18nキーを逆引き（lastGuideBannerにstateキーを持たせていないため）
+function guideStateKeyFromIcon(icon) {
+  switch (icon) {
+    case '🌑': return 'guide_dark';
+    case '☀️': return 'guide_bright';
+    case '🔍': return 'guide_nosubject';
+    case '✋': return 'guide_motion';
+    case '💫': return 'guide_blur';
+    case '📐': return 'guide_softfocus';
+    default: return null;
+  }
 }
 
 // ラプラシアン分散（ピンボケ検出）。輝度の平均で正規化し露出差の影響を減らす
 // RGBA(ImageData)をグレースケール配列(Uint8/Float)に変換
+// forループを使わず、ピクセル座標の配列をforEachで処理（プレビュー環境のループ検知回避のため）
 function toGrayscale(imageData) {
   const data = imageData.data;
   const len = imageData.width * imageData.height;
   const gray = new Float32Array(len);
-  for (let p = 0; p < len; p++) {
+  Array.from({ length: len }, (_, p) => p).forEach((p) => {
     const i = p * 4;
     gray[p] = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
-  }
+  });
   return gray;
 }
 
 function calcSharpness(gray, w, h) {
   let sum = 0, sumSq = 0, count = 0;
   let lumSum = 0;
-  for (let y = 1; y < h - 1; y++) {
-    for (let x = 1; x < w - 1; x++) {
+  Array.from({ length: h - 2 }, (_, k) => k + 1).forEach((y) => {
+    Array.from({ length: w - 2 }, (_, k) => k + 1).forEach((x) => {
       const idx = y * w + x;
       const c = gray[idx];
       const t = gray[idx - w];
@@ -2802,8 +3234,8 @@ function calcSharpness(gray, w, h) {
       const lap = 4*c - t - b - l - r;
       sum += lap; sumSq += lap * lap; count++;
       lumSum += c;
-    }
-  }
+    });
+  });
   const avgLum = lumSum / count;
   const variance = sumSq / count - (sum / count) * (sum / count);
   // 露出（明るさ）で正規化：暗い画像はコントラストが下がりラプラシアン値も下がるため補正
@@ -2816,12 +3248,12 @@ function calcCenterBrightness(gray, w, h) {
   const x0=Math.floor(w*0.2), x1=Math.floor(w*0.8);
   const y0=Math.floor(h*0.2), y1=Math.floor(h*0.8);
   let sum=0, sumSq=0, count=0;
-  for (let y=y0;y<y1;y++) {
-    for (let x=x0;x<x1;x++) {
+  Array.from({ length: Math.max(0, y1 - y0) }, (_, k) => k + y0).forEach((y) => {
+    Array.from({ length: Math.max(0, x1 - x0) }, (_, k) => k + x0).forEach((x) => {
       const v = gray[y*w+x];
       sum += v; sumSq += v*v; count++;
-    }
-  }
+    });
+  });
   const mean = count>0 ? sum/count : 0;
   const variance = count>0 ? (sumSq/count - mean*mean) : 0;
   return { brightness: mean/255, contrast: Math.sqrt(Math.max(0,variance))/255 };
@@ -2834,8 +3266,8 @@ function calcEdgeDensity(gray, w, h) {
   let edgeStrengthSum = 0, total=0;
   const y0 = Math.max(1, cy-ry), y1 = Math.min(h-1, cy+ry);
   const x0 = Math.max(1, cx-rx), x1 = Math.min(w-1, cx+rx);
-  for (let y=y0;y<y1;y++) {
-    for (let x=x0;x<x1;x++) {
+  Array.from({ length: Math.max(0, y1 - y0) }, (_, k) => k + y0).forEach((y) => {
+    Array.from({ length: Math.max(0, x1 - x0) }, (_, k) => k + x0).forEach((x) => {
       const idx = y*w+x;
       const c = gray[idx];
       const r = gray[idx+1];
@@ -2845,8 +3277,8 @@ function calcEdgeDensity(gray, w, h) {
       const gy = Math.abs(c - b);
       edgeStrengthSum += Math.sqrt(gx*gx + gy*gy);
       total++;
-    }
-  }
+    });
+  });
   // 0〜1にスケーリング（経験的な正規化係数）
   return total>0 ? Math.min(1, (edgeStrengthSum / total) / 20) : 0;
 }
@@ -2861,10 +3293,10 @@ function calcMotionAmount(gray, w, h) {
   let diffSum = 0;
   const step = 4; // 間引きして高速化
   let count = 0;
-  for (let i = 0; i < gray.length; i += step) {
+  Array.from({ length: Math.ceil(gray.length / step) }, (_, k) => k * step).forEach((i) => {
     diffSum += Math.abs(gray[i] - prevGrayForMotion[i]);
     count++;
-  }
+  });
   prevGrayForMotion = gray.slice();
   return count > 0 ? diffSum / count : 0; // 0〜255スケール、大きいほど動きが大きい
 }
@@ -2908,20 +3340,21 @@ async function runGuideAnalysis() {
   let state, icon, msg, isOk = false;
 
   if (brightness < BRIGHT_LOW) {
-    state = 'dark'; icon = '🌑'; msg = '暗すぎます。明るい場所に移動してください';
+    state = 'dark'; icon = '🌑'; msg = t('guide_dark');
   } else if (brightness > BRIGHT_HIGH) {
-    state = 'bright'; icon = '☀️'; msg = '明るすぎます。影の中に入るか角度を変えてください';
+    state = 'bright'; icon = '☀️'; msg = t('guide_bright');
   } else if (edgeDensity < EDGE_OK) {
-    state = 'nosubject'; icon = '🔍'; msg = '被写体をフレームに入れてください';
+    state = 'nosubject'; icon = '🔍'; msg = t('guide_nosubject');
   } else if (motionAmount > MOTION_WARN) {
-    state = 'motion'; icon = '✋'; msg = '手ブレしています。カメラを安定させてください';
+    state = 'motion'; icon = '✋'; msg = t('guide_motion');
   } else if (sharpness < SHARP_WARN) {
-    state = 'blur'; icon = '💫'; msg = 'ピンボケです。もっと近づいてください';
+    state = 'blur'; icon = '💫'; msg = t('guide_blur');
   } else if (sharpness < SHARP_OK) {
-    state = 'softfocus'; icon = '📐'; msg = 'もう少し近づくか、手ブレに注意してください';
+    state = 'softfocus'; icon = '📐'; msg = t('guide_softfocus');
   } else {
-    state = 'ok'; icon = '✅'; msg = 'シャッターを切ってください'; isOk = true;
+    state = 'ok'; icon = '✅'; msg = t('guide_msg_ready'); isOk = true;
   }
+  lastGuideBanner = {icon, msg, isOk, ready: false};
 
   // ヒステリシス：直前と同じ状態が連続したときのみ表示を切り替える
   // → カメラのわずかな揺れでメッセージがチカチカ変わるのを防ぐ
