@@ -1435,6 +1435,7 @@
 // applyI18n()（言語切替時）から参照されるため、先頭で早期に宣言しておく
 let lastResultState = null; // 直近の診断結果の状態（再描画用）
 let lastGuideBanner = null; // 直近の撮影ガイドバナー状態（再描画用） {icon, msg, isOk, ready} または {init:true}
+let lastBacklightState = null; // 直近の暗所バスター判定状態（再描画用） {emoji, labelKey}
 
 // ====== モデル関連 ======
 let models = { sakura: null, health: null, severity: null };
@@ -1569,6 +1570,13 @@ const I18N = {
     guide_softfocus: 'もう少し近づくか、手ブレに注意してください',
     camera_close_btn: '✕ 閉じる',
     backlight_title_attr: '逆光バスター',
+    backlight_label_backlit: '逆光を検出しました。被写体を中心に明るさを補正します',
+    backlight_label_dark: '暗所を検出しました。大きく明るさを補正します',
+    backlight_label_dim: '薄暗さを検出しました。明るさを補正します',
+    backlight_label_slightly_dim: 'やや薄暗い場面です。軽く補正します',
+    backlight_label_crushed_black: '一部が黒つぶれしています。暗部を補正します',
+    backlight_label_blown_out: '白飛びが多い写真です。日陰での撮影をおすすめします',
+    backlight_label_ok: '十分明るい写真です。補正は不要です',
     confidence: '確信度',
     howto_title: '🌸 てんぐすん。の使い方',
     howto_start: 'さっそく使ってみる 🌸',
@@ -1637,6 +1645,13 @@ const I18N = {
     guide_softfocus: 'Move a bit closer or hold steadier',
     camera_close_btn: '✕ Close',
     backlight_title_attr: 'Backlight buster',
+    backlight_label_backlit: 'Backlight detected. Brightening the subject area',
+    backlight_label_dark: 'Dark scene detected. Applying a strong brightness boost',
+    backlight_label_dim: 'Dim scene detected. Brightening the image',
+    backlight_label_slightly_dim: 'Slightly dim scene. Applying a light correction',
+    backlight_label_crushed_black: 'Some areas are crushed black. Lifting the shadows',
+    backlight_label_blown_out: 'Photo has a lot of blown highlights. Try shooting in the shade',
+    backlight_label_ok: 'Bright enough already. No correction needed',
     confidence: 'Confidence',
     howto_title: '🌸 How to use tengusun.',
     howto_start: 'Get started 🌸',
@@ -1705,6 +1720,13 @@ const I18N = {
     guide_softfocus: '请再靠近一点或注意防抖',
     camera_close_btn: '✕ 关闭',
     backlight_title_attr: '逆光增强',
+    backlight_label_backlit: '检测到逆光。将以主体为中心调整亮度',
+    backlight_label_dark: '检测到昏暗环境。将大幅提升亮度',
+    backlight_label_dim: '检测到光线偏暗。将提升亮度',
+    backlight_label_slightly_dim: '场景略暗。将进行轻微校正',
+    backlight_label_crushed_black: '部分区域死黑。将提升暗部细节',
+    backlight_label_blown_out: '照片高光过曝较多，建议在阴凉处拍摄',
+    backlight_label_ok: '亮度已足够，无需校正',
     confidence: '置信度',
     howto_title: '🌸 天狗孙 使用方法',
     howto_start: '开始使用 🌸',
@@ -1773,6 +1795,13 @@ const I18N = {
     guide_softfocus: '조금 더 가까이 가거나 흔들리지 않도록 주의하세요',
     camera_close_btn: '✕ 닫기',
     backlight_title_attr: '역광 보정',
+    backlight_label_backlit: '역광이 감지되었습니다. 피사체를 중심으로 밝기를 보정합니다',
+    backlight_label_dark: '어두운 장면이 감지되었습니다. 밝기를 크게 보정합니다',
+    backlight_label_dim: '약간 어두운 장면이 감지되었습니다. 밝기를 보정합니다',
+    backlight_label_slightly_dim: '약간 어두운 장면입니다. 가볍게 보정합니다',
+    backlight_label_crushed_black: '일부가 검게 뭉개졌습니다. 어두운 부분을 보정합니다',
+    backlight_label_blown_out: '하이라이트 날아간 부분이 많습니다. 그늘에서 촬영해 보세요',
+    backlight_label_ok: '충분히 밝은 사진입니다. 보정이 필요 없습니다',
     confidence: '신뢰도',
     howto_title: '🌸 텐구슨. 사용법',
     howto_start: '바로 사용해보기 🌸',
@@ -1818,6 +1847,8 @@ function applyI18n() {
   if (typeof renderResultFromState === 'function') renderResultFromState();
   // カメラ撮影ガイドが起動中なら、現在の状態を現在の言語で再表示
   if (typeof refreshGuideBannerLang === 'function') refreshGuideBannerLang();
+  // 暗所バスターの判定表示も現在の言語で再表示
+  if (typeof refreshBacklightStatusLang === 'function') refreshBacklightStatusLang();
 }
 
 // ====== 設定モーダル ======
@@ -2067,7 +2098,7 @@ function decideParams(analysis) {
     backlitScore, coexistScore
   } = analysis;
 
-  let lift = 0, gamma = 1, label = '', emoji = '';
+  let lift = 0, gamma = 1, labelKey = '', emoji = '';
 
   // ===== 逆光判定（中央が暗く、周辺が明るい空間パターンを重視） =====
   const isBacklit = (backlitScore > 0.12 && centerLum < 0.45) ||
@@ -2078,7 +2109,7 @@ function decideParams(analysis) {
     const darkness = Math.max(0, 0.5 - centerLum) / 0.5; // 0〜1
     lift  = 0.28 + darkness * 0.27 + backlitScore * 0.15;
     gamma = 1.6  + darkness * 0.7  + backlitScore * 0.3;
-    label = '逆光を検出しました。被写体を中心に明るさを補正します';
+    labelKey = 'backlight_label_backlit';
     emoji = '🌆';
   }
   // ===== 全体暗所・薄暗い判定（標準偏差も見てコントラスト不足を判定） =====
@@ -2090,13 +2121,13 @@ function decideParams(analysis) {
     gamma = 1.35 + darkness * 0.95 + lowContrastBoost * 0.5;
 
     if (avgLum < 0.15) {
-      label = '暗所を検出しました。大きく明るさを補正します';
+      labelKey = 'backlight_label_dark';
       emoji = '🌙';
     } else if (avgLum < 0.25) {
-      label = '薄暗さを検出しました。明るさを補正します';
+      labelKey = 'backlight_label_dim';
       emoji = '🌃';
     } else {
-      label = 'やや薄暗い場面です。軽く補正します';
+      labelKey = 'backlight_label_slightly_dim';
       emoji = '🌤';
     }
   }
@@ -2104,25 +2135,25 @@ function decideParams(analysis) {
   else if (clippedDarkRatio > 0.18) {
     lift  = 0.20 + clippedDarkRatio * 0.4;
     gamma = 1.5  + clippedDarkRatio * 0.8;
-    label = '一部が黒つぶれしています。暗部を補正します';
+    labelKey = 'backlight_label_crushed_black';
     emoji = '⬛';
   }
   // ===== 白飛びが多い場合は補正しない（持ち上げても改善しないため） =====
   else if (clippedBrightRatio > 0.25) {
     lift = 0; gamma = 1;
-    label = '白飛びが多い写真です。日陰での撮影をおすすめします';
+    labelKey = 'backlight_label_blown_out';
     emoji = '⚠️';
   }
   // ===== 十分明るい =====
   else {
     lift = 0; gamma = 1;
-    label = '十分明るい写真です。補正は不要です';
+    labelKey = 'backlight_label_ok';
     emoji = '✅';
   }
 
   lift  = Math.min(0.6, Math.max(0, lift));
   gamma = Math.min(3.0, Math.max(1, gamma));
-  return { lift, gamma, label, emoji };
+  return { lift, gamma, labelKey, emoji };
 }
 
 // シャドウリフト＋ガンマ補正をピクセル単位で適用
@@ -2155,6 +2186,7 @@ function applyBacklightCorrection(imageData, lift, gamma) {
 
 function updateBacklightPreview() {
   backlightStatusEl.textContent = '';
+  lastBacklightState = null;
   shadowLift = 0; gammaVal = 1;
   if (!inputImage || !inputImage.naturalWidth || !backlightOn) return;
 
@@ -2171,7 +2203,14 @@ function updateBacklightPreview() {
   if (params.lift > 0) {
     backlightCtx.putImageData(applyBacklightCorrection(raw, shadowLift, gammaVal), 0, 0);
   }
-  backlightStatusEl.textContent = params.emoji + ' ' + params.label;
+  lastBacklightState = { emoji: params.emoji, labelKey: params.labelKey };
+  backlightStatusEl.textContent = params.emoji + ' ' + t(params.labelKey);
+}
+
+// 言語切替時、暗所バスターのステータス表示が出ていれば現在の言語で再表示する
+function refreshBacklightStatusLang() {
+  if (!lastBacklightState) return;
+  backlightStatusEl.textContent = lastBacklightState.emoji + ' ' + t(lastBacklightState.labelKey);
 }
 
 // 「使う／使わない」ボタン
@@ -2190,6 +2229,7 @@ if (_busterOffBtn) _busterOffBtn.addEventListener('click', () => {
   _busterOffBtn.classList.add('active');
   if (_busterOnBtn) _busterOnBtn.classList.remove('active');
   if (busterOverlayBtn) { busterOverlayBtn.classList.remove('on'); document.getElementById('backlightStatus').style.display='none'; }
+  lastBacklightState = null;
   backlightStatusEl.textContent = '';
 });
 
