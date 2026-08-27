@@ -2067,8 +2067,7 @@ const locationCoordsText   = document.getElementById('locationCoordsText');
 const locationOpenLink     = document.getElementById('locationOpenLink');
 
 // 撮影場所マップの表示／非表示・更新
-function renderLocationMap(coords) {
-  if (!coords) {
+function renderLocationMap(coords) {  if (!coords) {
     locationCard.style.display = 'none';
     locationMapFrame.src = '';
     return;
@@ -2409,8 +2408,25 @@ toggleCameraBtn.addEventListener('click', async () => {
   else { try { await startCamera(); } catch(err) { alert('カメラ起動エラー'); } }
 });
 
+// 位置情報の許可プロンプトをできるだけ早いタイミングで出しておくための事前リクエスト。
+// GitHub Pagesなど初回アクセスのドメインでは、許可ダイアログの応答に数秒かかることがあり、
+// シャッターを切った瞬間に短いタイムアウトで取得しようとすると間に合わず地図が出ない原因になるため、
+// カメラ起動時にあらかじめ許可を得て、結果をブラウザ側のキャッシュ(maximumAge)に残しておく。
+function primeGeolocation() {
+  if (!navigator.geolocation) return;
+  try {
+    navigator.geolocation.getCurrentPosition(
+      () => {}, // 成功時は何もしない（ブラウザの位置情報キャッシュに残るだけでOK）
+      () => {}, // 拒否・失敗時も静かに無視（マップ表示が出ないだけで機能は継続）
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+    );
+  } catch (e) { /* noop */ }
+}
+
 async function startCamera() {
   stopCamera();
+  // 位置情報の許可ダイアログをカメラ起動と同時に出しておく（シャッター時の取得漏れ対策）
+  primeGeolocation();
   const tries = [
     { video: { facingMode: { exact: currentFacingMode } }, audio: false },
     { video: { facingMode: currentFacingMode }, audio: false },
@@ -2555,9 +2571,11 @@ captureBtn.addEventListener('click', async () => {
     navigator.geolocation.getCurrentPosition(
       pos => { if(!done){ done=true; res(pos.coords); } },
       () => { if(!done){ done=true; res(null); } },
-      { enableHighAccuracy:true, timeout:3000, maximumAge:60000 }
+      { enableHighAccuracy:true, timeout:7000, maximumAge:60000 }
     );
-    setTimeout(() => { if(!done){ done=true; res(null); } }, 3500);
+    // カメラ起動時にprimeGeolocation()で許可取得済みなら、ブラウザのキャッシュ(maximumAge)から
+    // 即座に返るため、このタイムアウトに達するのは許可がまだ得られていない場合のみ
+    setTimeout(() => { if(!done){ done=true; res(null); } }, 8000);
   });
   const posPromise = getPos();
   wrapperRect = videoWrapper.getBoundingClientRect();
