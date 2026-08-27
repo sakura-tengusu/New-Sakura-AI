@@ -911,6 +911,60 @@
     .result-loading  { background: var(--sakura-50); border: 1.5px solid var(--border-mid); color: var(--sakura-800); }
     .result-error    { background: #F8F8F8; border: 1.5px solid #E5E7EB; color: #374151; }
 
+    /* 撮影場所マップ */
+    .location-section {
+      margin: 1rem 1.25rem 1.25rem;
+      border-radius: var(--radius-md);
+      overflow: hidden;
+      border: 1.5px solid var(--border-mid);
+      background: rgba(255,255,255,0.6);
+    }
+    .location-header {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.55rem 0.8rem;
+      background: var(--sakura-50);
+      border-bottom: 1px solid var(--border-mid);
+    }
+    .location-header-text {
+      font-size: 0.72rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      flex: 1;
+    }
+    .location-map-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/10;
+      background: #eee;
+    }
+    .location-map-wrap iframe {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      border: 0;
+    }
+    .location-footer {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      padding: 0.5rem 0.8rem;
+      font-size: 0.68rem;
+      color: #6B7280;
+    }
+    .location-coords { font-variant-numeric: tabular-nums; }
+    .location-open-link {
+      flex-shrink: 0;
+      font-weight: 700;
+      color: var(--sakura-700);
+      text-decoration: none;
+      white-space: nowrap;
+    }
+    .location-open-link:hover { text-decoration: underline; }
+
     /* モデルステータス */
     .model-status {
       text-align: center;
@@ -1308,6 +1362,20 @@
         </div>
       </div>
     </div>
+    <!-- 撮影場所マップ（位置情報がある場合のみ表示） -->
+    <div class="location-section" id="locationCard" style="display:none">
+      <div class="location-header">
+        <span>📍</span>
+        <span class="location-header-text" id="locationHeaderText" data-i18n="location_title">撮影場所</span>
+      </div>
+      <div class="location-map-wrap">
+        <iframe id="locationMapFrame" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="location map"></iframe>
+      </div>
+      <div class="location-footer">
+        <span class="location-coords" id="locationCoordsText"></span>
+        <a class="location-open-link" id="locationOpenLink" href="#" target="_blank" rel="noopener" data-i18n="location_open_link">Googleマップで開く</a>
+      </div>
+    </div>
   </div>
 
   <p class="footer-note" data-i18n="footer_note">
@@ -1530,7 +1598,7 @@ const I18N = {
     photo_taken: '撮影済み / 選択済み',
     tap_confirm: 'タップで確認',
     save_btn: '⬇ 保存',
-    footer_note: 'カメラのご使用にはブラウザの許可が必要です\n位置情報はダウンロード写真のEXIFのみに使用します',
+    footer_note: 'カメラのご使用にはブラウザの許可が必要です\n位置情報は撮影場所の地図表示とダウンロード写真のEXIFに使用します',
     model_loading: 'モデルを読み込み中…',
     model_ok: 'AIモデル読み込み完了',
     model_fail: '⚠ 一部失敗: ',
@@ -1560,6 +1628,8 @@ const I18N = {
     heatmap_note: '赤いほどAIが「病気の証拠」として強く注目している領域です。青〜緑は参考程度です。',
     heatmap_wait: '少し時間がかかります',
     legend_low: '低', legend_high: '高',
+    location_title: '撮影場所',
+    location_open_link: 'Googleマップで開く',
     guide_msg_init: 'カメラを向けてください',
     guide_msg_ready: 'シャッターを切ってください',
     guide_dark: '暗すぎます。明るい場所に移動してください',
@@ -1605,7 +1675,7 @@ const I18N = {
     photo_taken: 'Photo taken / Selected',
     tap_confirm: 'Tap to preview',
     save_btn: '⬇ Save',
-    footer_note: 'Browser permission is required to use the camera.\nLocation data is only used in the EXIF of downloaded photos.',
+    footer_note: 'Browser permission is required to use the camera.\nLocation data is used to show a map of the shooting location and in the EXIF of downloaded photos.',
     model_loading: 'Loading model…',
     model_ok: 'AI model loaded',
     model_fail: '⚠ Failed: ',
@@ -1635,6 +1705,8 @@ const I18N = {
     heatmap_note: 'Red = AI strongly focused on disease evidence. Blue~green = for reference only.',
     heatmap_wait: 'This may take a moment',
     legend_low: 'Low', legend_high: 'High',
+    location_title: 'Shooting location',
+    location_open_link: 'Open in Google Maps',
     guide_msg_init: 'Point camera at the tree',
     guide_msg_ready: 'Press the shutter',
     guide_dark: 'Too dark. Please move to a brighter spot',
@@ -1680,7 +1752,7 @@ const I18N = {
     photo_taken: '已拍摄 / 已选择',
     tap_confirm: '点击确认',
     save_btn: '⬇ 保存',
-    footer_note: '使用相机需要浏览器权限。\n位置信息仅用于下载照片的EXIF。',
+    footer_note: '使用相机需要浏览器权限。\n位置信息用于显示拍摄地点地图，以及下载照片的EXIF信息。',
     model_loading: '正在加载模型…',
     model_ok: 'AI模型加载完成',
     model_fail: '⚠ 部分失败: ',
@@ -1710,6 +1782,8 @@ const I18N = {
     heatmap_note: '红色区域是AI重点关注的病害证据，蓝绿色仅供参考。',
     heatmap_wait: '请稍候',
     legend_low: '低', legend_high: '高',
+    location_title: '拍摄地点',
+    location_open_link: '在Google地图中打开',
     guide_msg_init: '请将相机对准树木',
     guide_msg_ready: '请按下快门',
     guide_dark: '太暗了。请移动到明亮的地方',
@@ -1755,7 +1829,7 @@ const I18N = {
     photo_taken: '촬영됨 / 선택됨',
     tap_confirm: '탭하여 확인',
     save_btn: '⬇ 저장',
-    footer_note: '카메라 사용에는 브라우저 권한이 필요합니다.\n위치정보는 다운로드 사진의 EXIF에만 사용됩니다.',
+    footer_note: '카메라 사용에는 브라우저 권한이 필요합니다.\n위치정보는 촬영 장소의 지도 표시와 다운로드 사진의 EXIF에 사용됩니다.',
     model_loading: '모델 로딩 중…',
     model_ok: 'AI 모델 로드 완료',
     model_fail: '⚠ 일부 실패: ',
@@ -1785,6 +1859,8 @@ const I18N = {
     heatmap_note: '빨간색일수록 AI가 병해 증거로 강하게 주목하는 영역입니다.',
     heatmap_wait: '잠시 기다려 주세요',
     legend_low: '낮음', legend_high: '높음',
+    location_title: '촬영 장소',
+    location_open_link: 'Google 지도에서 열기',
     guide_msg_init: '카메라를 나무에 향해 주세요',
     guide_msg_ready: '셔터를 눌러 주세요',
     guide_dark: '너무 어둡습니다. 밝은 곳으로 이동해 주세요',
@@ -1984,6 +2060,27 @@ const brightnessSideWrap = document.getElementById('brightnessSideWrap');
 const iosThumbWrap = document.getElementById('iosThumbWrap');
 const resultCard = document.getElementById('resultCard');
 const resultDiv = document.getElementById('result');
+// 撮影場所マップ関連のDOM要素（この後の全ハンドラから参照するため早期に取得）
+const locationCard        = document.getElementById('locationCard');
+const locationMapFrame     = document.getElementById('locationMapFrame');
+const locationCoordsText   = document.getElementById('locationCoordsText');
+const locationOpenLink     = document.getElementById('locationOpenLink');
+
+// 撮影場所マップの表示／非表示・更新
+function renderLocationMap(coords) {
+  if (!coords) {
+    locationCard.style.display = 'none';
+    locationMapFrame.src = '';
+    return;
+  }
+  const { latitude, longitude } = coords;
+  const lat = latitude.toFixed(5), lng = longitude.toFixed(5);
+  // APIキー不要の埋め込み地図（Google map "output=embed"）
+  locationMapFrame.src = `https://maps.google.com/maps?q=${latitude},${longitude}&z=16&output=embed`;
+  locationCoordsText.textContent = `${lat}, ${lng}`;
+  locationOpenLink.href = `https://maps.google.com/?q=${latitude},${longitude}`;
+  locationCard.style.display = 'block';
+}
 
 // 閉じるボタン
 document.getElementById('closeCameraBtn').addEventListener('click', () => stopCamera());
@@ -2277,7 +2374,9 @@ imageInput.addEventListener('change', function() {
       downloadBtn.disabled = true;
       lastCapturedDataUrl = null;
       lastCaptureMeta = null;
+      lastResultState = null;
       resultCard.style.display = 'none';
+      if (typeof renderLocationMap === 'function') renderLocationMap(null);
     };
     fr.readAsDataURL(this.files[0]);
   }
@@ -2298,7 +2397,8 @@ fileDrop.addEventListener('drop', e => {
       previewThumb.style.display = 'flex';
       setMainView();
       inputImage = new Image(); inputImage.crossOrigin = "anonymous"; inputImage.src = ev.target.result;
-      downloadBtn.disabled = true; lastCapturedDataUrl = null; resultCard.style.display = 'none';
+      downloadBtn.disabled = true; lastCapturedDataUrl = null; lastResultState = null; resultCard.style.display = 'none';
+      if (typeof renderLocationMap === 'function') renderLocationMap(null);
     };
     fr.readAsDataURL(file);
   }
@@ -2538,7 +2638,9 @@ captureBtn.addEventListener('click', async () => {
   inputImage.crossOrigin = "anonymous";
   inputImage.onload = () => updateBacklightPreview();
   inputImage.src = lastCapturedDataUrl;
+  lastResultState = null;
   resultCard.style.display = 'none';
+  if (typeof renderLocationMap === 'function') renderLocationMap(null);
   setMainView();
   // 撮影後ガイド再開
   setTimeout(() => { if (isCameraOn) startGuide(); }, 800);
@@ -3101,6 +3203,9 @@ function renderResultFromState() {
       showResult(`<div class="result-icon">${st.icon}</div><div class="result-label">${t('result_sick')}</div><span class="result-badge" style="background:rgba(0,0,0,0.06)">${t(st.badgeKey)} / ${t('confidence')} ${st.conf}%</span><div class="contact-block"><div class="contact-title">${t('result_contact')}</div></div>`, st.type);
       break;
   }
+  // 診断結果に位置情報が紐づいていれば撮影場所の地図を表示、なければ非表示
+  const isRealDiagnosis = ['not_sakura','healthy','sick_unknown','sick'].includes(st.kind);
+  renderLocationMap(isRealDiagnosis ? st.coords : null);
 }
 
 submitBtn.addEventListener('click', async () => {
@@ -3117,7 +3222,7 @@ submitBtn.addEventListener('click', async () => {
       if (!s1) { lastResultState = {kind:'error'}; renderResultFromState(); return; }
       if (s1.idx !== 0) {
         const conf = (s1.confidence*100).toFixed(1);
-        lastResultState = {kind:'not_sakura', conf}; renderResultFromState();
+        lastResultState = {kind:'not_sakura', conf, coords: lastCaptureMeta?.coords || null}; renderResultFromState();
         await sendToGoogleForm('桜以外', conf, '');
         return;
       }
@@ -3127,7 +3232,7 @@ submitBtn.addEventListener('click', async () => {
       if (!s2) { lastResultState = {kind:'error'}; renderResultFromState(); return; }
       if (s2.idx === 0) {
         const conf = (s2.confidence*100).toFixed(1);
-        lastResultState = {kind:'healthy', conf}; renderResultFromState();
+        lastResultState = {kind:'healthy', conf, coords: lastCaptureMeta?.coords || null}; renderResultFromState();
         await sendToGoogleForm('健康', conf, '');
         return;
       }
@@ -3135,7 +3240,7 @@ submitBtn.addEventListener('click', async () => {
       // 段階3: 重症度判定
       const s3 = await predict('severity', inputImage);
       if (!s3) {
-        lastResultState = {kind:'sick_unknown'}; renderResultFromState();
+        lastResultState = {kind:'sick_unknown', coords: lastCaptureMeta?.coords || null}; renderResultFromState();
         await sendToGoogleForm('病気（重症度不明）', '--', '');
         await runGradCAM(inputImage);
         return;
@@ -3150,7 +3255,7 @@ submitBtn.addEventListener('click', async () => {
       } else {
         type='result-severe'; icon='🔴'; badgeKey='result_severe';
       }
-      lastResultState = {kind:'sick', type, icon, badgeKey, conf}; renderResultFromState();
+      lastResultState = {kind:'sick', type, icon, badgeKey, conf, coords: lastCaptureMeta?.coords || null}; renderResultFromState();
       await sendToGoogleForm(`病気（${sc}）`, conf, '');
       await runGradCAM(inputImage);
 
