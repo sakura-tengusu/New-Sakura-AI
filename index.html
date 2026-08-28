@@ -1648,13 +1648,20 @@
       <a class="notice-item-link" href="https://sites.google.com/view/tenguscope/%E3%83%9B%E3%83%BC%E3%83%A0?authuser=0" target="_blank" rel="noopener">https://sites.google.com/view/tenguscope/</a>
     </div>
 
+    <div class="notice-item">
+      <p class="notice-item-title"><span>🧭</span><span data-i18n="notice_position_title">位置情報について</span></p>
+      <p class="notice-item-body" data-i18n="notice_position_body">「位置情報はダウンロード用写真への埋め込みに使用され、これらの情報は日立市桜のてんぐ巣病マップ作成等に役立てて行きたいと考えています。
+桜の写真提供へのご協力をよろしくお願いします！」</p>
+    </div>
+
+ <!--桜に関する情報コーナー-->
+    
     <hr class="howto-divider" />
     <p class="howto-step-title" style="margin-bottom:0.6rem;" data-i18n="notice_sakura_info_section_title">🌸 桜に関する情報コーナー</p>
-
-    <!-- ①：タイトルのみ用意。タップすると本文が開く。本文はここに直接入力してください -->
+    
     <div class="sakura-info-item">
       <button type="button" class="sakura-info-header">
-        <span data-i18n="notice_sakura_info1_title">① タイトル未定</span>
+        <span data-i18n="notice_sakura_info1_title">① てんぐ巣病とは</span>
         <span class="sakura-info-chevron">▼</span>
       </button>
       <div class="sakura-info-body-wrap">
@@ -1664,7 +1671,6 @@
       </div>
     </div>
 
-    <!-- ②：同上 -->
     <div class="sakura-info-item">
       <button type="button" class="sakura-info-header">
         <span data-i18n="notice_sakura_info2_title">② タイトル未定</span>
@@ -1795,6 +1801,9 @@ const I18N = {
     notice_trial_body: '9月から11月末まで、本アプリの試験運用を行います。',
     notice_about_title: '詳しい使い方・私たちの研究について',
     notice_about_body: '詳しい使い方や私たちの研究についてはこちら',
+    notice_position_title: `位置情報について`,
+    notice_position_body:`位置情報はダウンロード用写真への埋め込みに使用され、これらの情報は日立市桜のてんぐ巣病マップ作成等に役立てて行きたいと考えています。
+桜の写真提供へのご協力をよろしくお願いします！`,
     notice_sakura_info_section_title: '🌸 桜に関する情報コーナー',
     notice_sakura_info1_title: '① てんぐ巣病とは',
     notice_sakura_info1_body: 'てんぐ巣病は植物の病気の一種で、茎や枝が異常に密生し、鳥の巣のような状態になるのが特徴です。\n原因となる微生物はさまざまですが、桜のてんぐ巣病はTaphrina wiesneri（タフリナ・ウィースネリ）という菌類の一種が原因とされています。\n桜だけでなく、タケやトマト、ニンジンなど、私たちの身近な植物にも発生します。\n症状が進行すると木全体に感染が広がり、最悪の場合枯れてしまうこともあります。\nそして現在も、有効な治療法や予防法は確立されていません。\n<b>だからこそ、早期に発見し、適切に対応することが大切です。<b>',
@@ -1885,6 +1894,9 @@ const I18N = {
     notice_trial_body: 'This app is running as a trial from September through the end of November.',
     notice_about_title: 'More about how to use this app & our research',
     notice_about_body: 'For more details and our research, see here',
+    notice_position_title: `Regarding location data`,
+    notice_position_body: `Location data will be embedded in the downloadable photos, and we intend to use this information for purposes such as creating a map of witches' broom disease affecting cherry trees in Hitachi City.
+We would greatly appreciate your cooperation in providing photos of cherry blossoms!`,
     notice_sakura_info_section_title: '🌸 Sakura Info Corner',
     notice_sakura_info1_title: `① What is Witches' Broom Disease?`,
     notice_sakura_info1_body: `Witches' broom is a type of plant disease characterized by the abnormal, dense clustering of stems and branches, creating an appearance resembling a bird's nest.
@@ -1986,6 +1998,9 @@ To date, no effective treatment or preventive method has been established.
     notice_trial_body: '本应用将于9月至11月底进行试运行。',
     notice_about_title: '详细使用方法及我们的研究',
     notice_about_body: '详细使用方法及我们的研究请见此处',
+    notice_position_title: `关于位置信息`,
+    notice_position_body: `我们将使用位置信息嵌入可供下载的照片，并计划利用这些信息绘制日立市受“女巫扫帚病”影响的樱花树分布图。
+感谢您提供樱花照片！`,
     notice_sakura_info_section_title: '🌸 樱花信息角',
     notice_sakura_info1_title: '① 什么是女巫扫帚病？',
     notice_sakura_info1_body: `丛枝病是一种植物病害，其特征是茎和枝异常密集生长，形似鸟巢。
@@ -2087,6 +2102,9 @@ To date, no effective treatment or preventive method has been established.
     notice_trial_body: '9월부터 11월 말까지 본 앱의 시범 운영을 실시합니다.',
     notice_about_title: '자세한 사용법 및 저희 연구에 대하여',
     notice_about_body: '자세한 사용법과 저희 연구에 대해서는 이곳을 참고하세요',
+    notice_position_title: `위치 정보에 대하여`,
+    notice_position_body: `위치 정보는 다운로드용 사진에의 임베딩에 사용되어, 이러한 정보는 히타치시 벚꽃의 텐구소병 맵 작성 등에 도움이 가고 싶다고 생각하고 있습니다.
+벚꽃의 사진 제공에의 협력을 잘 부탁드립니다!`,
     notice_sakura_info_section_title: '🌸 벚꽃 정보 코너',
     notice_sakura_info1_title: '① 텐구소병이란?',
     notice_sakura_info1_body: `천둥 병은 식물의 질병의 일종으로 줄기와 가지가 비정상적으로 밀생하여 새 둥지와 같은 상태가되는 것이 특징입니다.
@@ -2274,7 +2292,7 @@ function applyI18n() {
 
   // お知らせの内容が更新されたらこのバージョン番号を上げると、
   // 未読バッジが再表示され、アプリ起動時に再度自動表示される
-  const NOTICE_VERSION = '2026-08-trial';
+  const NOTICE_VERSION = '2026-08-28-21:43';
 
   function updateDotVisibility() {
     const seen = localStorage.getItem('notice_seen_version');
