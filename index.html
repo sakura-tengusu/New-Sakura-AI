@@ -113,9 +113,15 @@
     .header-top-row {
       display: flex;
       justify-content: space-between;
+      align-items: center;
+      gap: 0.4rem;
+      flex-wrap: wrap;
       margin-bottom: 0.5rem;
     }
     .howto-reopen-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
       font-family: 'Zen Maru Gothic', sans-serif;
       font-size: 0.72rem;
       font-weight: 700;
@@ -1133,6 +1139,68 @@
       -webkit-tap-highlight-color: transparent;
       touch-action: manipulation;
     }
+    .howto-secondary-btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      width: 100%;
+      margin-top: 0.85rem;
+      padding: 0.7rem;
+      font-family: 'Zen Maru Gothic', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--sakura-700);
+      background: var(--sakura-50);
+      border: 1.5px solid var(--sakura-200, var(--border-mid));
+      border-radius: 99px;
+      cursor: pointer;
+      letter-spacing: 0.04em;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+      position: relative;
+    }
+    .howto-secondary-btn:hover { background: var(--sakura-100, var(--sakura-50)); }
+    .notice-dot {
+      display: inline-block;
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #EF4444;
+      margin-left: 0.15rem;
+    }
+    .notice-item {
+      background: var(--sakura-50);
+      border: 1.5px solid var(--border-mid);
+      border-radius: var(--radius-md);
+      padding: 0.85rem 1rem;
+      margin-bottom: 0.75rem;
+    }
+    .notice-item-title {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      margin-bottom: 0.3rem;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .notice-item-body {
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      line-height: 1.6;
+      white-space: pre-line;
+    }
+    .notice-item-link {
+      display: inline-block;
+      margin-top: 0.5rem;
+      font-size: 0.76rem;
+      font-weight: 700;
+      color: var(--sakura-700);
+      text-decoration: none;
+      word-break: break-all;
+    }
+    .notice-item-link:hover { text-decoration: underline; }
 
     /* 全画面ライトボックス */
     .lightbox {
@@ -1199,6 +1267,7 @@
   <header class="app-header">
     <div class="header-top-row">
       <button class="howto-reopen-btn" id="howtoReopenBtn" data-i18n="howto_btn">使い方</button>
+      <button class="howto-reopen-btn" id="noticeOpenBtn"><span data-i18n="notice_btn">📢 お知らせ</span><span class="notice-dot" id="noticeDot"></span></button>
       <button class="howto-reopen-btn" id="contactReopenBtn" data-i18n="settings_btn">⚙️ 設定</button>
     </div>
     <div class="header-emblem">🌸</div>
@@ -1432,7 +1501,6 @@
 
     <hr class="howto-divider" />
     <p class="howto-note" data-i18n="howto_note">※ AIの判定は参考情報です。最終判断は専門家にご相談ください。<br>カメラ・位置情報の許可が必要な場合があります。</p>
-    <p class="howto-note" style="text-align:center;" data-i18n="howto_more_link">詳しい使い方や私たちの研究についてはこちら<br><a href="https://sites.google.com/view/tenguscope/%E3%83%9B%E3%83%BC%E3%83%A0?authuser=0" target="_blank" rel="noopener" style="color:var(--sakura-600);text-decoration:none;">https://sites.google.com/view/tenguscope/</a></p>
 
     <button class="howto-start-btn" id="howtoStartBtn" data-i18n="howto_start">さっそく使ってみる 🌸</button>
   </div>
@@ -1512,6 +1580,27 @@
   </div>
 </div>
 
+<!-- お知らせ -->
+<div class="howto-overlay" id="noticeOverlay">
+  <div class="howto-box">
+    <button class="howto-close" id="noticeClose">✕</button>
+    <p class="howto-title" data-i18n="notice_title">📢 お知らせ</p>
+
+    <div class="notice-item">
+      <p class="notice-item-title"><span>🧪</span><span data-i18n="notice_trial_title">試験運用のお知らせ</span></p>
+      <p class="notice-item-body" data-i18n="notice_trial_body">9月から11月末まで、本アプリの試験運用を行います。</p>
+    </div>
+
+    <div class="notice-item">
+      <p class="notice-item-title"><span>🌸</span><span data-i18n="notice_about_title">詳しい使い方・私たちの研究について</span></p>
+      <p class="notice-item-body" data-i18n="notice_about_body">詳しい使い方や私たちの研究についてはこちら</p>
+      <a class="notice-item-link" href="https://sites.google.com/view/tenguscope/%E3%83%9B%E3%83%BC%E3%83%A0?authuser=0" target="_blank" rel="noopener">https://sites.google.com/view/tenguscope/</a>
+    </div>
+
+    <button class="howto-start-btn" id="noticeCloseBtn" data-i18n="settings_close">閉じる</button>
+  </div>
+</div>
+
 <script>
 // applyI18n()（言語切替時）から参照されるため、先頭で早期に宣言しておく
 let lastResultState = null; // 直近の診断結果の状態（再描画用）
@@ -1575,13 +1664,8 @@ loadAllModels();
     setTimeout(() => overlay.style.display = 'none', 120);
   }
 
-  // 起動時に表示（セッション中1回のみ）
-  if (!sessionStorage.getItem('howto_seen')) {
-    requestAnimationFrame(() => requestAnimationFrame(() => { overlay.style.opacity = '1'; }));
-    sessionStorage.setItem('howto_seen', '1');
-  } else {
-    overlay.style.display = 'none';
-  }
+  // 起動時には表示しない（お知らせ画面に置き換え）。手動で開いたときのみ表示する。
+  overlay.style.display = 'none';
 
   document.getElementById('howtoClose').addEventListener('click', closeHowto);
   document.getElementById('howtoStartBtn').addEventListener('click', closeHowto);
@@ -1625,6 +1709,12 @@ const I18N = {
     settings_data_desc: '判定結果を匿名で送信し、AI改善に役立てます。',
     settings_guide: '📸 撮影ガイドを表示する',
     settings_guide_desc: 'カメラ撮影時に、明るさやピント合わせをサポートするガイド表示を行います。',
+    notice_btn: '📢 お知らせ',
+    notice_title: '📢 お知らせ',
+    notice_trial_title: '試験運用のお知らせ',
+    notice_trial_body: '9月から11月末まで、本アプリの試験運用を行います。',
+    notice_about_title: '詳しい使い方・私たちの研究について',
+    notice_about_body: '詳しい使い方や私たちの研究についてはこちら',
     settings_contact: 'お問い合わせ',
     settings_close: '閉じる',
     result_no_image: '画像を選んでください',
@@ -1676,7 +1766,6 @@ const I18N = {
     howto_step5_title: '病気と判定されたら',
     howto_step5_desc: 'AIが注目した部位がヒートマップで表示されます。その施設の管理者へご連絡ください。',
     howto_note: '※ AIの判定は参考情報です。最終判断は専門家にご相談ください。\nカメラ・位置情報の許可が必要な場合があります。',
-    howto_more_link: '詳しい使い方や私たちの研究についてはこちら',
   },
   en: {
     app_title: 'tengusun.',
@@ -1705,6 +1794,12 @@ const I18N = {
     settings_data_desc: 'Send results anonymously to improve AI.',
     settings_guide: '📸 Show shooting guide',
     settings_guide_desc: 'Shows on-screen guidance for brightness and focus while shooting with the camera.',
+    notice_btn: '📢 Notices',
+    notice_title: '📢 Notices',
+    notice_trial_title: 'Trial run notice',
+    notice_trial_body: 'This app is running as a trial from September through the end of November.',
+    notice_about_title: 'More about how to use this app & our research',
+    notice_about_body: 'For more details and our research, see here',
     settings_contact: 'Contact us',
     settings_close: 'Close',
     result_no_image: 'Please select an image',
@@ -1756,7 +1851,6 @@ const I18N = {
     howto_step5_title: 'If disease is detected',
     howto_step5_desc: 'The area the AI focused on is shown as a heatmap. Please contact the facility manager.',
     howto_note: '※ AI results are for reference only. Please consult an expert for final decisions.\nCamera and location permissions may be required.',
-    howto_more_link: 'For more details and our research, see here',
   },
   zh: {
     app_title: '天狗孙',
@@ -1785,6 +1879,12 @@ const I18N = {
     settings_data_desc: '匿名发送结果以改进AI。',
     settings_guide: '📸 显示拍摄引导',
     settings_guide_desc: '拍摄时显示帮助您调整亮度和对焦的引导界面。',
+    notice_btn: '📢 通知',
+    notice_title: '📢 通知',
+    notice_trial_title: '试运行通知',
+    notice_trial_body: '本应用将于9月至11月底进行试运行。',
+    notice_about_title: '详细使用方法及我们的研究',
+    notice_about_body: '详细使用方法及我们的研究请见此处',
     settings_contact: '联系我们',
     settings_close: '关闭',
     result_no_image: '请选择图片',
@@ -1836,7 +1936,6 @@ const I18N = {
     howto_step5_title: '如果判断为病害',
     howto_step5_desc: 'AI关注的部位将以热图显示。请联系该设施管理员。',
     howto_note: '※ AI诊断结果仅供参考，最终判断请咨询专业人士。\n可能需要相机和位置信息权限。',
-    howto_more_link: '详细使用方法及我们的研究请见此处',
   },
   ko: {
     app_title: '텐구슨.',
@@ -1865,6 +1964,12 @@ const I18N = {
     settings_data_desc: '결과를 익명으로 전송하여 AI 개선에 도움을 줍니다.',
     settings_guide: '📸 촬영 가이드 표시',
     settings_guide_desc: '카메라 촬영 시 밝기와 초점 맞추기를 돕는 가이드를 표시합니다.',
+    notice_btn: '📢 공지사항',
+    notice_title: '📢 공지사항',
+    notice_trial_title: '시범 운영 안내',
+    notice_trial_body: '9월부터 11월 말까지 본 앱의 시범 운영을 실시합니다.',
+    notice_about_title: '자세한 사용법 및 저희 연구에 대하여',
+    notice_about_body: '자세한 사용법과 저희 연구에 대해서는 이곳을 참고하세요',
     settings_contact: '문의하기',
     settings_close: '닫기',
     result_no_image: '이미지를 선택해 주세요',
@@ -1916,7 +2021,6 @@ const I18N = {
     howto_step5_title: '병해로 판정되면',
     howto_step5_desc: 'AI가 주목한 부위가 히트맵으로 표시됩니다. 해당 시설 관리자에게 연락하세요.',
     howto_note: '※ AI 진단 결과는 참고용입니다. 최종 판단은 전문가에게 문의하세요.\n카메라·위치정보 권한이 필요할 수 있습니다.',
-    howto_more_link: '자세한 사용법과 저희 연구에 대해서는 이곳을 참고하세요',
   }
 };
 
@@ -1931,8 +2035,6 @@ function applyI18n() {
     const key = el.getAttribute('data-i18n');
     if (key === 'settings_contact') {
       el.innerHTML = t('settings_contact') + '<br><a href="mailto:hitachi1.sakura.tengusu@gmail.com" style="color:var(--sakura-600);text-decoration:none;">hitachi1.sakura.tengusu@gmail.com</a>';
-    } else if (key === 'howto_more_link') {
-      el.innerHTML = t('howto_more_link') + '<br><a href="https://sites.google.com/view/tenguscope/%E3%83%9B%E3%83%BC%E3%83%A0?authuser=0" target="_blank" rel="noopener" style="color:var(--sakura-600);text-decoration:none;">https://sites.google.com/view/tenguscope/</a>';
     } else if (key === 'footer_note' || key === 'howto_note') {
       el.innerHTML = t(key).replace(/\n/g, '<br>');
     } else {
@@ -1972,7 +2074,6 @@ function applyI18n() {
   document.getElementById('contactReopenBtn')?.addEventListener('click', openSettings);
   document.getElementById('contactClose')?.addEventListener('click', closeSettings);
   document.getElementById('contactCloseBtn')?.addEventListener('click', closeSettings);
-
   // 言語設定
   const langSelect = document.getElementById('settingLang');
   langSelect.value = currentLang;
@@ -2029,6 +2130,49 @@ function applyI18n() {
 
   // 初期化時にi18n適用
   applyI18n();
+})();
+
+// ====== お知らせモーダル ======
+(function() {
+  const overlay = document.getElementById('noticeOverlay');
+  const openBtn = document.getElementById('noticeOpenBtn');
+  const dot = document.getElementById('noticeDot');
+  if (!overlay || !openBtn) return;
+
+  // お知らせの内容が更新されたらこのバージョン番号を上げると、
+  // 未読バッジが再表示され、アプリ起動時に再度自動表示される
+  const NOTICE_VERSION = '2026-08-trial';
+
+  function updateDotVisibility() {
+    const seen = localStorage.getItem('notice_seen_version');
+    if (dot) dot.style.display = (seen === NOTICE_VERSION) ? 'none' : 'inline-block';
+  }
+  updateDotVisibility();
+
+  function openNotice() {
+    overlay.style.display = 'flex';
+    requestAnimationFrame(() => requestAnimationFrame(() => { overlay.style.opacity = '1'; }));
+    localStorage.setItem('notice_seen_version', NOTICE_VERSION);
+    updateDotVisibility();
+  }
+  function closeNotice() {
+    overlay.style.opacity = '0';
+    setTimeout(() => overlay.style.display = 'none', 120);
+  }
+
+  // 起動時に表示（セッション中1回のみ）。未読バッジの判定とは独立して、毎セッションの初回は表示する。
+  if (!sessionStorage.getItem('notice_auto_shown')) {
+    requestAnimationFrame(() => requestAnimationFrame(() => { overlay.style.opacity = '1'; }));
+    localStorage.setItem('notice_seen_version', NOTICE_VERSION);
+    updateDotVisibility();
+    sessionStorage.setItem('notice_auto_shown', '1');
+  } else {
+    overlay.style.display = 'none';
+  }
+
+  openBtn.addEventListener('click', openNotice);
+  document.getElementById('noticeClose')?.addEventListener('click', closeNotice);
+  document.getElementById('noticeCloseBtn')?.addEventListener('click', closeNotice);
 })();
 
 // データ収集が有効かを返すグローバル関数
