@@ -1202,6 +1202,57 @@
     }
     .notice-item-link:hover { text-decoration: underline; }
 
+    /* 桜に関する情報コーナー（アコーディオン） */
+    .sakura-info-item {
+      border: 1.5px solid var(--border-mid);
+      border-radius: var(--radius-md);
+      margin-bottom: 0.6rem;
+      overflow: hidden;
+      background: rgba(255,255,255,0.6);
+    }
+    .sakura-info-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 0.75rem 1rem;
+      background: none;
+      border: none;
+      cursor: pointer;
+      font-family: 'Zen Maru Gothic', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--text-primary);
+      text-align: left;
+      -webkit-tap-highlight-color: transparent;
+      touch-action: manipulation;
+    }
+    .sakura-info-chevron {
+      transition: transform 0.2s;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      flex-shrink: 0;
+      margin-left: 0.5rem;
+    }
+    .sakura-info-item.open .sakura-info-chevron { transform: rotate(180deg); }
+    .sakura-info-body-wrap {
+      display: grid;
+      grid-template-rows: 0fr;
+      transition: grid-template-rows 0.25s ease;
+    }
+    .sakura-info-item.open .sakura-info-body-wrap { grid-template-rows: 1fr; }
+    .sakura-info-body {
+      overflow: hidden;
+      min-height: 0;
+    }
+    .sakura-info-body-inner {
+      padding: 0 1rem 0.9rem;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      line-height: 1.7;
+      white-space: pre-line;
+    }
+
     /* 全画面ライトボックス */
     .lightbox {
       position: fixed;
@@ -1597,6 +1648,35 @@
       <a class="notice-item-link" href="https://sites.google.com/view/tenguscope/%E3%83%9B%E3%83%BC%E3%83%A0?authuser=0" target="_blank" rel="noopener">https://sites.google.com/view/tenguscope/</a>
     </div>
 
+    <hr class="howto-divider" />
+    <p class="howto-step-title" style="margin-bottom:0.6rem;" data-i18n="notice_sakura_info_section_title">🌸 桜に関する情報コーナー</p>
+
+    <!-- ①：タイトルのみ用意。タップすると本文が開く。本文はここに直接入力してください -->
+    <div class="sakura-info-item">
+      <button type="button" class="sakura-info-header">
+        <span data-i18n="notice_sakura_info1_title">① タイトル未定</span>
+        <span class="sakura-info-chevron">▼</span>
+      </button>
+      <div class="sakura-info-body-wrap">
+        <div class="sakura-info-body">
+          <div class="sakura-info-body-inner" data-i18n="notice_sakura_info1_body">（本文はここに入力してください）</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ②：同上 -->
+    <div class="sakura-info-item">
+      <button type="button" class="sakura-info-header">
+        <span data-i18n="notice_sakura_info2_title">② タイトル未定</span>
+        <span class="sakura-info-chevron">▼</span>
+      </button>
+      <div class="sakura-info-body-wrap">
+        <div class="sakura-info-body">
+          <div class="sakura-info-body-inner" data-i18n="notice_sakura_info2_body">（本文はここに入力してください）</div>
+        </div>
+      </div>
+    </div>
+
     <button class="howto-start-btn" id="noticeCloseBtn" data-i18n="settings_close">閉じる</button>
   </div>
 </div>
@@ -1715,6 +1795,11 @@ const I18N = {
     notice_trial_body: '9月から11月末まで、本アプリの試験運用を行います。',
     notice_about_title: '詳しい使い方・私たちの研究について',
     notice_about_body: '詳しい使い方や私たちの研究についてはこちら',
+    notice_sakura_info_section_title: '🌸 桜に関する情報コーナー',
+    notice_sakura_info1_title: '① てんぐ巣病とは',
+    notice_sakura_info1_body: 'てんぐ巣病は植物の病気の一種で、茎や枝が異常に密生し、鳥の巣のような状態になるのが特徴です。\n原因となる微生物はさまざまですが、桜のてんぐ巣病はTaphrina wiesneri（タフリナ・ウィースネリ）という菌類の一種が原因とされています。\n桜だけでなく、タケやトマト、ニンジンなど、私たちの身近な植物にも発生します。\n症状が進行すると木全体に感染が広がり、最悪の場合枯れてしまうこともあります。\nそして現在も、有効な治療法や予防法は確立されていません。\n<b>だからこそ、早期に発見し、適切に対応することが大切です。<b>',
+    notice_sakura_info2_title: '② 日立市の桜の歴史',
+    notice_sakura_info2_body: '日立市の桜には、煙害を克服し、荒れた自然をよみがえらせた歴史があります。\n明治時代、日立鉱山の発展に伴い、煙によって山林や農作物が大きな被害を受けました。\nそこで、煙に強いオオシマザクラを中心とした植林が始まり、1915年から1932年にかけて、約500万本もの苗木が植えられました。\nさらに、オオシマザクラの苗木にソメイヨシノを接ぎ木し、1917年頃には社宅や学校、道路沿いなどに約2,000本が植えられました。\nこれが、現在の「さくらのまち日立」の原点です。\n今では平和通りやかみね公園など、市内各地で美しい桜を見ることができます。\n<b>日立の桜は、自然を守り、まちを再生してきた人々の努力の象徴なのです。<b>',
     settings_contact: 'お問い合わせ',
     settings_close: '閉じる',
     result_no_image: '画像を選んでください',
@@ -1800,6 +1885,22 @@ const I18N = {
     notice_trial_body: 'This app is running as a trial from September through the end of November.',
     notice_about_title: 'More about how to use this app & our research',
     notice_about_body: 'For more details and our research, see here',
+    notice_sakura_info_section_title: '🌸 Sakura Info Corner',
+    notice_sakura_info1_title: `① What is Witches' Broom Disease?`,
+    notice_sakura_info1_body: `Witches' broom is a type of plant disease characterized by the abnormal, dense clustering of stems and branches, creating an appearance resembling a bird's nest.
+While various microorganisms can cause this condition, witches' broom in cherry trees is attributed to a fungus known as *Taphrina wiesneri*.
+It affects not only cherry trees but also common plants such as bamboo, tomatoes, and carrots.
+As the disease progresses, the infection spreads throughout the entire tree, potentially leading to the tree's death in severe cases.
+To date, no effective treatment or preventive method has been established.
+<b>Therefore, early detection and appropriate management are crucial.<b>`,
+    notice_sakura_info2_title: '② The History of Cherry Blossoms in Hitachi City',
+    notice_sakura_info2_body: `The cherry blossoms of Hitachi City have a history rooted in overcoming smoke pollution and restoring a devastated natural environment.
+    During the Meiji era, the expansion of the Hitachi Mine caused significant damage to forests and crops due to industrial smoke. 
+    In response, a tree-planting initiative was launched—focusing on the smoke-resistant Oshima cherry—resulting in the planting of approximately five million saplings between 1915 and 1932.
+    Furthermore, Somei-Yoshino cherry trees were grafted onto Oshima cherry saplings; around 1917, some 2,000 of these were planted near company housing, schools, and along roadsides.
+    This marked the origin of Hitachi’s identity as a "City of Cherry Blossoms." 
+    Today, beautiful cherry blossoms can be enjoyed throughout the city, including at Heiwa-dori Avenue and Kamine Park. 
+    <b>Hitachi’s cherry blossoms stand as a symbol of the dedicated efforts of the people who worked to protect nature and revitalize the city.<b>`,
     settings_contact: 'Contact us',
     settings_close: 'Close',
     result_no_image: 'Please select an image',
@@ -1853,7 +1954,7 @@ const I18N = {
     howto_note: '※ AI results are for reference only. Please consult an expert for final decisions.\nCamera and location permissions may be required.',
   },
   zh: {
-    app_title: '天狗孙',
+    app_title: '天狗孙。',
     app_subtitle: '用AI诊断樱花健康状况',
     howto_btn: '使用方法',
     settings_btn: '⚙️ 设置',
@@ -1885,6 +1986,22 @@ const I18N = {
     notice_trial_body: '本应用将于9月至11月底进行试运行。',
     notice_about_title: '详细使用方法及我们的研究',
     notice_about_body: '详细使用方法及我们的研究请见此处',
+    notice_sakura_info_section_title: '🌸 樱花信息角',
+    notice_sakura_info1_title: '① 什么是女巫扫帚病？',
+    notice_sakura_info1_body: `丛枝病是一种植物病害，其特征是茎和枝异常密集生长，形似鸟巢。
+虽然多种微生物都可能引起这种病害，但樱桃树丛枝病被认为是由一种名为威氏外囊菌（Taphrina wiesneri）的真菌引起的。
+这种病害不仅会发生在樱桃树上，也会发生在竹子、番茄和胡萝卜等常见植物上。
+随着病情发展，感染会扩散到整棵树，最严重的情况下会导致树木死亡。
+目前，尚无有效的治疗方法或预防措施。
+<b>因此，早期发现和采取适当措施至关重要。<b>`,
+    notice_sakura_info2_title: '② 日立市樱花历史',
+    notice_sakura_info2_body: `日立市的樱花有着一段克服烟熏损害、重振饱受破坏的自然环境的历史。
+明治时期，随着日立矿山的开发，森林和农作物遭受了严重的烟熏损害。
+因此，植树造林工作随即展开，主要种植耐烟的大岛樱树。1915年至1932年间，共种植了约500万棵树苗。
+此外，染井吉野樱也被嫁接到大岛樱树苗上。大约在1917年，约有2000棵树苗被种植在公司宿舍、学校和道路两旁。
+这便是日立市的由来，如今日立市也被称为“樱花之城”。
+如今，美丽的樱花在日立市的各个角落都能欣赏到，包括平和通和神峰公园。
+<b>日立的樱花象征着人们为保护自然、复兴城市所付出的努力。<b>`,
     settings_contact: '联系我们',
     settings_close: '关闭',
     result_no_image: '请选择图片',
@@ -1970,6 +2087,22 @@ const I18N = {
     notice_trial_body: '9월부터 11월 말까지 본 앱의 시범 운영을 실시합니다.',
     notice_about_title: '자세한 사용법 및 저희 연구에 대하여',
     notice_about_body: '자세한 사용법과 저희 연구에 대해서는 이곳을 참고하세요',
+    notice_sakura_info_section_title: '🌸 벚꽃 정보 코너',
+    notice_sakura_info1_title: '① 텐구소병이란?',
+    notice_sakura_info1_body: `천둥 병은 식물의 질병의 일종으로 줄기와 가지가 비정상적으로 밀생하여 새 둥지와 같은 상태가되는 것이 특징입니다.
+원인이 되는 미생물은 다양합니다만, 벚꽃의 튀는 소병은 Taphrina wiesneri(타프리나·위스네리)라고 하는 균류의 일종이 원인이 되고 있습니다.
+벚꽃뿐만 아니라 대나무와 토마토, 당근 등 우리의 친밀한 식물에서도 발생합니다.
+증상이 진행되면 나무 전체에 감염이 퍼져 최악의 경우 시들어 버리는 경우도 있습니다.
+그리고 현재에도 유효한 치료법이나 예방법은 확립되어 있지 않습니다.
+<b>그러므로 조기에 발견하고 적절하게 대응하는 것이 중요합니다.<b>`,
+    notice_sakura_info2_title: '② 히타치시의 벚꽃의 역사',
+    notice_sakura_info2_body: `히타치시의 벚꽃에는, 연해를 극복해, 거친 자연을 부활시킨 역사가 있습니다.
+메이지 시대, 히타치 광산의 발전에 따라 연기로 산림과 농작물이 큰 피해를 입었습니다.
+거기서 연기에 강한 보리 벚나무를 중심으로 한 식림이 시작되어 1915년부터 1932년에 걸쳐 약 500만 그루의 묘목이 심어졌습니다.
+게다가, 오오시마자쿠라의 묘목에 왕벚나무를 접목해, 1917년경에는 사택이나 학교, 도로변 등에 약 2,000그루가 심어졌습니다.
+이것이 현재의 「사쿠라의 거리 히타치」의 원점입니다.
+지금은 평화 거리 야카미네 공원 등, 시내 각지에서 아름다운 벚꽃을 볼 수 있습니다.
+<b>히타치의 벚꽃은 자연을 지키고 거리를 재생해 온 사람들의 노력의 상징입니다.<b>`,
     settings_contact: '문의하기',
     settings_close: '닫기',
     result_no_image: '이미지를 선택해 주세요',
@@ -2035,7 +2168,7 @@ function applyI18n() {
     const key = el.getAttribute('data-i18n');
     if (key === 'settings_contact') {
       el.innerHTML = t('settings_contact') + '<br><a href="mailto:hitachi1.sakura.tengusu@gmail.com" style="color:var(--sakura-600);text-decoration:none;">hitachi1.sakura.tengusu@gmail.com</a>';
-    } else if (key === 'footer_note' || key === 'howto_note') {
+    } else if (key === 'footer_note' || key === 'howto_note' || key === 'notice_sakura_info1_body' || key === 'notice_sakura_info2_body') {
       el.innerHTML = t(key).replace(/\n/g, '<br>');
     } else {
       el.textContent = t(key);
@@ -2173,6 +2306,14 @@ function applyI18n() {
   openBtn.addEventListener('click', openNotice);
   document.getElementById('noticeClose')?.addEventListener('click', closeNotice);
   document.getElementById('noticeCloseBtn')?.addEventListener('click', closeNotice);
+
+  // 桜に関する情報コーナー：タップでタイトル→本文の開閉（アコーディオン）
+  overlay.querySelectorAll('.sakura-info-header').forEach(header => {
+    header.addEventListener('click', () => {
+      const item = header.closest('.sakura-info-item');
+      if (item) item.classList.toggle('open');
+    });
+  });
 })();
 
 // データ収集が有効かを返すグローバル関数
