@@ -1432,6 +1432,7 @@
 
     <hr class="howto-divider" />
     <p class="howto-note" data-i18n="howto_note">※ AIの判定は参考情報です。最終判断は専門家にご相談ください。<br>カメラ・位置情報の許可が必要な場合があります。</p>
+    <p class="howto-note" style="text-align:center;" data-i18n="howto_more_link">詳しい使い方や私たちの研究についてはこちら<br><a href="https://sites.google.com/view/tenguscope/%E3%83%9B%E3%83%BC%E3%83%A0?authuser=0" target="_blank" rel="noopener" style="color:var(--sakura-600);text-decoration:none;">https://sites.google.com/view/tenguscope/</a></p>
 
     <button class="howto-start-btn" id="howtoStartBtn" data-i18n="howto_start">さっそく使ってみる 🌸</button>
   </div>
@@ -1488,6 +1489,18 @@
       </div>
       <label class="settings-toggle">
         <input type="checkbox" id="settingDataCollect" checked>
+        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+      </label>
+    </div>
+
+    <!-- 撮影ガイド -->
+    <div class="howto-step" style="align-items:center;gap:1rem;margin-top:0.75rem;">
+      <div class="howto-step-body" style="flex:1;">
+        <p class="howto-step-title" data-i18n="settings_guide">📸 撮影ガイドを表示する</p>
+        <p class="howto-step-desc" style="margin-top:0.25rem;" data-i18n="settings_guide_desc">カメラ撮影時に、明るさやピント合わせをサポートするガイド表示を行います。</p>
+      </div>
+      <label class="settings-toggle">
+        <input type="checkbox" id="settingGuide" checked>
         <span class="toggle-track"><span class="toggle-thumb"></span></span>
       </label>
     </div>
@@ -1610,6 +1623,8 @@ const I18N = {
     settings_petals_desc: '画面に花びらが舞うアニメーションを表示します。',
     settings_data: '📊 データ収集に協力する',
     settings_data_desc: '判定結果を匿名で送信し、AI改善に役立てます。',
+    settings_guide: '📸 撮影ガイドを表示する',
+    settings_guide_desc: 'カメラ撮影時に、明るさやピント合わせをサポートするガイド表示を行います。',
     settings_contact: 'お問い合わせ',
     settings_close: '閉じる',
     result_no_image: '画像を選んでください',
@@ -1661,6 +1676,7 @@ const I18N = {
     howto_step5_title: '病気と判定されたら',
     howto_step5_desc: 'AIが注目した部位がヒートマップで表示されます。その施設の管理者へご連絡ください。',
     howto_note: '※ AIの判定は参考情報です。最終判断は専門家にご相談ください。\nカメラ・位置情報の許可が必要な場合があります。',
+    howto_more_link: '詳しい使い方や私たちの研究についてはこちら',
   },
   en: {
     app_title: 'tengusun.',
@@ -1687,6 +1703,8 @@ const I18N = {
     settings_petals_desc: 'Display a falling petal animation.',
     settings_data: '📊 Contribute data',
     settings_data_desc: 'Send results anonymously to improve AI.',
+    settings_guide: '📸 Show shooting guide',
+    settings_guide_desc: 'Shows on-screen guidance for brightness and focus while shooting with the camera.',
     settings_contact: 'Contact us',
     settings_close: 'Close',
     result_no_image: 'Please select an image',
@@ -1738,6 +1756,7 @@ const I18N = {
     howto_step5_title: 'If disease is detected',
     howto_step5_desc: 'The area the AI focused on is shown as a heatmap. Please contact the facility manager.',
     howto_note: '※ AI results are for reference only. Please consult an expert for final decisions.\nCamera and location permissions may be required.',
+    howto_more_link: 'For more details and our research, see here',
   },
   zh: {
     app_title: '天狗孙',
@@ -1764,6 +1783,8 @@ const I18N = {
     settings_petals_desc: '显示花瓣飘落动画。',
     settings_data: '📊 参与数据收集',
     settings_data_desc: '匿名发送结果以改进AI。',
+    settings_guide: '📸 显示拍摄引导',
+    settings_guide_desc: '拍摄时显示帮助您调整亮度和对焦的引导界面。',
     settings_contact: '联系我们',
     settings_close: '关闭',
     result_no_image: '请选择图片',
@@ -1815,6 +1836,7 @@ const I18N = {
     howto_step5_title: '如果判断为病害',
     howto_step5_desc: 'AI关注的部位将以热图显示。请联系该设施管理员。',
     howto_note: '※ AI诊断结果仅供参考，最终判断请咨询专业人士。\n可能需要相机和位置信息权限。',
+    howto_more_link: '详细使用方法及我们的研究请见此处',
   },
   ko: {
     app_title: '텐구슨.',
@@ -1841,6 +1863,8 @@ const I18N = {
     settings_petals_desc: '꽃잎이 날리는 애니메이션을 표시합니다.',
     settings_data: '📊 데이터 수집에 협력',
     settings_data_desc: '결과를 익명으로 전송하여 AI 개선에 도움을 줍니다.',
+    settings_guide: '📸 촬영 가이드 표시',
+    settings_guide_desc: '카메라 촬영 시 밝기와 초점 맞추기를 돕는 가이드를 표시합니다.',
     settings_contact: '문의하기',
     settings_close: '닫기',
     result_no_image: '이미지를 선택해 주세요',
@@ -1892,6 +1916,7 @@ const I18N = {
     howto_step5_title: '병해로 판정되면',
     howto_step5_desc: 'AI가 주목한 부위가 히트맵으로 표시됩니다. 해당 시설 관리자에게 연락하세요.',
     howto_note: '※ AI 진단 결과는 참고용입니다. 최종 판단은 전문가에게 문의하세요.\n카메라·위치정보 권한이 필요할 수 있습니다.',
+    howto_more_link: '자세한 사용법과 저희 연구에 대해서는 이곳을 참고하세요',
   }
 };
 
@@ -1906,6 +1931,8 @@ function applyI18n() {
     const key = el.getAttribute('data-i18n');
     if (key === 'settings_contact') {
       el.innerHTML = t('settings_contact') + '<br><a href="mailto:hitachi1.sakura.tengusu@gmail.com" style="color:var(--sakura-600);text-decoration:none;">hitachi1.sakura.tengusu@gmail.com</a>';
+    } else if (key === 'howto_more_link') {
+      el.innerHTML = t('howto_more_link') + '<br><a href="https://sites.google.com/view/tenguscope/%E3%83%9B%E3%83%BC%E3%83%A0?authuser=0" target="_blank" rel="noopener" style="color:var(--sakura-600);text-decoration:none;">https://sites.google.com/view/tenguscope/</a>';
     } else if (key === 'footer_note' || key === 'howto_note') {
       el.innerHTML = t(key).replace(/\n/g, '<br>');
     } else {
@@ -1988,6 +2015,18 @@ function applyI18n() {
     localStorage.setItem('setting_data_collect', dataToggle.checked);
   });
 
+  // 撮影ガイド設定
+  const guideToggle = document.getElementById('settingGuide');
+  const savedGuide = localStorage.getItem('setting_guide');
+  if (savedGuide === 'false') guideToggle.checked = false;
+  guideToggle.addEventListener('change', () => {
+    localStorage.setItem('setting_guide', guideToggle.checked);
+    // カメラ起動中にOFFにした場合は即座にガイドを消す
+    if (!guideToggle.checked && typeof stopGuide === 'function') stopGuide();
+    // ONにした場合、カメラ起動中なら即座にガイドを再開する
+    if (guideToggle.checked && typeof isCameraOn !== 'undefined' && isCameraOn && typeof startGuide === 'function') startGuide();
+  });
+
   // 初期化時にi18n適用
   applyI18n();
 })();
@@ -1995,6 +2034,11 @@ function applyI18n() {
 // データ収集が有効かを返すグローバル関数
 function isDataCollectEnabled() {
   return localStorage.getItem('setting_data_collect') !== 'false';
+}
+
+// 撮影ガイドが有効かを返すグローバル関数
+function isGuideEnabled() {
+  return localStorage.getItem('setting_guide') !== 'false';
 }
 
 // ====== Google フォーム送信設定（内部定数 — 研究チームのみ編集） ======
@@ -3305,6 +3349,11 @@ const GUIDE_SIZE = 128; // 解析サンプル解像度（96→128でノイズ耐
 // lastGuideBannerは先頭で宣言済み（言語切替時の再描画に使用）
 
 function startGuide() {
+  if (typeof isGuideEnabled === 'function' && !isGuideEnabled()) {
+    // 撮影ガイドがOFFの場合はガイドUIを出さない
+    guideOverlay.style.display = 'none';
+    return;
+  }
   guideOverlay.style.display = 'block';
   guideFrame.className = 'guide-frame';
   guideOk.style.display = 'none';
