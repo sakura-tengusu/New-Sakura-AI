@@ -56,6 +56,16 @@
     body.dark-mode .result-not-sakura { background: #1a1a2a !important; border-color: #4a4a8a !important; color: #aaaaee !important; }
     body.dark-mode .model-status { background: rgba(26, 13, 18, 0.72); }
 
+    /* デフォルト背景色（季節ごと） */
+    body.season-spring { --bg: #FEF6F9; }
+    body.season-summer { --bg: #EEF9EE; }
+    body.season-autumn { --bg: #FFF2E2; }
+    body.season-winter { --bg: #FFFFFF; }
+    body.dark-mode.season-spring { --bg: #1a0d12; }
+    body.dark-mode.season-summer { --bg: #0d1a10; }
+    body.dark-mode.season-autumn { --bg: #241505; }
+    body.dark-mode.season-winter { --bg: #17181a; }
+
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
     body {
@@ -1369,7 +1379,12 @@
     return 'winter';
   }
 
-  const season = getPetalSeason();
+  // 花びらの量設定（none / few / normal / many）
+  const PETAL_COUNTS = { none: 0, few: 4, normal: 7, many: 14 };
+  function getPetalCount() {
+    const setting = localStorage.getItem('setting_petals') || 'normal';
+    return (setting in PETAL_COUNTS) ? PETAL_COUNTS[setting] : PETAL_COUNTS.normal;
+  }
 
   // 季節ごとの見た目定義（形・色）
   const themes = {
@@ -1391,24 +1406,33 @@
       colors: ['rgba(255,255,255,0.75)', 'rgba(255,255,255,0.5)']
     }
   };
-  const theme = themes[season] || themes.spring;
 
-  for(let i=0;i<7;i++){
-    const p=document.createElement('div');
-    p.className='petal';
-    const size=12+Math.random()*14;
-    const left=5+Math.random()*90;
-    const dur=8+Math.random()*14;
-    const delay=-Math.random()*dur;
-    p.style.cssText=`left:${left}%;top:0;width:${size}px;height:${size}px;animation-duration:${dur}s;animation-delay:${delay}s`;
-    const fill = theme.colors[i % theme.colors.length];
-    const shape = theme.shapes[i % theme.shapes.length];
-    const inner = (shape === 'circle')
-      ? `<circle cx="10" cy="10" r="5" style="fill:${fill}" />`
-      : `<path d="${shape}" style="fill:${fill};stroke:none" />`;
-    p.innerHTML=`<svg viewBox="0 0 20 20" width="${size}" height="${size}">${inner}</svg>`;
-    document.body.appendChild(p);
+  // 花びらを生成しなおす（設定変更時にも呼べるよう window に公開）
+  function renderPetals() {
+    document.querySelectorAll('.petal').forEach(p => p.remove());
+    const season = getPetalSeason();
+    const theme = themes[season] || themes.spring;
+    const count = getPetalCount();
+    for(let i=0;i<count;i++){
+      const p=document.createElement('div');
+      p.className='petal';
+      const size=12+Math.random()*14;
+      const left=5+Math.random()*90;
+      const dur=8+Math.random()*14;
+      const delay=-Math.random()*dur;
+      p.style.cssText=`left:${left}%;top:0;width:${size}px;height:${size}px;animation-duration:${dur}s;animation-delay:${delay}s`;
+      const fill = theme.colors[i % theme.colors.length];
+      const shape = theme.shapes[i % theme.shapes.length];
+      const inner = (shape === 'circle')
+        ? `<circle cx="10" cy="10" r="5" style="fill:${fill}" />`
+        : `<path d="${shape}" style="fill:${fill};stroke:none" />`;
+      p.innerHTML=`<svg viewBox="0 0 20 20" width="${size}" height="${size}">${inner}</svg>`;
+      document.body.appendChild(p);
+    }
   }
+
+  window.renderPetals = renderPetals;
+  renderPetals();
 })();
 </script>
 
@@ -1691,13 +1715,15 @@
     <!-- 背景の花びら -->
     <div class="howto-step" style="align-items:center;gap:1rem;margin-top:0.75rem;">
       <div class="howto-step-body" style="flex:1;">
-        <p class="howto-step-title" data-i18n="settings_petals">🌸 背景の花びらを表示する</p>
-        <p class="howto-step-desc" style="margin-top:0.25rem;" data-i18n="settings_petals_desc">画面に花びらが舞うアニメーションを表示します。</p>
+        <p class="howto-step-title" data-i18n="settings_petals">🌸 背景の花びらの量</p>
+        <p class="howto-step-desc" style="margin-top:0.25rem;" data-i18n="settings_petals_desc">画面に舞う花びら（季節の演出）の量を調整します。</p>
       </div>
-      <label class="settings-toggle">
-        <input type="checkbox" id="settingPetals" checked>
-        <span class="toggle-track"><span class="toggle-thumb"></span></span>
-      </label>
+      <select id="settingPetals" style="font-size:0.85rem;padding:0.3rem 0.5rem;border-radius:8px;border:1.5px solid var(--border-mid);background:var(--surface);color:var(--text-primary);cursor:pointer;">
+        <option value="none" data-i18n="petals_none">無し</option>
+        <option value="few" data-i18n="petals_few">少なめ</option>
+        <option value="normal" data-i18n="petals_normal" selected>普通</option>
+        <option value="many" data-i18n="petals_many">多め</option>
+      </select>
     </div>
 
     <!-- データ収集協力 -->
@@ -1933,8 +1959,12 @@ const I18N = {
     settings_lang: '🌐 言語 / Language',
     settings_dark: '🌙 ダークモード',
     settings_dark_desc: '画面を暗いテーマに切り替えます。',
-    settings_petals: '🌸 背景の花びらを表示する',
-    settings_petals_desc: '画面に花びらが舞うアニメーションを表示します。',
+    settings_petals: '🌸 背景の花びらの量',
+    settings_petals_desc: '画面に舞う花びら（季節の演出）の量を調整します。',
+    petals_none: '無し',
+    petals_few: '少なめ',
+    petals_normal: '普通',
+    petals_many: '多め',
     settings_data: '📊 データ収集に協力する',
     settings_data_desc: '判定結果を匿名で送信し、AI改善に役立てます。',
     settings_guide: '📸 撮影ガイドを表示する',
@@ -2047,8 +2077,12 @@ const I18N = {
     settings_lang: '🌐 Language',
     settings_dark: '🌙 Dark Mode',
     settings_dark_desc: 'Switch to a dark theme.',
-    settings_petals: '🌸 Show background petals',
-    settings_petals_desc: 'Display a falling petal animation.',
+    settings_petals: '🌸 Background petal amount',
+    settings_petals_desc: 'Adjust how many falling petals are shown.',
+    petals_none: 'None',
+    petals_few: 'Few',
+    petals_normal: 'Normal',
+    petals_many: 'Many',
     settings_data: '📊 Contribute data',
     settings_data_desc: 'Send results anonymously to improve AI.',
     settings_guide: '📸 Show shooting guide',
@@ -2172,8 +2206,12 @@ To date, no effective treatment or preventive method has been established.
     settings_lang: '🌐 语言 / Language',
     settings_dark: '🌙 深色模式',
     settings_dark_desc: '切换到深色主题。',
-    settings_petals: '🌸 显示背景花瓣',
-    settings_petals_desc: '显示花瓣飘落动画。',
+    settings_petals: '🌸 背景花瓣数量',
+    settings_petals_desc: '调整画面中飘落花瓣的数量。',
+    petals_none: '无',
+    petals_few: '较少',
+    petals_normal: '普通',
+    petals_many: '较多',
     settings_data: '📊 参与数据收集',
     settings_data_desc: '匿名发送结果以改进AI。',
     settings_guide: '📸 显示拍摄引导',
@@ -2297,8 +2335,12 @@ To date, no effective treatment or preventive method has been established.
     settings_lang: '🌐 언어 / Language',
     settings_dark: '🌙 다크 모드',
     settings_dark_desc: '어두운 테마로 전환합니다.',
-    settings_petals: '🌸 배경 꽃잎 표시',
-    settings_petals_desc: '꽃잎이 날리는 애니메이션을 표시합니다.',
+    settings_petals: '🌸 배경 꽃잎 양',
+    settings_petals_desc: '화면에 날리는 꽃잎의 양을 조절합니다.',
+    petals_none: '없음',
+    petals_few: '적게',
+    petals_normal: '보통',
+    petals_many: '많이',
     settings_data: '📊 데이터 수집에 협력',
     settings_data_desc: '결과를 익명으로 전송하여 AI 개선에 도움을 줍니다.',
     settings_guide: '📸 촬영 가이드 표시',
@@ -2473,18 +2515,19 @@ function applyI18n() {
     localStorage.setItem('setting_dark', on);
   });
 
-  // 花びら設定
-  const petalToggle = document.getElementById('settingPetals');
-  const petals = document.querySelectorAll('.petal');
-  const savedPetals = localStorage.getItem('setting_petals');
-  if (savedPetals === 'false') {
-    petalToggle.checked = false;
-    petals.forEach(p => p.style.display = 'none');
+  // 花びら設定（量：無し/少なめ/普通/多め）
+  const petalSelect = document.getElementById('settingPetals');
+  const validPetalValues = ['none', 'few', 'normal', 'many'];
+  let savedPetals = localStorage.getItem('setting_petals');
+  // 旧バージョン（true/false のトグル）やその他不正な値は「普通」に補正する
+  if (!validPetalValues.includes(savedPetals)) {
+    savedPetals = 'normal';
+    localStorage.setItem('setting_petals', savedPetals);
   }
-  petalToggle.addEventListener('change', () => {
-    const on = petalToggle.checked;
-    petals.forEach(p => p.style.display = on ? '' : 'none');
-    localStorage.setItem('setting_petals', on);
+  petalSelect.value = savedPetals;
+  petalSelect.addEventListener('change', () => {
+    localStorage.setItem('setting_petals', petalSelect.value);
+    if (typeof window.renderPetals === 'function') window.renderPetals();
   });
 
   // データ収集設定
@@ -2524,6 +2567,7 @@ function applyI18n() {
   seasonBgSelect.addEventListener('change', () => {
     localStorage.setItem('setting_season_bg', seasonBgSelect.value);
     if (typeof applySeasonBackground === 'function') applySeasonBackground();
+    if (typeof window.renderPetals === 'function') window.renderPetals();
   });
   if (typeof applySeasonBackground === 'function') applySeasonBackground();
 
@@ -2638,12 +2682,17 @@ function applySeasonBackground() {
   const imgEl = document.getElementById('seasonBgImg');
   if (!imgEl) return;
   const setting = localStorage.getItem('setting_season_bg') || 'auto';
+  const season = (setting === 'auto' || setting === 'off') ? getAutoSeason() : setting;
+
+  // デフォルト背景色も季節に合わせて切り替える（画像の有無に関わらず適用）
+  document.body.classList.remove('season-spring', 'season-summer', 'season-autumn', 'season-winter');
+  document.body.classList.add('season-' + season);
+
   if (setting === 'off') {
     imgEl.style.display = 'none';
     imgEl.removeAttribute('src');
     return;
   }
-  const season = (setting === 'auto') ? getAutoSeason() : setting;
   loadSeasonImage(season);
 }
 
