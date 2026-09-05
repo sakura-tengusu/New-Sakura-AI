@@ -54,7 +54,7 @@
     body.dark-mode .result-mid { background: #2a1800 !important; border-color: #8a4400 !important; color: #ffb066 !important; }
     body.dark-mode .result-severe { background: #2a0808 !important; border-color: #8a1a1a !important; color: #ff8888 !important; }
     body.dark-mode .result-not-sakura { background: #1a1a2a !important; border-color: #4a4a8a !important; color: #aaaaee !important; }
-    body.dark-mode .model-status { background: #2a1020; }
+    body.dark-mode .model-status { background: rgba(26, 13, 18, 0.72); }
 
     * { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -79,6 +79,21 @@
       pointer-events: none;
       z-index: 0;
     }
+
+    /* 季節の背景画像 */
+    .season-bg-img {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      opacity: 0.5;
+      transition: opacity 0.5s ease;
+      pointer-events: none;
+      display: none;
+    }
+    body.dark-mode .season-bg-img { opacity: 0.3; }
 
     /* 浮かぶ花びらアニメ */
     .petal {
@@ -109,6 +124,14 @@
     .app-header {
       padding: 1.2rem 1.5rem 1.5rem;
       text-align: center;
+      background: rgba(255, 250, 252, 0.72);
+      border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+      margin: 0 0.5rem;
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+    }
+    body.dark-mode .app-header {
+      background: rgba(26, 13, 18, 0.72);
     }
     .header-top-row {
       display: flex;
@@ -223,16 +246,39 @@
       position: fixed;
       inset: 0;
       z-index: 9000;
-      background: var(--bg);
+      background: transparent;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: flex-start;
       overflow: hidden;
     }
-    /* 全画面中は背景スクロール禁止 */
+    /* 全画面中は背景スクロール禁止（iOSのゴム弾性スクロールで背景がチラつくのを防ぐ） */
     body.camera-open {
       overflow: hidden;
+      position: fixed;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+    }
+    /* カメラ表示中はホーム画面のUIを隠し、カメラと背景だけにする */
+    body.camera-open .app-header,
+    body.camera-open .model-status,
+    body.camera-open .footer-note,
+    body.camera-open .result-card,
+    body.camera-open .btn-submit,
+    body.camera-open .petal,
+    body.camera-open .card > .card-section {
+      display: none;
+    }
+    /* カメラ表示中は装飾用のピンクのグラデーション演出も消す */
+    body.camera-open::before {
+      display: none;
+    }
+    body.camera-open .card {
+      background: transparent;
+      border: none;
+      margin: 0;
     }
     /* カメラ本体：幅100%・高さ16:9・上下余白なし */
     .ios-camera-inner {
@@ -976,7 +1022,12 @@
       text-align: center;
       font-size: 0.72rem;
       color: var(--text-muted);
-      padding: 0.5rem 1rem;
+      padding: 0.5rem 1rem 0.9rem;
+      margin: 0 0.5rem;
+      background: rgba(255, 250, 252, 0.72);
+      border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
     }
     .status-dot {
       display: inline-block;
@@ -1000,8 +1051,16 @@
       text-align: center;
       font-size: 0.68rem;
       color: var(--text-muted);
-      padding: 1.5rem 1.5rem 0;
+      padding: 0.9rem 1.25rem;
       line-height: 1.8;
+      margin: 1.5rem 1rem 0;
+      background: rgba(255, 250, 252, 0.72);
+      border-radius: var(--radius-md);
+      backdrop-filter: blur(2px);
+      -webkit-backdrop-filter: blur(2px);
+    }
+    body.dark-mode .footer-note {
+      background: rgba(26, 13, 18, 0.72);
     }
 
     /* 使い方モーダル */
@@ -1293,11 +1352,47 @@
 </head>
 <body>
 
+<!-- 季節の背景画像（ユーザーが images/ フォルダに spring / summer / autumn / winter を配置すると表示） -->
+<img id="seasonBgImg" class="season-bg-img" alt="" aria-hidden="true">
+
 <!-- 浮かぶ花びら -->
 <script>
 (function(){
-  const shapes = ['M10,2 C10,2 14,6 12,10 C10,14 6,14 4,10 C2,6 6,2 10,2Z',
-    'M10,1 C13,1 16,4 16,7 C16,11 10,15 10,15 C10,15 4,11 4,7 C4,4 7,1 10,1Z'];
+  // 現在の季節設定（「auto」または「off」の場合は月から判定、明示的な季節指定があればそれを優先）
+  function getPetalSeason() {
+    const setting = localStorage.getItem('setting_season_bg') || 'auto';
+    if (setting !== 'auto' && setting !== 'off') return setting;
+    const m = new Date().getMonth() + 1;
+    if (m >= 3 && m <= 5) return 'spring';
+    if (m >= 6 && m <= 8) return 'summer';
+    if (m >= 9 && m <= 11) return 'autumn';
+    return 'winter';
+  }
+
+  const season = getPetalSeason();
+
+  // 季節ごとの見た目定義（形・色）
+  const themes = {
+    spring: {
+      shapes: ['M10,2 C10,2 14,6 12,10 C10,14 6,14 4,10 C2,6 6,2 10,2Z',
+               'M10,1 C13,1 16,4 16,7 C16,11 10,15 10,15 C10,15 4,11 4,7 C4,4 7,1 10,1Z'],
+      colors: ['rgba(244,114,168,0.3)']
+    },
+    summer: {
+      shapes: ['M10,1 C4,4 2,11 10,19 C12,13 12,7 10,1 Z M10,3 L10,17'],
+      colors: ['rgba(91,162,91,0.4)', 'rgba(62,125,62,0.35)']
+    },
+    autumn: {
+      shapes: ['M10,1 C4,4 2,11 10,19 C12,13 12,7 10,1 Z M10,3 L10,17'],
+      colors: ['rgba(217,119,6,0.45)', 'rgba(220,38,38,0.35)', 'rgba(234,179,8,0.45)']
+    },
+    winter: {
+      shapes: ['circle'],
+      colors: ['rgba(255,255,255,0.75)', 'rgba(255,255,255,0.5)']
+    }
+  };
+  const theme = themes[season] || themes.spring;
+
   for(let i=0;i<7;i++){
     const p=document.createElement('div');
     p.className='petal';
@@ -1306,7 +1401,12 @@
     const dur=8+Math.random()*14;
     const delay=-Math.random()*dur;
     p.style.cssText=`left:${left}%;top:0;width:${size}px;height:${size}px;animation-duration:${dur}s;animation-delay:${delay}s`;
-    p.innerHTML=`<svg viewBox="0 0 20 20" width="${size}" height="${size}"><path d="${shapes[i%2]}"/></svg>`;
+    const fill = theme.colors[i % theme.colors.length];
+    const shape = theme.shapes[i % theme.shapes.length];
+    const inner = (shape === 'circle')
+      ? `<circle cx="10" cy="10" r="5" style="fill:${fill}" />`
+      : `<path d="${shape}" style="fill:${fill};stroke:none" />`;
+    p.innerHTML=`<svg viewBox="0 0 20 20" width="${size}" height="${size}">${inner}</svg>`;
     document.body.appendChild(p);
   }
 })();
@@ -1522,7 +1622,7 @@
       <div class="howto-num">2</div>
       <div class="howto-step-body">
         <p class="howto-step-title" data-i18n="howto_step2_title">撮影のコツ</p>
-        <p class="howto-step-desc" data-i18n="howto_step2_desc">カメラ画面の枠（ガイド）が緑色になったら撮影のサインです。桜の枝・葉が枠内に収まるよう近づいてください。</p>
+        <p class="howto-step-desc" data-i18n="howto_step2_desc">カメラ画面の枠（ガイド）が緑色になったら撮影のサインです。桜の枝・葉が枠内に収まるよう近づいてください。「かざすだけで自動判定」がONなら、そのまま少し構えを安定させるだけで自動的に撮影・診断されます。</p>
       </div>
     </div>
 
@@ -1622,6 +1722,34 @@
         <input type="checkbox" id="settingGuide" checked>
         <span class="toggle-track"><span class="toggle-thumb"></span></span>
       </label>
+    </div>
+
+    <!-- かざすだけで自動判定 -->
+    <div class="howto-step" style="align-items:center;gap:1rem;margin-top:0.75rem;">
+      <div class="howto-step-body" style="flex:1;">
+        <p class="howto-step-title" data-i18n="settings_auto">🎯 かざすだけで自動判定</p>
+        <p class="howto-step-desc" style="margin-top:0.25rem;" data-i18n="settings_auto_desc">ガイド枠が緑になり構えが安定すると、自動で撮影してAI診断まで行います。オフの場合は手動でシャッターを押して診断してください。（この機能は「撮影ガイド」がONの場合のみ動作します）</p>
+      </div>
+      <label class="settings-toggle">
+        <input type="checkbox" id="settingAutoJudge">
+        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+      </label>
+    </div>
+
+    <!-- 背景の季節 -->
+    <div class="howto-step" style="align-items:center;gap:1rem;margin-top:0.75rem;">
+      <div class="howto-step-body" style="flex:1;">
+        <p class="howto-step-title" data-i18n="settings_season_bg">🖼️ 背景の季節</p>
+        <p class="howto-step-desc" style="margin-top:0.25rem;" data-i18n="settings_season_bg_desc">季節に合わせて背景画像を切り替えます。「自動」を選ぶと現在の月から季節を判定します。</p>
+      </div>
+      <select id="settingSeasonBg" style="font-size:0.85rem;padding:0.3rem 0.5rem;border-radius:8px;border:1.5px solid var(--border-mid);background:var(--surface);color:var(--text-primary);cursor:pointer;">
+        <option value="auto" data-i18n="season_auto">自動</option>
+        <option value="spring" data-i18n="season_spring">🌸 春</option>
+        <option value="summer" data-i18n="season_summer">🌿 夏</option>
+        <option value="autumn" data-i18n="season_autumn">🍁 秋</option>
+        <option value="winter" data-i18n="season_winter">❄️ 冬</option>
+        <option value="off" data-i18n="season_off">オフ（画像なし）</option>
+      </select>
     </div>
 
     <hr class="howto-divider" />
@@ -1811,6 +1939,16 @@ const I18N = {
     settings_data_desc: '判定結果を匿名で送信し、AI改善に役立てます。',
     settings_guide: '📸 撮影ガイドを表示する',
     settings_guide_desc: 'カメラ撮影時に、明るさやピント合わせをサポートするガイド表示を行います。',
+    settings_auto: '🎯 かざすだけで自動判定',
+    settings_auto_desc: 'ガイド枠が緑になり構えが安定すると、自動で撮影してAI診断まで行います。オフの場合は手動でシャッターを押して診断してください。（この機能は「撮影ガイド」がONの場合のみ動作します）',
+    settings_season_bg: '🖼️ 背景の季節',
+    settings_season_bg_desc: '季節に合わせて背景画像を切り替えます。「自動」を選ぶと現在の月から季節を判定します。',
+    season_auto: '自動',
+    season_spring: '🌸 春',
+    season_summer: '🌿 夏',
+    season_autumn: '🍁 秋',
+    season_winter: '❄️ 冬',
+    season_off: 'オフ（画像なし）',
     notice_btn: '📢 お知らせ',
     notice_title: '📢 お知らせ',
     notice_trial_title: '試験運用のお知らせ',
@@ -1855,6 +1993,9 @@ const I18N = {
     location_open_link: 'Googleマップで開く',
     guide_msg_init: 'カメラを向けてください',
     guide_msg_ready: 'シャッターを切ってください',
+    guide_msg_ready_auto: 'そのまま動かさないでください…',
+    guide_msg_autocapturing: '📸 自動で撮影しています…',
+    guide_msg_autoanalyzing: '🌸 AIが判定しています…',
     guide_dark: '暗すぎます。明るい場所に移動してください',
     guide_bright: '明るすぎます。影の中に入るか角度を変えてください',
     guide_nosubject: '被写体をフレームに入れてください',
@@ -1876,7 +2017,7 @@ const I18N = {
     howto_step1_title: '写真を用意する',
     howto_step1_desc: '「📷 カメラを起動する」でその場で撮影するか、ギャラリーから画像を選択してください。',
     howto_step2_title: '撮影のコツ',
-    howto_step2_desc: 'カメラ画面の枠（ガイド）が緑色になったら撮影のサインです。桜の枝・葉が枠内に収まるよう近づいてください。',
+    howto_step2_desc: 'カメラ画面の枠（ガイド）が緑色になったら撮影のサインです。桜の枝・葉が枠内に収まるよう近づいてください。「かざすだけで自動判定」がONなら、そのまま少し構えを安定させるだけで自動的に撮影・診断されます。',
     howto_step3_title: '逆光・暗所バスター（☀️）',
     howto_step3_desc: '暗い場所や逆光で撮る場合、カメラ右上の☀️をタップするとAIが自動で明るさを補正します。',
     howto_step4_title: 'AI診断する',
@@ -1912,6 +2053,16 @@ const I18N = {
     settings_data_desc: 'Send results anonymously to improve AI.',
     settings_guide: '📸 Show shooting guide',
     settings_guide_desc: 'Shows on-screen guidance for brightness and focus while shooting with the camera.',
+    settings_auto: '🎯 Auto-judge just by holding up the camera',
+    settings_auto_desc: 'When the guide frame turns green and holds steady, the app automatically captures and runs the AI diagnosis. Turn off to press the shutter manually instead. (Requires "Show shooting guide" to be on.)',
+    settings_season_bg: '🖼️ Seasonal background',
+    settings_season_bg_desc: 'Switches the background image to match the season. Choose "Auto" to detect the season from the current month.',
+    season_auto: 'Auto',
+    season_spring: '🌸 Spring',
+    season_summer: '🌿 Summer',
+    season_autumn: '🍁 Autumn',
+    season_winter: '❄️ Winter',
+    season_off: 'Off (no image)',
     notice_btn: '📢 Notices',
     notice_title: '📢 Notices',
     notice_trial_title: 'Trial run notice',
@@ -1967,6 +2118,9 @@ To date, no effective treatment or preventive method has been established.
     location_open_link: 'Open in Google Maps',
     guide_msg_init: 'Point camera at the tree',
     guide_msg_ready: 'Press the shutter',
+    guide_msg_ready_auto: 'Hold still…',
+    guide_msg_autocapturing: '📸 Capturing automatically…',
+    guide_msg_autoanalyzing: '🌸 AI is diagnosing…',
     guide_dark: 'Too dark. Please move to a brighter spot',
     guide_bright: 'Too bright. Try shade or a different angle',
     guide_nosubject: 'Please frame the subject',
@@ -1988,7 +2142,7 @@ To date, no effective treatment or preventive method has been established.
     howto_step1_title: 'Prepare a photo',
     howto_step1_desc: 'Use "📷 Open Camera" to take a photo on the spot, or select an image from your gallery.',
     howto_step2_title: 'Tips for shooting',
-    howto_step2_desc: 'When the guide frame turns green, it\'s the shooting signal. Get close so the cherry branch and leaves fit within the frame.',
+    howto_step2_desc: 'When the guide frame turns green, it\'s the shooting signal. Get close so the cherry branch and leaves fit within the frame. If "Auto-judge just by holding up the camera" is on, simply hold it steady for a moment and it will capture and diagnose automatically.',
     howto_step3_title: 'Backlight Buster (☀️)',
     howto_step3_desc: 'In dark or backlit conditions, tap ☀️ at the top right of the camera. AI will auto-correct brightness.',
     howto_step4_title: 'Run AI diagnosis',
@@ -2024,6 +2178,16 @@ To date, no effective treatment or preventive method has been established.
     settings_data_desc: '匿名发送结果以改进AI。',
     settings_guide: '📸 显示拍摄引导',
     settings_guide_desc: '拍摄时显示帮助您调整亮度和对焦的引导界面。',
+    settings_auto: '🎯 只需举起相机即可自动判定',
+    settings_auto_desc: '当引导框变绿并保持稳定时，将自动拍摄并进行AI诊断。关闭后需手动按下快门进行诊断。（此功能需要开启“显示拍摄引导”）',
+    settings_season_bg: '🖼️ 季节背景',
+    settings_season_bg_desc: '根据季节切换背景图片。选择“自动”将根据当前月份判断季节。',
+    season_auto: '自动',
+    season_spring: '🌸 春',
+    season_summer: '🌿 夏',
+    season_autumn: '🍁 秋',
+    season_winter: '❄️ 冬',
+    season_off: '关闭（无图片）',
     notice_btn: '📢 通知',
     notice_title: '📢 通知',
     notice_trial_title: '试运行通知',
@@ -2079,6 +2243,9 @@ To date, no effective treatment or preventive method has been established.
     location_open_link: '在Google地图中打开',
     guide_msg_init: '请将相机对准树木',
     guide_msg_ready: '请按下快门',
+    guide_msg_ready_auto: '请保持不动…',
+    guide_msg_autocapturing: '📸 正在自动拍摄…',
+    guide_msg_autoanalyzing: '🌸 AI正在诊断中…',
     guide_dark: '太暗了。请移动到明亮的地方',
     guide_bright: '太亮了。请进入阴影或改变角度',
     guide_nosubject: '请将拍摄对象放入取景框',
@@ -2100,7 +2267,7 @@ To date, no effective treatment or preventive method has been established.
     howto_step1_title: '准备照片',
     howto_step1_desc: '使用「📷 打开相机」现场拍摄，或从相册选择图片。',
     howto_step2_title: '拍摄技巧',
-    howto_step2_desc: '当相机画面的引导框变绿时，就是拍摄信号。请靠近，使樱花枝叶完整收入框内。',
+    howto_step2_desc: '当相机画面的引导框变绿时，就是拍摄信号。请靠近，使樱花枝叶完整收入框内。若开启“只需举起相机即可自动判定”，只需保持稳定片刻即可自动拍摄并诊断。',
     howto_step3_title: '逆光补偿（☀️）',
     howto_step3_desc: '在暗处或逆光拍摄时，点击相机右上角的☀️，AI将自动调整亮度。',
     howto_step4_title: 'AI诊断',
@@ -2136,6 +2303,16 @@ To date, no effective treatment or preventive method has been established.
     settings_data_desc: '결과를 익명으로 전송하여 AI 개선에 도움을 줍니다.',
     settings_guide: '📸 촬영 가이드 표시',
     settings_guide_desc: '카메라 촬영 시 밝기와 초점 맞추기를 돕는 가이드를 표시합니다.',
+    settings_auto: '🎯 카메라를 비추기만 하면 자동 판정',
+    settings_auto_desc: '가이드 프레임이 초록색이 되어 자세가 안정되면 자동으로 촬영하여 AI 진단까지 진행합니다. 끄면 수동으로 셔터를 눌러 진단합니다. (이 기능은 "촬영 가이드 표시"가 켜져 있을 때만 작동합니다)',
+    settings_season_bg: '🖼️ 계절 배경',
+    settings_season_bg_desc: '계절에 맞춰 배경 이미지를 전환합니다. "자동"을 선택하면 현재 월로 계절을 판단합니다.',
+    season_auto: '자동',
+    season_spring: '🌸 봄',
+    season_summer: '🌿 여름',
+    season_autumn: '🍁 가을',
+    season_winter: '❄️ 겨울',
+    season_off: '끄기 (이미지 없음)',
     notice_btn: '📢 공지사항',
     notice_title: '📢 공지사항',
     notice_trial_title: '시범 운영 안내',
@@ -2191,6 +2368,9 @@ To date, no effective treatment or preventive method has been established.
     location_open_link: 'Google 지도에서 열기',
     guide_msg_init: '카메라를 나무에 향해 주세요',
     guide_msg_ready: '셔터를 눌러 주세요',
+    guide_msg_ready_auto: '그대로 움직이지 마세요…',
+    guide_msg_autocapturing: '📸 자동으로 촬영하고 있습니다…',
+    guide_msg_autoanalyzing: '🌸 AI가 진단하고 있습니다…',
     guide_dark: '너무 어둡습니다. 밝은 곳으로 이동해 주세요',
     guide_bright: '너무 밝습니다. 그늘로 이동하거나 각도를 바꿔 주세요',
     guide_nosubject: '피사체를 프레임 안에 넣어 주세요',
@@ -2212,7 +2392,7 @@ To date, no effective treatment or preventive method has been established.
     howto_step1_title: '사진 준비하기',
     howto_step1_desc: '「📷 카메라 열기」로 현장에서 촬영하거나 갤러리에서 이미지를 선택하세요.',
     howto_step2_title: '촬영 요령',
-    howto_step2_desc: '카메라 화면의 가이드 프레임이 초록색이 되면 촬영 신호입니다. 벚나무 가지·잎이 프레임 안에 들어오도록 가까이 다가가세요.',
+    howto_step2_desc: '카메라 화면의 가이드 프레임이 초록색이 되면 촬영 신호입니다. 벚나무 가지·잎이 프레임 안에 들어오도록 가까이 다가가세요. "카메라를 비추기만 하면 자동 판정"이 켜져 있으면 잠시 그대로 유지하기만 해도 자동으로 촬영·진단됩니다.',
     howto_step3_title: '역광·어두운 곳 보정（☀️）',
     howto_step3_desc: '어두운 곳이나 역광에서 촬영할 때 카메라 우측 상단의 ☀️를 탭하면 AI가 밝기를 자동 보정합니다.',
     howto_step4_title: 'AI 진단하기',
@@ -2327,6 +2507,26 @@ function applyI18n() {
     if (guideToggle.checked && typeof isCameraOn !== 'undefined' && isCameraOn && typeof startGuide === 'function') startGuide();
   });
 
+  // かざすだけで自動判定 設定（デフォルトOFF）
+  const autoJudgeToggle = document.getElementById('settingAutoJudge');
+  const savedAutoJudge = localStorage.getItem('setting_auto_judge');
+  autoJudgeToggle.checked = (savedAutoJudge === 'true');
+  autoJudgeToggle.addEventListener('change', () => {
+    localStorage.setItem('setting_auto_judge', autoJudgeToggle.checked);
+    // 表示中のガイドメッセージ（手動/自動の文言）を即座に切り替える
+    if (typeof refreshGuideBannerLang === 'function') refreshGuideBannerLang();
+  });
+
+  // 背景の季節 設定（デフォルト: 自動）
+  const seasonBgSelect = document.getElementById('settingSeasonBg');
+  const savedSeasonBg = localStorage.getItem('setting_season_bg') || 'auto';
+  seasonBgSelect.value = savedSeasonBg;
+  seasonBgSelect.addEventListener('change', () => {
+    localStorage.setItem('setting_season_bg', seasonBgSelect.value);
+    if (typeof applySeasonBackground === 'function') applySeasonBackground();
+  });
+  if (typeof applySeasonBackground === 'function') applySeasonBackground();
+
   // 初期化時にi18n適用
   applyI18n();
 })();
@@ -2390,6 +2590,61 @@ function isDataCollectEnabled() {
 // 撮影ガイドが有効かを返すグローバル関数
 function isGuideEnabled() {
   return localStorage.getItem('setting_guide') !== 'false';
+}
+
+// 「かざすだけで自動判定」が有効かを返すグローバル関数（デフォルトはOFF）
+function isAutoJudgeEnabled() {
+  return localStorage.getItem('setting_auto_judge') === 'true';
+}
+
+// ====== 背景の季節画像 ======
+// 画像は images/spring.(jpg|jpeg|png|webp) のように配置してください
+// （summer / autumn / winter も同様）
+
+// 現在の月から季節を自動判定（3-5月:春 / 6-8月:夏 / 9-11月:秋 / 12-2月:冬）
+function getAutoSeason() {
+  const m = new Date().getMonth() + 1;
+  if (m >= 3 && m <= 5) return 'spring';
+  if (m >= 6 && m <= 8) return 'summer';
+  if (m >= 9 && m <= 11) return 'autumn';
+  return 'winter';
+}
+
+// 拡張子を順に試し、見つかった画像だけを表示する（未配置でも壊れた画像アイコンを出さない）
+// ※ 拡張子リストは関数内に持たせ、モジュール直下のconst初期化順に依存しないようにする
+function loadSeasonImage(seasonKey, extIndex) {
+  const exts = ['jpg', 'jpeg', 'png', 'webp'];
+  extIndex = extIndex || 0;
+  const imgEl = document.getElementById('seasonBgImg');
+  if (!imgEl) return;
+  if (extIndex >= exts.length) {
+    // どの拡張子でも見つからなかった場合は非表示（従来の背景デザインのまま）
+    imgEl.style.display = 'none';
+    imgEl.removeAttribute('src');
+    return;
+  }
+  const ext = exts[extIndex];
+  const tester = new Image();
+  tester.onload = () => {
+    imgEl.src = tester.src;
+    imgEl.style.display = 'block';
+  };
+  tester.onerror = () => loadSeasonImage(seasonKey, extIndex + 1);
+  tester.src = `images/${seasonKey}.${ext}`;
+}
+
+// 設定に応じて背景画像を適用するグローバル関数
+function applySeasonBackground() {
+  const imgEl = document.getElementById('seasonBgImg');
+  if (!imgEl) return;
+  const setting = localStorage.getItem('setting_season_bg') || 'auto';
+  if (setting === 'off') {
+    imgEl.style.display = 'none';
+    imgEl.removeAttribute('src');
+    return;
+  }
+  const season = (setting === 'auto') ? getAutoSeason() : setting;
+  loadSeasonImage(season);
 }
 
 // ====== Google フォーム送信設定（内部定数 — 研究チームのみ編集） ======
@@ -2727,6 +2982,7 @@ if (_busterOffBtn) _busterOffBtn.addEventListener('click', () => {
 let inputImage = null;
 let stream = null;
 let isCameraOn = false;
+let autoJudgeBusy = false; // 「かざすだけで自動判定」処理中フラグ（多重実行防止）
 let currentFacingMode = "environment";
 let hardwareZoomRange = {min:1,max:3,step:0.1};
 let zoomFactor = 1;
@@ -2835,6 +3091,7 @@ async function startCamera() {
   video.srcObject = stream;
   video.style.display = 'block';
   iosCameraWrap.style.display = 'flex';
+  window.scrollTo(0, 0);
   document.body.classList.add('camera-open');   // スクロール禁止・全画面
   toggleCameraBtn.style.display = 'none';
   captureBtn.disabled = false;
@@ -2951,7 +3208,7 @@ function decimalToDMSRational(dec) {
   return [[deg,1],[minutes,1],[sec,100]];
 }
 
-captureBtn.addEventListener('click', async () => {
+async function capturePhoto() {
   if (!stream) return;
   // ガイドを一時停止
   if (guideTimer) { clearInterval(guideTimer); guideTimer = null; }
@@ -3055,9 +3312,10 @@ captureBtn.addEventListener('click', async () => {
   resultCard.style.display = 'none';
   if (typeof renderLocationMap === 'function') renderLocationMap(null);
   setMainView();
-  // 撮影後ガイド再開
-  setTimeout(() => { if (isCameraOn) startGuide(); }, 800);
-});
+  // 撮影後ガイド再開（自動判定フロー実行中は再開しない）
+  setTimeout(() => { if (isCameraOn && !autoJudgeBusy) startGuide(); }, 800);
+}
+captureBtn.addEventListener('click', capturePhoto);
 
 // サムネイルトグル
 preview.addEventListener('click', ev => {
@@ -3621,7 +3879,7 @@ function renderResultFromState() {
   renderLocationMap(isRealDiagnosis ? st.coords : null);
 }
 
-submitBtn.addEventListener('click', async () => {
+async function runDiagnosis() {
   if (!inputImage) { lastResultState = {kind:'no_image'}; renderResultFromState(); return; }
 
   lastResultState = {kind:'analyzing'}; renderResultFromState();
@@ -3681,8 +3939,9 @@ submitBtn.addEventListener('click', async () => {
   };
 
   if (inputImage.complete && inputImage.naturalWidth) { await run(); }
-  else { inputImage.onload = run; }
-});
+  else { await new Promise(resolve => { inputImage.onload = () => { run().then(resolve); }; }); }
+}
+submitBtn.addEventListener('click', runDiagnosis);
 
 // ====== 撮影ガイド（リアルタイム解析） ======
 const guideOverlay  = document.getElementById('guideOverlay');
@@ -3740,7 +3999,8 @@ function setGuideReady() {
   guideFrame.className = 'guide-frame ok';
   guideOk.style.display = 'block';
   guideIcon.textContent = '✅';
-  guideMsg.textContent = t('guide_msg_ready');
+  const useAuto = typeof isAutoJudgeEnabled === 'function' && isAutoJudgeEnabled();
+  guideMsg.textContent = useAuto ? t('guide_msg_ready_auto') : t('guide_msg_ready');
   lastGuideBanner = {ready: true};
 }
 
@@ -3915,7 +4175,9 @@ async function runGuideAnalysis() {
   } else if (sharpness < SHARP_OK) {
     state = 'softfocus'; icon = '📐'; msg = t('guide_softfocus');
   } else {
-    state = 'ok'; icon = '✅'; msg = t('guide_msg_ready'); isOk = true;
+    state = 'ok'; icon = '✅';
+    msg = isAutoJudgeEnabled() ? t('guide_msg_ready_auto') : t('guide_msg_ready');
+    isOk = true;
   }
   lastGuideBanner = {icon, msg, isOk, ready: false};
 
@@ -3935,6 +4197,10 @@ async function runGuideAnalysis() {
       guideOkCount++;
       if (guideOkCount >= 2) {
         setGuideReady();
+        // 「かざすだけで自動判定」がONの場合、構えが一定時間安定したら自動で撮影・診断する
+        if (guideOkCount === AUTO_TRIGGER_COUNT && isAutoJudgeEnabled() && !autoJudgeBusy) {
+          triggerAutoJudge();
+        }
       } else {
         setGuideBanner(icon, msg, true);
       }
@@ -3942,6 +4208,33 @@ async function runGuideAnalysis() {
       guideOkCount = 0;
       setGuideBanner(icon, msg, false);
     }
+  }
+}
+
+// 構えが安定した状態が一定フレーム続いたら自動判定を発火するまでのしきい値
+// （setGuideReady表示のしきい値=2より少し長めに待ち、ブレの少ない安定した1枚を狙う）
+const AUTO_TRIGGER_COUNT = 5;
+
+// 「かざすだけで自動判定」: 自動で撮影→AI診断まで一気に実行する
+async function triggerAutoJudge() {
+  if (autoJudgeBusy || !isCameraOn) return;
+  autoJudgeBusy = true;
+  if (guideTimer) { clearInterval(guideTimer); guideTimer = null; }
+  setGuideBanner('📸', t('guide_msg_autocapturing'), true);
+  try {
+    await capturePhoto();
+    // 撮影画像のデコード完了を待ってから診断へ（onloadハンドラの競合を避けるため）
+    if (inputImage) {
+      try { await inputImage.decode(); } catch (_) {}
+    }
+    setGuideBanner('🌸', t('guide_msg_autoanalyzing'), true);
+    await runDiagnosis();
+  } catch (err) {
+    console.error(err);
+  } finally {
+    // 診断完了後はカメラを閉じて結果を表示する
+    if (isCameraOn) stopCamera();
+    autoJudgeBusy = false;
   }
 }
 
