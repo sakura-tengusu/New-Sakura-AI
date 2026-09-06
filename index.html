@@ -46,14 +46,14 @@
       --sakura-100: #3d1830;
       --sakura-200: #5a2444;
     }
-    body.dark-mode .card { background: #2a1020; }
+    body.dark-mode .card { background: rgba(42, 16, 32, 0.72); }
     body.dark-mode .howto-box { background: #241018; color: var(--text-primary); }
-    body.dark-mode .file-drop { background: #2a1020; }
-    body.dark-mode .result-card { background: #2a1020; }
-    body.dark-mode .result-ok, body.dark-mode .result-healthy { background: #0d2a1a !important; border-color: #2a6a44 !important; color: #6ee7a8 !important; }
-    body.dark-mode .result-mid { background: #2a1800 !important; border-color: #8a4400 !important; color: #ffb066 !important; }
-    body.dark-mode .result-severe { background: #2a0808 !important; border-color: #8a1a1a !important; color: #ff8888 !important; }
-    body.dark-mode .result-not-sakura { background: #1a1a2a !important; border-color: #4a4a8a !important; color: #aaaaee !important; }
+    body.dark-mode .file-drop { background: rgba(42, 16, 32, 0.72); }
+    body.dark-mode .result-card { background: rgba(42, 16, 32, 0.72); }
+    body.dark-mode .result-ok, body.dark-mode .result-healthy { background: rgba(13, 42, 26, 0.72) !important; border-color: #2a6a44 !important; color: #6ee7a8 !important; }
+    body.dark-mode .result-mid { background: rgba(42, 24, 0, 0.72) !important; border-color: #8a4400 !important; color: #ffb066 !important; }
+    body.dark-mode .result-severe { background: rgba(42, 8, 8, 0.72) !important; border-color: #8a1a1a !important; color: #ff8888 !important; }
+    body.dark-mode .result-not-sakura { background: rgba(26, 26, 42, 0.72) !important; border-color: #4a4a8a !important; color: #aaaaee !important; }
     body.dark-mode .model-status { background: rgba(26, 13, 18, 0.72); }
 
     /* デフォルト背景色（季節ごと） */
@@ -199,7 +199,7 @@
 
     /* カード */
     .card {
-      background: var(--surface);
+      background: rgba(255, 250, 252, 0.72);
       border: 1px solid var(--border);
       border-radius: var(--radius-lg);
       margin: 0 1rem 1rem;
@@ -228,9 +228,9 @@
       cursor: pointer;
       transition: all 0.2s;
       position: relative;
-      background: var(--sakura-50);
+      background: rgba(255, 240, 245, 0.72);
     }
-    .file-drop:hover { border-color: var(--sakura-400); background: #FFF0F8; }
+    .file-drop:hover { border-color: var(--sakura-400); background: rgba(255, 240, 248, 0.72); }
     .file-drop input[type="file"] {
       position: absolute;
       inset: 0;
@@ -864,11 +864,11 @@
     }
 
     /* 結果タイプ別スタイル */
-    .result-healthy  { background: #F0FAF0; border: 1.5px solid #86EFAC; color: #166534; }
-    .result-not-sakura { background: #FFF7ED; border: 1.5px solid #FCD34D; color: #92400E; }
-    .result-early    { background: #FFFBEB; border: 1.5px solid #FCD34D; color: #78350F; }
-    .result-mid      { background: #FFF4E6; border: 1.5px solid #FDBA74; color: #9A3412; }
-    .result-severe   { background: #FEF2F2; border: 1.5px solid #FCA5A5; color: #991B1B; }
+    .result-healthy  { background: rgba(240, 250, 240, 0.72); border: 1.5px solid #86EFAC; color: #166534; }
+    .result-not-sakura { background: rgba(255, 247, 237, 0.72); border: 1.5px solid #FCD34D; color: #92400E; }
+    .result-early    { background: rgba(255, 251, 235, 0.72); border: 1.5px solid #FCD34D; color: #78350F; }
+    .result-mid      { background: rgba(255, 244, 230, 0.72); border: 1.5px solid #FDBA74; color: #9A3412; }
+    .result-severe   { background: rgba(254, 242, 242, 0.72); border: 1.5px solid #FCA5A5; color: #991B1B; }
 
     /* 病気時の連絡先ブロック */
     .contact-block {
@@ -970,8 +970,8 @@
       color: #6B7280;
       line-height: 1.6;
     }
-    .result-loading  { background: var(--sakura-50); border: 1.5px solid var(--border-mid); color: var(--sakura-800); }
-    .result-error    { background: #F8F8F8; border: 1.5px solid #E5E7EB; color: #374151; }
+    .result-loading  { background: rgba(255, 240, 245, 0.72); border: 1.5px solid var(--border-mid); color: var(--sakura-800); }
+    .result-error    { background: rgba(248, 248, 248, 0.72); border: 1.5px solid #E5E7EB; color: #374151; }
 
     /* 撮影場所マップ */
     .location-section {
