@@ -1073,6 +1073,87 @@
       background: rgba(26, 13, 18, 0.72);
     }
 
+    /* バッジ */
+    .badge-summary {
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--text-secondary);
+      margin: -0.4rem 0 0.4rem;
+    }
+    .badge-note {
+      text-align: center;
+      font-size: 0.66rem;
+      color: var(--text-muted);
+      margin: 0 0 0.6rem;
+    }
+    .badge-section-title {
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: var(--text-secondary);
+      margin: 1rem 0 0.5rem;
+    }
+    .badge-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(84px, 1fr));
+      gap: 0.6rem;
+    }
+    .badge-item {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      padding: 0.6rem 0.3rem;
+      border-radius: var(--radius-md);
+      border: 1.5px solid var(--border-mid);
+      background: rgba(0,0,0,0.03);
+      transition: transform 0.12s;
+    }
+    .badge-item.earned {
+      background: linear-gradient(160deg, rgba(255,240,245,0.9), rgba(255,224,235,0.9));
+      border-color: var(--sakura-400);
+    }
+    body.dark-mode .badge-item.earned {
+      background: linear-gradient(160deg, rgba(80,30,50,0.7), rgba(60,20,35,0.7));
+    }
+    .badge-item.locked { opacity: 0.55; }
+    .badge-item-icon { font-size: 1.6rem; line-height: 1.2; }
+    .badge-item-label {
+      font-size: 0.64rem;
+      font-weight: 700;
+      margin-top: 0.3rem;
+      line-height: 1.3;
+    }
+    .badge-item-sub {
+      font-size: 0.6rem;
+      color: var(--text-muted);
+      margin-top: 0.15rem;
+    }
+    .badge-item.earned .badge-item-sub { color: var(--sakura-600); }
+
+    /* バッジ獲得トースト */
+    .badge-toast {
+      position: fixed;
+      left: 50%;
+      bottom: -100px;
+      transform: translateX(-50%);
+      z-index: 999999;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      background: var(--surface);
+      border: 1.5px solid var(--sakura-400);
+      border-radius: 99px;
+      padding: 0.55rem 1.1rem 0.55rem 0.7rem;
+      box-shadow: 0 10px 32px rgba(0,0,0,0.25);
+      transition: bottom 0.35s ease, opacity 0.35s ease;
+      opacity: 0;
+      max-width: 90vw;
+    }
+    .badge-toast.show { bottom: 24px; opacity: 1; }
+    .badge-toast-icon { font-size: 1.6rem; }
+    .badge-toast-title { font-size: 0.72rem; font-weight: 700; color: var(--sakura-600); }
+    .badge-toast-desc { font-size: 0.78rem; font-weight: 700; color: var(--text-primary); }
+
     /* 使い方モーダル */
     .howto-overlay {
       position: fixed;
@@ -1444,6 +1525,7 @@
       <button class="howto-reopen-btn" id="howtoReopenBtn" data-i18n="howto_btn">使い方</button>
       <button class="howto-reopen-btn" id="noticeOpenBtn"><span data-i18n="notice_btn">📢 お知らせ</span><span class="notice-dot" id="noticeDot"></span></button>
       <button class="howto-reopen-btn" id="contactReopenBtn" data-i18n="settings_btn">⚙️ 設定</button>
+      <button class="howto-reopen-btn" id="badgeOpenBtn"><span data-i18n="badge_btn">🏅 バッジ</span><span class="notice-dot" id="badgeDot"></span></button>
     </div>
     <div class="header-emblem">🌸</div>
     <h1 class="app-title" data-i18n="app_title">てんぐすん。</h1>
@@ -1785,6 +1867,20 @@
   </div>
 </div>
 
+<!-- バッジ -->
+<div class="howto-overlay" id="badgeOverlay">
+  <div class="howto-box">
+    <button class="howto-close" id="badgeClose">✕</button>
+    <p class="howto-title" data-i18n="badge_title">🏅 バッジ</p>
+    <p class="badge-summary" id="badgeSummary">判定回数：0回　／　てんぐ巣病 発見数：0回</p>
+    <p class="badge-note" data-i18n="badge_same_photo_note">※ 同じ写真を連続で判定しても回数はカウントされません。</p>
+    <div id="badgeGridContainer"></div>
+    <hr class="howto-divider" />
+    <button class="howto-secondary-btn" id="badgeResetBtn" data-i18n="badge_reset_btn" style="width:100%;">記録をリセット</button>
+    <button class="howto-start-btn" id="badgeCloseBtn" data-i18n="settings_close">閉じる</button>
+  </div>
+</div>
+
 <!-- お知らせ -->
 <div class="howto-overlay" id="noticeOverlay">
   <div class="howto-box">
@@ -1792,7 +1888,7 @@
     <p class="howto-title" data-i18n="notice_title">📢 お知らせ</p>
 
     <div class="notice-item">
-      <p class="notice-item-title"><span>🌟</span><span data-i18n="notice_new_title">新機能のお知らせ</span></p>
+      <p class="notice-item-title"><span>💫</span><span data-i18n="notice_new_title">新機能のお知らせ</span></p>
       <p class="notice-item-body" data-i18n="notice_new_body">新機能のお知らせです</p>
     </div>
 
@@ -2068,6 +2164,21 @@ const I18N = {
     howto_step5_title: '病気と判定されたら',
     howto_step5_desc: 'AIが注目した部位がヒートマップで表示されます。その施設の管理者へご連絡ください。',
     howto_note: '※ AIの判定は参考情報です。最終判断は専門家にご相談ください。\nカメラ・位置情報の許可が必要な場合があります。',
+    badge_btn: '🏅 バッジ',
+    badge_title: '🏅 バッジ',
+    badge_summary_judge: '判定回数：{n}回',
+    badge_summary_disease: 'てんぐ巣病 発見数：{n}回',
+    badge_section_judge: '🌸 判定回数バッジ',
+    badge_section_disease: '🌳 てんぐ巣病 発見バッジ',
+    badge_status_earned: '獲得済み',
+    badge_status_remain: 'あと{n}回',
+    badge_toast_title: 'バッジ獲得！',
+    badge_judge_label: '判定 {n}回達成',
+    badge_disease_label: 'てんぐ巣病 発見 {n}回',
+    badge_reset_btn: '記録をリセット',
+    badge_reset_confirm: '判定回数とバッジの記録をすべてリセットしますか？この操作は取り消せません。',
+    badge_reset_done: 'リセットしました',
+    badge_same_photo_note: '※ 同じ写真を連続で判定しても回数はカウントされません。',
   },
   en: {
     app_title: 'tengusun.',
@@ -2204,6 +2315,21 @@ To date, no effective treatment or preventive method has been established.
     howto_step5_title: 'If disease is detected',
     howto_step5_desc: 'The area the AI focused on is shown as a heatmap. Please contact the facility manager.',
     howto_note: '※ AI results are for reference only. Please consult an expert for final decisions.\nCamera and location permissions may be required.',
+    badge_btn: '🏅 Badges',
+    badge_title: '🏅 Badges',
+    badge_summary_judge: 'Diagnoses: {n}',
+    badge_summary_disease: 'Witches\' Broom found: {n}',
+    badge_section_judge: '🌸 Diagnosis Count Badges',
+    badge_section_disease: '🌳 Witches\' Broom Discovery Badges',
+    badge_status_earned: 'Earned',
+    badge_status_remain: '{n} more to go',
+    badge_toast_title: 'Badge earned!',
+    badge_judge_label: '{n} diagnoses completed',
+    badge_disease_label: '{n} Witches\' Broom found',
+    badge_reset_btn: 'Reset records',
+    badge_reset_confirm: 'Reset all diagnosis counts and badge records? This cannot be undone.',
+    badge_reset_done: 'Reset complete',
+    badge_same_photo_note: '※ Diagnosing the same photo repeatedly will not increase the count.',
   },
   zh: {
     app_title: '天狗孙。',
@@ -2338,6 +2464,21 @@ To date, no effective treatment or preventive method has been established.
     howto_step5_title: '如果判断为病害',
     howto_step5_desc: 'AI关注的部位将以热图显示。请联系该设施管理员。',
     howto_note: '※ AI诊断结果仅供参考，最终判断请咨询专业人士。\n可能需要相机和位置信息权限。',
+    badge_btn: '🏅 徽章',
+    badge_title: '🏅 徽章',
+    badge_summary_judge: '诊断次数：{n}次',
+    badge_summary_disease: '丛枝病 发现次数：{n}次',
+    badge_section_judge: '🌸 诊断次数徽章',
+    badge_section_disease: '🌳 丛枝病发现徽章',
+    badge_status_earned: '已获得',
+    badge_status_remain: '还差{n}次',
+    badge_toast_title: '获得徽章！',
+    badge_judge_label: '已完成 {n} 次诊断',
+    badge_disease_label: '发现丛枝病 {n} 次',
+    badge_reset_btn: '重置记录',
+    badge_reset_confirm: '确定要重置所有诊断次数和徽章记录吗？此操作无法撤销。',
+    badge_reset_done: '已重置',
+    badge_same_photo_note: '※ 连续诊断同一张照片不会增加计数。',
   },
   ko: {
     app_title: '텐구슨.',
@@ -2475,6 +2616,21 @@ To date, no effective treatment or preventive method has been established.
     howto_step5_title: '병해로 판정되면',
     howto_step5_desc: 'AI가 주목한 부위가 히트맵으로 표시됩니다. 해당 시설 관리자에게 연락하세요.',
     howto_note: '※ AI 진단 결과는 참고용입니다. 최종 판단은 전문가에게 문의하세요.\n카메라·위치정보 권한이 필요할 수 있습니다.',
+    badge_btn: '🏅 배지',
+    badge_title: '🏅 배지',
+    badge_summary_judge: '판정 횟수：{n}회',
+    badge_summary_disease: '텐구소병 발견 수：{n}회',
+    badge_section_judge: '🌸 판정 횟수 배지',
+    badge_section_disease: '🌳 텐구소병 발견 배지',
+    badge_status_earned: '획득 완료',
+    badge_status_remain: '{n}회 남음',
+    badge_toast_title: '배지 획득!',
+    badge_judge_label: '판정 {n}회 달성',
+    badge_disease_label: '텐구소병 발견 {n}회',
+    badge_reset_btn: '기록 초기화',
+    badge_reset_confirm: '판정 횟수와 배지 기록을 모두 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
+    badge_reset_done: '초기화되었습니다',
+    badge_same_photo_note: '※ 같은 사진을 연속으로 판정해도 횟수는 카운트되지 않습니다.',
   }
 };
 
@@ -2508,6 +2664,8 @@ function applyI18n() {
   if (typeof refreshGuideBannerLang === 'function') refreshGuideBannerLang();
   // 暗所バスターの判定表示も現在の言語で再表示
   if (typeof refreshBacklightStatusLang === 'function') refreshBacklightStatusLang();
+  // バッジ画面が開いていれば現在の言語で再描画
+  if (typeof renderBadgeGrid === 'function' && document.getElementById('badgeOverlay')?.style.display === 'flex') renderBadgeGrid();
 }
 
 // ====== 設定モーダル ======
@@ -2673,6 +2831,198 @@ function isGuideEnabled() {
 function isAutoJudgeEnabled() {
   return localStorage.getItem('setting_auto_judge') === 'true';
 }
+
+// ====== バッジ機能（判定回数・てんぐ巣病発見数） ======
+// localStorage にカウント・獲得済みバッジを保存するので、アプリを閉じても引き継がれる
+const BADGE_JUDGE_THRESHOLDS = [1, 3, 5, 10, 20];
+const BADGE_DISEASE_THRESHOLDS = [1, 3, 5, 10];
+const STAT_JUDGE_KEY = 'stat_judge_count';
+const STAT_DISEASE_KEY = 'stat_disease_count';
+const BADGE_EARNED_KEY = 'badges_earned';
+
+function getStatCount(key) {
+  const v = parseInt(localStorage.getItem(key), 10);
+  return Number.isFinite(v) && v >= 0 ? v : 0;
+}
+function setStatCount(key, val) {
+  localStorage.setItem(key, String(val));
+}
+function getEarnedBadgeIds() {
+  try {
+    const raw = localStorage.getItem(BADGE_EARNED_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch (e) { return []; }
+}
+function saveEarnedBadgeIds(arr) {
+  localStorage.setItem(BADGE_EARNED_KEY, JSON.stringify(arr));
+}
+function badgeId(group, threshold) { return `${group}_${threshold}`; }
+
+function simpleHash(str) {
+  // 画像のdataURLは非常に長くなることがあるため、全文字を走査せず
+  // 一定間隔でサンプリングして軽量なフィンガープリントを作る
+  let hash = 0;
+  const len = str.length;
+  const step = Math.max(1, Math.floor(len / 200));
+  for (let i = 0; i < len; i += step) {
+    hash = (hash * 31 + str.charCodeAt(i)) | 0;
+  }
+  return hash.toString(36) + '_' + len;
+}
+let lastCountedImageKey = localStorage.getItem('last_counted_image_key') || null;
+
+// 判定が1回完了するたびに呼ぶ。同じ写真を連続で判定した場合はカウントしない。
+// 病気（sick_unknown / sick）が見つかった場合は発見数もカウント。
+function recordDiagnosisResult(kind) {
+  const imgKey = inputImage && inputImage.src ? simpleHash(inputImage.src) : null;
+  if (imgKey && imgKey === lastCountedImageKey) return; // 同じ写真の連続判定はカウントしない
+  if (imgKey) {
+    lastCountedImageKey = imgKey;
+    localStorage.setItem('last_counted_image_key', imgKey);
+  }
+
+  const judgeCount = getStatCount(STAT_JUDGE_KEY) + 1;
+  setStatCount(STAT_JUDGE_KEY, judgeCount);
+
+  let diseaseCount = getStatCount(STAT_DISEASE_KEY);
+  if (kind === 'sick' || kind === 'sick_unknown') {
+    diseaseCount += 1;
+    setStatCount(STAT_DISEASE_KEY, diseaseCount);
+  }
+
+  checkAndAwardBadges(judgeCount, diseaseCount);
+  updateBadgeHeaderDot();
+}
+
+function checkAndAwardBadges(judgeCount, diseaseCount) {
+  const earned = getEarnedBadgeIds();
+  const newlyEarned = [];
+
+  BADGE_JUDGE_THRESHOLDS.forEach(th => {
+    const id = badgeId('judge', th);
+    if (judgeCount >= th && !earned.includes(id)) { earned.push(id); newlyEarned.push({ id, group: 'judge', threshold: th }); }
+  });
+  BADGE_DISEASE_THRESHOLDS.forEach(th => {
+    const id = badgeId('disease', th);
+    if (diseaseCount >= th && !earned.includes(id)) { earned.push(id); newlyEarned.push({ id, group: 'disease', threshold: th }); }
+  });
+
+  if (newlyEarned.length) {
+    saveEarnedBadgeIds(earned);
+    newlyEarned.forEach((b, i) => setTimeout(() => showBadgeToast(b), i * 1600));
+  }
+  if (document.getElementById('badgeOverlay')?.style.display === 'flex') renderBadgeGrid();
+  return newlyEarned;
+}
+
+function tFmt(key, n) {
+  return t(key).replace('{n}', n);
+}
+
+function badgeLabel(group, threshold) {
+  return group === 'judge' ? tFmt('badge_judge_label', threshold) : tFmt('badge_disease_label', threshold);
+}
+function badgeIcon(group, threshold) {
+  const icons = group === 'judge'
+    ? { 1:'🌱', 3:'🌸', 5:'🌷', 10:'🏅', 20:'👑' }
+    : { 1:'🔎', 3:'🧐', 5:'🥉', 10:'🥇' };
+  return icons[threshold] || '🏆';
+}
+
+function showBadgeToast(badge) {
+  let toast = document.getElementById('badgeToast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'badgeToast';
+    toast.className = 'badge-toast';
+    document.body.appendChild(toast);
+  }
+  toast.innerHTML = `<span class="badge-toast-icon">${badgeIcon(badge.group, badge.threshold)}</span><div><div class="badge-toast-title">${t('badge_toast_title')}</div><div class="badge-toast-desc">${badgeLabel(badge.group, badge.threshold)}</div></div>`;
+  toast.classList.remove('show');
+  void toast.offsetWidth; // reflow でアニメーションをリセット
+  toast.classList.add('show');
+  clearTimeout(toast._hideTimer);
+  toast._hideTimer = setTimeout(() => toast.classList.remove('show'), 2800);
+}
+
+function renderBadgeGrid() {
+  const judgeCount = getStatCount(STAT_JUDGE_KEY);
+  const diseaseCount = getStatCount(STAT_DISEASE_KEY);
+  const earned = getEarnedBadgeIds();
+
+  const summaryEl = document.getElementById('badgeSummary');
+  if (summaryEl) summaryEl.textContent = `${tFmt('badge_summary_judge', judgeCount)}　／　${tFmt('badge_summary_disease', diseaseCount)}`;
+
+  const buildSection = (titleKey, group, thresholds, count) => {
+    const cards = thresholds.map(th => {
+      const id = badgeId(group, th);
+      const isEarned = earned.includes(id);
+      const remain = Math.max(0, th - count);
+      return `
+        <div class="badge-item ${isEarned ? 'earned' : 'locked'}">
+          <div class="badge-item-icon">${isEarned ? badgeIcon(group, th) : '🔒'}</div>
+          <div class="badge-item-label">${badgeLabel(group, th)}</div>
+          <div class="badge-item-sub">${isEarned ? t('badge_status_earned') : tFmt('badge_status_remain', remain)}</div>
+        </div>`;
+    }).join('');
+    return `<p class="badge-section-title">${t(titleKey)}</p><div class="badge-grid">${cards}</div>`;
+  };
+
+  const html =
+    buildSection('badge_section_judge', 'judge', BADGE_JUDGE_THRESHOLDS, judgeCount) +
+    buildSection('badge_section_disease', 'disease', BADGE_DISEASE_THRESHOLDS, diseaseCount);
+
+  const container = document.getElementById('badgeGridContainer');
+  if (container) container.innerHTML = html;
+}
+
+// ヘッダーの「バッジ」ボタンに、未確認の新規獲得が分かるドットを出す（設定/お知らせと同様の仕組み）
+function updateBadgeHeaderDot() {
+  const dot = document.getElementById('badgeDot');
+  if (!dot) return;
+  const earned = getEarnedBadgeIds();
+  const seenCount = parseInt(localStorage.getItem('badges_seen_count') || '0', 10);
+  dot.style.display = earned.length > seenCount ? 'inline-block' : 'none';
+}
+
+function resetBadgeStats() {
+  if (!confirm(t('badge_reset_confirm'))) return;
+  localStorage.removeItem(STAT_JUDGE_KEY);
+  localStorage.removeItem(STAT_DISEASE_KEY);
+  localStorage.removeItem(BADGE_EARNED_KEY);
+  localStorage.removeItem('badges_seen_count');
+  localStorage.removeItem('last_counted_image_key');
+  lastCountedImageKey = null;
+  renderBadgeGrid();
+  updateBadgeHeaderDot();
+  alert(t('badge_reset_done'));
+}
+
+(function initBadgeModal() {
+  const overlay = document.getElementById('badgeOverlay');
+  if (!overlay) return;
+  overlay.style.display = 'none';
+
+  function openBadge() {
+    renderBadgeGrid();
+    overlay.style.display = 'flex';
+    requestAnimationFrame(() => requestAnimationFrame(() => { overlay.style.opacity = '1'; }));
+    localStorage.setItem('badges_seen_count', String(getEarnedBadgeIds().length));
+    updateBadgeHeaderDot();
+  }
+  function closeBadge() {
+    overlay.style.opacity = '0';
+    setTimeout(() => overlay.style.display = 'none', 120);
+  }
+
+  document.getElementById('badgeOpenBtn')?.addEventListener('click', openBadge);
+  document.getElementById('badgeClose')?.addEventListener('click', closeBadge);
+  document.getElementById('badgeCloseBtn')?.addEventListener('click', closeBadge);
+  document.getElementById('badgeResetBtn')?.addEventListener('click', resetBadgeStats);
+
+  updateBadgeHeaderDot();
+})();
 
 // ====== 背景の季節画像 ======
 // 画像は images/spring.(jpg|jpeg|png|webp) のように配置してください
@@ -3976,6 +4326,7 @@ async function runDiagnosis() {
       if (s1.idx !== 0) {
         const conf = (s1.confidence*100).toFixed(1);
         lastResultState = {kind:'not_sakura', conf, coords: lastCaptureMeta?.coords || null}; renderResultFromState();
+        recordDiagnosisResult('not_sakura');
         await sendToGoogleForm('桜以外', conf, '');
         return;
       }
@@ -3986,6 +4337,7 @@ async function runDiagnosis() {
       if (s2.idx === 0) {
         const conf = (s2.confidence*100).toFixed(1);
         lastResultState = {kind:'healthy', conf, coords: lastCaptureMeta?.coords || null}; renderResultFromState();
+        recordDiagnosisResult('healthy');
         await sendToGoogleForm('健康', conf, '');
         return;
       }
@@ -3994,6 +4346,7 @@ async function runDiagnosis() {
       const s3 = await predict('severity', inputImage);
       if (!s3) {
         lastResultState = {kind:'sick_unknown', coords: lastCaptureMeta?.coords || null}; renderResultFromState();
+        recordDiagnosisResult('sick_unknown');
         await sendToGoogleForm('病気（重症度不明）', '--', '');
         await runGradCAM(inputImage);
         return;
@@ -4009,6 +4362,7 @@ async function runDiagnosis() {
         type='result-severe'; icon='🔴'; badgeKey='result_severe';
       }
       lastResultState = {kind:'sick', type, icon, badgeKey, conf, coords: lastCaptureMeta?.coords || null}; renderResultFromState();
+      recordDiagnosisResult('sick');
       await sendToGoogleForm(`病気（${sc}）`, conf, '');
       await runGradCAM(inputImage);
 
