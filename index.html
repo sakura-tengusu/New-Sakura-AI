@@ -1073,6 +1073,44 @@
       background: rgba(26, 13, 18, 0.72);
     }
 
+    /* 複数枚まとめて判定 */
+    .batch-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      max-height: 50vh;
+      overflow-y: auto;
+      margin-bottom: 0.5rem;
+    }
+    .batch-item {
+      display: flex;
+      align-items: center;
+      gap: 0.7rem;
+      padding: 0.5rem 0.6rem;
+      border-radius: var(--radius-md);
+      border: 1.5px solid var(--border-mid);
+      background: rgba(0,0,0,0.03);
+    }
+    .batch-item img, .batch-item-noimg {
+      width: 48px; height: 48px;
+      object-fit: cover;
+      border-radius: 8px;
+      flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      background: rgba(0,0,0,0.05);
+      font-size: 1.3rem;
+    }
+    .batch-item-info { flex: 1; min-width: 0; }
+    .batch-item-name {
+      font-size: 0.64rem;
+      color: var(--text-muted);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .batch-item-result { font-size: 0.8rem; font-weight: 700; }
+    .batch-item-conf { font-size: 0.68rem; color: var(--text-muted); }
+
     /* バッジ */
     .badge-summary {
       text-align: center;
@@ -1548,8 +1586,11 @@
         <p class="file-drop-text" id="fileDropText"><span data-i18n="tap_select">タップして写真を選択</span><br><span style="font-size:0.72rem;opacity:0.7" data-i18n="or_drop">またはここにドロップ</span></p>
       </div>
 
+      <!-- 複数枚まとめて判定 -->
+      <button type="button" class="btn btn-open-camera" id="batchOpenBtn" data-i18n="batch_btn">📚 複数枚まとめて判定</button>
+      <input type="file" id="batchImageInput" accept="image/*" multiple style="display:none">
       <!-- カメラ起動ボタン（カメラOFF時のみ表示） -->
-      <button type="button" class="btn btn-open-camera" id="toggleCamera" data-i18n="camera_btn">📹 カメラを起動する</button>
+      <button type="button" class="btn btn-open-camera" id="toggleCamera" style="margin-top:0.6rem;" data-i18n="camera_btn">📹 カメラを起動する</button>
     </div>
 
     <!-- iOSスタイル カメラビュー（カメラON時に表示） -->
@@ -1867,6 +1908,17 @@
   </div>
 </div>
 
+<!-- 複数枚まとめて判定 -->
+<div class="howto-overlay" id="batchOverlay">
+  <div class="howto-box">
+    <button class="howto-close" id="batchClose">✕</button>
+    <p class="howto-title" data-i18n="batch_title">📚 複数枚まとめて判定</p>
+    <p class="badge-summary" id="batchSummary"></p>
+    <div id="batchListContainer" class="batch-list"></div>
+    <button class="howto-start-btn" id="batchCloseBtn" data-i18n="settings_close">閉じる</button>
+  </div>
+</div>
+
 <!-- バッジ -->
 <div class="howto-overlay" id="badgeOverlay">
   <div class="howto-box">
@@ -2098,13 +2150,14 @@ const I18N = {
     notice_SNS_link_text2: '「作者N」の個人note',
     notice_SNS_link_text3: '「てんぐすん」公式Instagram',
     notice_new_title: '新機能のお知らせ',
-    notice_new_body: `・背景を変更しました！
-      　季節によって背景画像が変わります。
-      ・自動判定機能を追加しました！
-      　カメラを合わせるだけで自動で撮影し、
-        　判定することができます。
-       　使用する場合は、設定の「 かざすだけで自動判定」
-        　を変更してください。`,
+    notice_new_body: `<strong>🏅 バッジ機能を追加しました！</strong>
+　判定回数やてんぐ巣病の発見数に応じて、バッジがどんどん増えていきます。
+　さらに、アプリを開いた「月」ごとに集められる限定バッジも登場！
+　画面上部の「🏅 バッジ」ボタンから、いつでも獲得状況を確認できます。
+
+<strong>📚 複数枚まとめて判定に対応しました！</strong>
+　「📚 複数枚まとめて判定」ボタンから写真を複数選ぶだけで、
+　まとめてAI判定し、結果を一覧でチェックできます。`,
     notice_sakura_info_section_title: '🌸 桜に関する情報コーナー',
     notice_sakura_info1_title: '① てんぐ巣病とは',
     notice_sakura_info1_body: 'てんぐ巣病は植物の病気の一種で、茎や枝が異常に密生し、鳥の巣のような状態になるのが特徴です。\n原因となる微生物はさまざまですが、桜のてんぐ巣病はTaphrina wiesneri（タフリナ・ウィースネリ）という菌類の一種が原因とされています。\n桜だけでなく、タケやトマト、ニンジンなど、私たちの身近な植物にも発生します。\n症状が進行すると木全体に感染が広がり、最悪の場合枯れてしまうこともあります。\nそして現在も、有効な治療法や予防法は確立されていません。\n<b>だからこそ、早期に発見し、適切に対応することが大切です。<b>',
@@ -2179,6 +2232,13 @@ const I18N = {
     badge_reset_confirm: '判定回数とバッジの記録をすべてリセットしますか？この操作は取り消せません。',
     badge_reset_done: 'リセットしました',
     badge_same_photo_note: '※ 同じ写真を連続で判定しても回数はカウントされません。',
+    badge_section_login: '📅 月別ログインバッジ',
+    badge_login_label: '{n}月のバッジ',
+    badge_summary_login: 'ログイン達成月：{n}/12',
+    batch_btn: '📚 複数枚まとめて判定',
+    batch_title: '📚 複数枚まとめて判定',
+    batch_processing: '判定中… {n}',
+    batch_summary: '{n}枚を判定しました（てんぐ巣病の疑い：{sick}枚）',
   },
   en: {
     app_title: 'tengusun.',
@@ -2236,12 +2296,11 @@ We would greatly appreciate your cooperation in providing photos of cherry bloss
     notice_SNS_body: `We are sharing real-time updates on the development process and journey behind the "Tengusun." app—including how it’s built and the features we’re planning for the next update—across Note, Instagram, and our website.
 We appreciate your support!`,
     notice_new_title: 'Announcement of New Features',
-    notice_new_body: `・The background has been updated!
-The background image changes according to the season.
-・An automatic detection feature has been added!
-Simply point the camera to automatically take a picture
-and perform detection.
-To use this feature, please adjust the "Auto-judge just by holding up the camera"setting.`,
+    notice_new_body: `<strong>🏅 New: Badges!</strong>
+Earn badges as your diagnosis count and Witches' Broom discoveries grow. You can also collect a special badge for every calendar month you use the app — check your progress anytime from the "🏅 Badges" button at the top of the screen.
+
+<strong>📚 New: Batch Diagnosis!</strong>
+Tap "📚 Batch Diagnosis" and select multiple photos at once — the AI will diagnose them all and show the results in a handy list.`,
     notice_SNS_link_text1: '"Tengusun." Official note',
     notice_SNS_link_text2: '"Author N" personal note',
     notice_SNS_link_text3: '"Tengusun." Official Instagram',
@@ -2330,6 +2389,13 @@ To date, no effective treatment or preventive method has been established.
     badge_reset_confirm: 'Reset all diagnosis counts and badge records? This cannot be undone.',
     badge_reset_done: 'Reset complete',
     badge_same_photo_note: '※ Diagnosing the same photo repeatedly will not increase the count.',
+    badge_section_login: '📅 Monthly Login Badges',
+    badge_login_label: 'Month {n} Badge',
+    badge_summary_login: 'Months collected: {n}/12',
+    batch_btn: '📚 Batch Diagnosis',
+    batch_title: '📚 Batch Diagnosis Results',
+    batch_processing: 'Diagnosing… {n}',
+    batch_summary: '{n} photos diagnosed (possible Witches\' Broom: {sick})',
   },
   zh: {
     app_title: '天狗孙。',
@@ -2386,11 +2452,11 @@ To date, no effective treatment or preventive method has been established.
     notice_SNS_title: '您想了解一下我们幕后的运作情况吗？',
     notice_SNS_body: `我们正在通过 Note、Instagram 和我们的网站实时分享“天狗孙”这款应用的开发过程和历程——包括它的制作方式、下次更新的计划功能等等！
 请支持我们！`,
-    notice_new_body: `- 背景已更改！
-背景图像会根据季节变化。
-- 新增自动检测功能！
-只需将相机对准拍摄对象，即可自动拍照并进行检测。
-要使用此功能，请将设置更改为“只需举起相机即可自动判定”。`,
+    notice_new_body: `<strong>🏅 新增：徽章功能！</strong>
+诊断次数和丛枝病发现次数增加时会获得徽章。还可以按使用应用的月份收集专属徽章，随时在页面上方的「🏅 徽章」按钮中查看获得情况。
+
+<strong>📚 新增：批量诊断！</strong>
+点击「📚 批量诊断」即可一次选择多张照片，AI会依次诊断并以列表形式显示结果。`,
     notice_SNS_link_text1: '"天狗孙。"官方的note',
     notice_SNS_link_text2: '"作者N"的个人note',
     notice_SNS_link_text3: '"天狗孙。"官方的Instagram',
@@ -2479,6 +2545,13 @@ To date, no effective treatment or preventive method has been established.
     badge_reset_confirm: '确定要重置所有诊断次数和徽章记录吗？此操作无法撤销。',
     badge_reset_done: '已重置',
     badge_same_photo_note: '※ 连续诊断同一张照片不会增加计数。',
+    badge_section_login: '📅 每月登录徽章',
+    badge_login_label: '{n}月徽章',
+    badge_summary_login: '已收集月份：{n}/12',
+    batch_btn: '📚 批量诊断',
+    batch_title: '📚 批量诊断结果',
+    batch_processing: '正在诊断… {n}',
+    batch_summary: '已诊断{n}张照片（疑似丛枝病：{sick}张）',
   },
   ko: {
     app_title: '텐구슨.',
@@ -2536,13 +2609,11 @@ To date, no effective treatment or preventive method has been established.
     notice_SNS_body: `앱 「텐구스응.」이 어떻게 만들어지고 있는지, 다음의 업데이트로 어떤 기능을 기획중인가…개발의 뒷면이나 길을, note와 Instagram, 그리고 HP로 리얼타임 발신중!
 응원 잘 부탁드립니다!`,
     notice_new_title: '새로운 기능 공지',
-    notice_new_body: `・배경을 변경했습니다! 
-계절에 따라 배경 이미지가 바뀝니다. 
-・자동 판정 기능을 추가했습니다! 
-카메라를 맞추는 것만으로 자동으로 촬영해, 
-판정할 수 있습니다. 
-사용하는 경우는 설정의 「카메라를 비추기만 하면 자동 판정」 
-를 변경해 주세요.`,
+    notice_new_body: `<strong>🏅 신규: 배지 기능!</strong>
+판정 횟수와 텐구소병 발견 수가 늘어날수록 배지가 계속 늘어납니다. 앱을 사용한 달마다 모을 수 있는 한정 배지도 등장! 화면 상단의 「🏅 배지」 버튼에서 언제든 확인할 수 있습니다.
+
+<strong>📚 신규: 여러 장 한꺼번에 판정!</strong>
+「📚 여러 장 한꺼번에 판정」 버튼에서 사진을 여러 장 선택하기만 하면, AI가 한 번에 판정하고 결과를 목록으로 보여줍니다.`,
     notice_SNS_link_text1: `'텐구슨.'공식 note`,
     notice_SNS_link_text2: `'작가 N' 개인 note`,
     notice_SNS_link_text3: `'텐구슨.'공식 Instagram`,
@@ -2631,6 +2702,13 @@ To date, no effective treatment or preventive method has been established.
     badge_reset_confirm: '판정 횟수와 배지 기록을 모두 초기화하시겠습니까? 이 작업은 되돌릴 수 없습니다.',
     badge_reset_done: '초기화되었습니다',
     badge_same_photo_note: '※ 같은 사진을 연속으로 판정해도 횟수는 카운트되지 않습니다.',
+    badge_section_login: '📅 월별 로그인 배지',
+    badge_login_label: '{n}월 배지',
+    badge_summary_login: '수집한 월：{n}/12',
+    batch_btn: '📚 여러 장 한꺼번에 판정',
+    batch_title: '📚 여러 장 판정 결과',
+    batch_processing: '판정 중… {n}',
+    batch_summary: '{n}장을 판정했습니다 (텐구소병 의심: {sick}장)',
   }
 };
 
@@ -2647,6 +2725,8 @@ function applyI18n() {
       el.innerHTML = t('settings_contact') + '<br><a href="mailto:hitachi1.sakura.tengusu@gmail.com" style="color:var(--sakura-600);text-decoration:none;">hitachi1.sakura.tengusu@gmail.com</a>';
     } else if (key === 'footer_note' || key === 'howto_note' || key === 'notice_sakura_info1_body' || key === 'notice_sakura_info2_body') {
       el.innerHTML = t(key).replace(/\n/g, '<br>');
+    } else if (key === 'notice_new_body') {
+      el.innerHTML = t(key); // 太字(<strong>)を含むため innerHTML で反映（改行は pre-line で処理）
     } else {
       el.textContent = t(key);
     }
@@ -2775,7 +2855,7 @@ function applyI18n() {
 
   // お知らせの内容が更新されたらこのバージョン番号を上げると、
   // 未読バッジが再表示され、アプリ起動時に再度自動表示される
-  const NOTICE_VERSION = '2026-09-06-09:55';
+  const NOTICE_VERSION = '2026-09-20-badge-batch';
 
   function updateDotVisibility() {
     const seen = localStorage.getItem('notice_seen_version');
@@ -2832,13 +2912,15 @@ function isAutoJudgeEnabled() {
   return localStorage.getItem('setting_auto_judge') === 'true';
 }
 
-// ====== バッジ機能（判定回数・てんぐ巣病発見数） ======
+// ====== バッジ機能（判定回数・てんぐ巣病発見数・月別ログイン） ======
 // localStorage にカウント・獲得済みバッジを保存するので、アプリを閉じても引き継がれる
-const BADGE_JUDGE_THRESHOLDS = [1, 3, 5, 10, 20];
-const BADGE_DISEASE_THRESHOLDS = [1, 3, 5, 10];
+const BADGE_JUDGE_THRESHOLDS = [1, 3, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100];
+const BADGE_DISEASE_THRESHOLDS = [1, 3, 5, 10, 20, 30, 40, 50];
+const BADGE_LOGIN_MONTHS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]; // カレンダー月（年をまたいで通算）
 const STAT_JUDGE_KEY = 'stat_judge_count';
 const STAT_DISEASE_KEY = 'stat_disease_count';
 const BADGE_EARNED_KEY = 'badges_earned';
+const LOGIN_MONTHS_KEY = 'login_months_log'; // [1,9,...] ログインしたことがある「月」の一覧。リセット対象外
 
 function getStatCount(key) {
   const v = parseInt(localStorage.getItem(key), 10);
@@ -2891,11 +2973,29 @@ function recordDiagnosisResult(kind) {
     setStatCount(STAT_DISEASE_KEY, diseaseCount);
   }
 
-  checkAndAwardBadges(judgeCount, diseaseCount);
+  checkAndAwardBadges(judgeCount, diseaseCount, getLoginMonths());
   updateBadgeHeaderDot();
 }
 
-function checkAndAwardBadges(judgeCount, diseaseCount) {
+// アプリを開いた「月」（1〜12、年をまたいで通算）を記録する（リセット対象外）
+function getLoginMonths() {
+  try {
+    const raw = localStorage.getItem(LOGIN_MONTHS_KEY);
+    const arr = raw ? JSON.parse(raw) : [];
+    return Array.isArray(arr) ? arr : [];
+  } catch (e) { return []; }
+}
+function recordLoginMonth() {
+  const monthNum = new Date().getMonth() + 1; // 1-12
+  const months = getLoginMonths();
+  if (!months.includes(monthNum)) {
+    months.push(monthNum);
+    localStorage.setItem(LOGIN_MONTHS_KEY, JSON.stringify(months));
+  }
+  return getLoginMonths();
+}
+
+function checkAndAwardBadges(judgeCount, diseaseCount, loginMonths) {
   const earned = getEarnedBadgeIds();
   const newlyEarned = [];
 
@@ -2907,6 +3007,12 @@ function checkAndAwardBadges(judgeCount, diseaseCount) {
     const id = badgeId('disease', th);
     if (diseaseCount >= th && !earned.includes(id)) { earned.push(id); newlyEarned.push({ id, group: 'disease', threshold: th }); }
   });
+  if (Array.isArray(loginMonths)) {
+    BADGE_LOGIN_MONTHS.forEach(m => {
+      const id = badgeId('login', m);
+      if (loginMonths.includes(m) && !earned.includes(id)) { earned.push(id); newlyEarned.push({ id, group: 'login', threshold: m }); }
+    });
+  }
 
   if (newlyEarned.length) {
     saveEarnedBadgeIds(earned);
@@ -2921,13 +3027,17 @@ function tFmt(key, n) {
 }
 
 function badgeLabel(group, threshold) {
-  return group === 'judge' ? tFmt('badge_judge_label', threshold) : tFmt('badge_disease_label', threshold);
+  if (group === 'judge') return tFmt('badge_judge_label', threshold);
+  if (group === 'disease') return tFmt('badge_disease_label', threshold);
+  return tFmt('badge_login_label', threshold);
 }
 function badgeIcon(group, threshold) {
-  const icons = group === 'judge'
-    ? { 1:'🌱', 3:'🌸', 5:'🌷', 10:'🏅', 20:'👑' }
-    : { 1:'🔎', 3:'🧐', 5:'🥉', 10:'🥇' };
-  return icons[threshold] || '🏆';
+  const icons = {
+    judge: { 1:'🌱', 3:'🌸', 5:'🌷', 10:'🏅', 20:'👑', 30:'🎖️', 40:'💮', 50:'🌟', 60:'✨', 70:'💫', 80:'🔥', 90:'💎', 100:'🏆' },
+    disease: { 1:'🔎', 3:'🧐', 5:'🥉', 10:'🥇', 20:'🛡️', 30:'🦅', 40:'🧙', 50:'🐉' },
+    login: { 1:'🎍', 2:'❄️', 3:'🌸', 4:'🌷', 5:'🎏', 6:'☔', 7:'🎋', 8:'🎆', 9:'🍇', 10:'🎃', 11:'🍁', 12:'🎄' },
+  };
+  return (icons[group] && icons[group][threshold]) || '🏆';
 }
 
 function showBadgeToast(badge) {
@@ -2949,10 +3059,11 @@ function showBadgeToast(badge) {
 function renderBadgeGrid() {
   const judgeCount = getStatCount(STAT_JUDGE_KEY);
   const diseaseCount = getStatCount(STAT_DISEASE_KEY);
+  const loginMonths = getLoginMonths();
   const earned = getEarnedBadgeIds();
 
   const summaryEl = document.getElementById('badgeSummary');
-  if (summaryEl) summaryEl.textContent = `${tFmt('badge_summary_judge', judgeCount)}　／　${tFmt('badge_summary_disease', diseaseCount)}`;
+  if (summaryEl) summaryEl.textContent = `${tFmt('badge_summary_judge', judgeCount)}　／　${tFmt('badge_summary_disease', diseaseCount)}　／　${tFmt('badge_summary_login', loginMonths.length)}`;
 
   const buildSection = (titleKey, group, thresholds, count) => {
     const cards = thresholds.map(th => {
@@ -2969,9 +3080,25 @@ function renderBadgeGrid() {
     return `<p class="badge-section-title">${t(titleKey)}</p><div class="badge-grid">${cards}</div>`;
   };
 
+  // 月別ログインバッジ：カレンダー月ごとに獲得済みかどうかを表示（「あと何回」は無し）
+  const buildLoginSection = () => {
+    const cards = BADGE_LOGIN_MONTHS.map(m => {
+      const id = badgeId('login', m);
+      const isEarned = earned.includes(id);
+      return `
+        <div class="badge-item ${isEarned ? 'earned' : 'locked'}">
+          <div class="badge-item-icon">${isEarned ? badgeIcon('login', m) : '🔒'}</div>
+          <div class="badge-item-label">${badgeLabel('login', m)}</div>
+          <div class="badge-item-sub">${isEarned ? t('badge_status_earned') : '—'}</div>
+        </div>`;
+    }).join('');
+    return `<p class="badge-section-title">${t('badge_section_login')}</p><div class="badge-grid">${cards}</div>`;
+  };
+
   const html =
     buildSection('badge_section_judge', 'judge', BADGE_JUDGE_THRESHOLDS, judgeCount) +
-    buildSection('badge_section_disease', 'disease', BADGE_DISEASE_THRESHOLDS, diseaseCount);
+    buildSection('badge_section_disease', 'disease', BADGE_DISEASE_THRESHOLDS, diseaseCount) +
+    buildLoginSection();
 
   const container = document.getElementById('badgeGridContainer');
   if (container) container.innerHTML = html;
@@ -2986,14 +3113,19 @@ function updateBadgeHeaderDot() {
   dot.style.display = earned.length > seenCount ? 'inline-block' : 'none';
 }
 
+// 判定回数・発見数のみリセット対象。月別ログインの記録・バッジは対象外。
 function resetBadgeStats() {
   if (!confirm(t('badge_reset_confirm'))) return;
   localStorage.removeItem(STAT_JUDGE_KEY);
   localStorage.removeItem(STAT_DISEASE_KEY);
-  localStorage.removeItem(BADGE_EARNED_KEY);
-  localStorage.removeItem('badges_seen_count');
   localStorage.removeItem('last_counted_image_key');
   lastCountedImageKey = null;
+
+  // 獲得済みバッジのうち login_* だけは残す
+  const keptLoginBadges = getEarnedBadgeIds().filter(id => id.startsWith('login_'));
+  saveEarnedBadgeIds(keptLoginBadges);
+  localStorage.setItem('badges_seen_count', String(keptLoginBadges.length));
+
   renderBadgeGrid();
   updateBadgeHeaderDot();
   alert(t('badge_reset_done'));
@@ -3003,6 +3135,10 @@ function resetBadgeStats() {
   const overlay = document.getElementById('badgeOverlay');
   if (!overlay) return;
   overlay.style.display = 'none';
+
+  // 起動時に今月のログインを記録し、月別バッジを判定する
+  const loginMonths = recordLoginMonth();
+  checkAndAwardBadges(getStatCount(STAT_JUDGE_KEY), getStatCount(STAT_DISEASE_KEY), loginMonths);
 
   function openBadge() {
     renderBadgeGrid();
@@ -4379,6 +4515,145 @@ async function runDiagnosis() {
 }
 submitBtn.addEventListener('click', runDiagnosis);
 
+// ====== 複数枚まとめて判定（バッチ診断） ======
+function loadImageFromFile(file) {
+  return new Promise((resolve, reject) => {
+    const fr = new FileReader();
+    fr.onload = e => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => resolve({ img, dataUrl: e.target.result });
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    fr.onerror = reject;
+    fr.readAsDataURL(file);
+  });
+}
+
+async function classifyOneImage(img) {
+  const s1 = await predict('sakura', img);
+  if (!s1) return { kind: 'error' };
+  if (s1.idx !== 0) return { kind: 'not_sakura', conf: (s1.confidence * 100).toFixed(1) };
+
+  const s2 = await predict('health', img);
+  if (!s2) return { kind: 'error' };
+  if (s2.idx === 0) return { kind: 'healthy', conf: (s2.confidence * 100).toFixed(1) };
+
+  const s3 = await predict('severity', img);
+  if (!s3) return { kind: 'sick_unknown' };
+  const conf = (s3.confidence * 100).toFixed(1);
+  const sc = s3.class;
+  let badgeKey, icon;
+  if (sc.includes('初期')) { badgeKey = 'result_early'; icon = '🟡'; }
+  else if (sc.includes('中期')) { badgeKey = 'result_mid'; icon = '🟠'; }
+  else { badgeKey = 'result_severe'; icon = '🔴'; }
+  return { kind: 'sick', conf, sc, badgeKey, icon };
+}
+
+function batchResultLabel(r) {
+  switch (r.kind) {
+    case 'not_sakura': return { text: t('result_not_sakura'), icon: '🌿' };
+    case 'healthy':    return { text: t('result_healthy'), icon: '🌸' };
+    case 'sick_unknown': return { text: t('result_sick'), icon: '🍂' };
+    case 'sick':        return { text: `${t('result_sick')}（${t(r.badgeKey)}）`, icon: r.icon };
+    default:             return { text: t('result_error'), icon: '⚠️' };
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
+}
+
+function renderBatchResults(results) {
+  const summaryEl = document.getElementById('batchSummary');
+  const listEl = document.getElementById('batchListContainer');
+  const total = results.length;
+  const sickCount = results.filter(x => x.r.kind === 'sick' || x.r.kind === 'sick_unknown').length;
+  if (summaryEl) summaryEl.textContent = t('batch_summary').replace('{n}', total).replace('{sick}', sickCount);
+  if (listEl) {
+    listEl.innerHTML = results.map(({ file, dataUrl, r }) => {
+      const { text, icon } = batchResultLabel(r);
+      const confText = r.conf ? `${t('confidence')} ${r.conf}%` : '';
+      return `
+        <div class="batch-item">
+          ${dataUrl ? `<img src="${dataUrl}" alt="">` : `<div class="batch-item-noimg">🖼️</div>`}
+          <div class="batch-item-info">
+            <div class="batch-item-name">${escapeHtml(file.name)}</div>
+            <div class="batch-item-result">${icon} ${text}</div>
+            <div class="batch-item-conf">${confText}</div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+}
+
+async function runBatchDiagnosis(files) {
+  const overlay = document.getElementById('batchOverlay');
+  const summaryEl = document.getElementById('batchSummary');
+  const listEl = document.getElementById('batchListContainer');
+  if (!overlay) return;
+  overlay.style.display = 'flex';
+  requestAnimationFrame(() => requestAnimationFrame(() => { overlay.style.opacity = '1'; }));
+  if (listEl) listEl.innerHTML = '';
+
+  const results = [];
+
+  // for/while文を使わず、1枚ずつ再帰的に処理する（プレビュー環境のループ監視を避けるため）
+  async function processFile(index) {
+    if (index >= files.length) return;
+    const file = files[index];
+    if (summaryEl) summaryEl.textContent = t('batch_processing').replace('{n}', `${index + 1} / ${files.length}`);
+    try {
+      const { img, dataUrl } = await loadImageFromFile(file);
+      const r = await classifyOneImage(img);
+      results.push({ file, dataUrl, r });
+
+      if (['not_sakura', 'healthy', 'sick_unknown', 'sick'].includes(r.kind)) {
+        // 直前に判定したのと同じ写真ならカウントされない（recordDiagnosisResult内で判定）
+        const prevInputImage = inputImage;
+        inputImage = img; // recordDiagnosisResult の画像ハッシュ照合用に一時的に差し替え
+        recordDiagnosisResult(r.kind);
+        inputImage = prevInputImage;
+        try {
+          const label = r.kind === 'sick' ? `病気（${r.sc}）` : r.kind === 'sick_unknown' ? '病気（重症度不明）' : r.kind === 'healthy' ? '健康' : '桜以外';
+          await sendToGoogleForm(label, r.conf || '--', '(複数枚判定)');
+        } catch (e) { /* 送信失敗は無視して続行 */ }
+      }
+    } catch (e) {
+      console.error(e);
+      results.push({ file, dataUrl: null, r: { kind: 'error' } });
+    }
+    await processFile(index + 1);
+  }
+
+  await processFile(0);
+  renderBatchResults(results);
+}
+
+(function initBatchModal() {
+  const overlay = document.getElementById('batchOverlay');
+  const openBtn = document.getElementById('batchOpenBtn');
+  const input = document.getElementById('batchImageInput');
+  if (!overlay || !openBtn || !input) return;
+  overlay.style.display = 'none';
+
+  openBtn.addEventListener('click', () => input.click());
+  input.addEventListener('change', async function() {
+    const files = Array.from(this.files || []);
+    this.value = ''; // 同じファイルを選び直しても change が発火するようにリセット
+    if (!files.length) return;
+    await runBatchDiagnosis(files);
+  });
+
+  function closeBatch() {
+    overlay.style.opacity = '0';
+    setTimeout(() => overlay.style.display = 'none', 120);
+  }
+  document.getElementById('batchClose')?.addEventListener('click', closeBatch);
+  document.getElementById('batchCloseBtn')?.addEventListener('click', closeBatch);
+})();
+
 // ====== 撮影ガイド（リアルタイム解析） ======
 const guideOverlay  = document.getElementById('guideOverlay');
 const guideFrame    = document.getElementById('guideFrame');
@@ -4391,7 +4666,7 @@ const guideCtx      = guideCanvas.getContext('2d');
 
 let guideTimer = null;
 let guideOkCount = 0; // OK状態が連続した回数（撮影ロックに使用）
-const GUIDE_SIZE = 128; // 解析サンプル解像度（96→128でノイズ耐性UP）
+const GUIDE_SIZE = 64; // 解析サンプル解像度（プレビュー環境の実行時間制限に配慮し縮小）
 // lastGuideBannerは先頭で宣言済み（言語切替時の再描画に使用）
 
 function startGuide() {
@@ -4407,7 +4682,7 @@ function startGuide() {
   setGuideBanner('📸', t('guide_msg_init'), false);
   guideOkCount = 0;
   if (guideTimer) clearInterval(guideTimer);
-  guideTimer = setInterval(runGuideAnalysis, 250); // 400→250msで応答性UP
+  guideTimer = setInterval(runGuideAnalysis, 400); // 解析負荷を抑えるため間隔を延長
 }
 
 function stopGuide() {
@@ -4472,18 +4747,18 @@ function toGrayscale(imageData) {
   const data = imageData.data;
   const len = imageData.width * imageData.height;
   const gray = new Float32Array(len);
-  Array.from({ length: len }, (_, p) => p).forEach((p) => {
+  for (let p = 0; p < len; p++) {
     const i = p * 4;
     gray[p] = 0.299 * data[i] + 0.587 * data[i+1] + 0.114 * data[i+2];
-  });
+  }
   return gray;
 }
 
 function calcSharpness(gray, w, h) {
   let sum = 0, sumSq = 0, count = 0;
   let lumSum = 0;
-  Array.from({ length: h - 2 }, (_, k) => k + 1).forEach((y) => {
-    Array.from({ length: w - 2 }, (_, k) => k + 1).forEach((x) => {
+  for (let y = 1; y < h - 1; y++) {
+    for (let x = 1; x < w - 1; x++) {
       const idx = y * w + x;
       const c = gray[idx];
       const t = gray[idx - w];
@@ -4493,8 +4768,8 @@ function calcSharpness(gray, w, h) {
       const lap = 4*c - t - b - l - r;
       sum += lap; sumSq += lap * lap; count++;
       lumSum += c;
-    });
-  });
+    }
+  }
   const avgLum = lumSum / count;
   const variance = sumSq / count - (sum / count) * (sum / count);
   // 露出（明るさ）で正規化：暗い画像はコントラストが下がりラプラシアン値も下がるため補正
@@ -4507,12 +4782,12 @@ function calcCenterBrightness(gray, w, h) {
   const x0=Math.floor(w*0.2), x1=Math.floor(w*0.8);
   const y0=Math.floor(h*0.2), y1=Math.floor(h*0.8);
   let sum=0, sumSq=0, count=0;
-  Array.from({ length: Math.max(0, y1 - y0) }, (_, k) => k + y0).forEach((y) => {
-    Array.from({ length: Math.max(0, x1 - x0) }, (_, k) => k + x0).forEach((x) => {
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) {
       const v = gray[y*w+x];
       sum += v; sumSq += v*v; count++;
-    });
-  });
+    }
+  }
   const mean = count>0 ? sum/count : 0;
   const variance = count>0 ? (sumSq/count - mean*mean) : 0;
   return { brightness: mean/255, contrast: Math.sqrt(Math.max(0,variance))/255 };
@@ -4525,8 +4800,8 @@ function calcEdgeDensity(gray, w, h) {
   let edgeStrengthSum = 0, total=0;
   const y0 = Math.max(1, cy-ry), y1 = Math.min(h-1, cy+ry);
   const x0 = Math.max(1, cx-rx), x1 = Math.min(w-1, cx+rx);
-  Array.from({ length: Math.max(0, y1 - y0) }, (_, k) => k + y0).forEach((y) => {
-    Array.from({ length: Math.max(0, x1 - x0) }, (_, k) => k + x0).forEach((x) => {
+  for (let y = y0; y < y1; y++) {
+    for (let x = x0; x < x1; x++) {
       const idx = y*w+x;
       const c = gray[idx];
       const r = gray[idx+1];
@@ -4536,8 +4811,8 @@ function calcEdgeDensity(gray, w, h) {
       const gy = Math.abs(c - b);
       edgeStrengthSum += Math.sqrt(gx*gx + gy*gy);
       total++;
-    });
-  });
+    }
+  }
   // 0〜1にスケーリング（経験的な正規化係数）
   return total>0 ? Math.min(1, (edgeStrengthSum / total) / 20) : 0;
 }
@@ -4552,10 +4827,10 @@ function calcMotionAmount(gray, w, h) {
   let diffSum = 0;
   const step = 4; // 間引きして高速化
   let count = 0;
-  Array.from({ length: Math.ceil(gray.length / step) }, (_, k) => k * step).forEach((i) => {
+  for (let i = 0; i < gray.length; i += step) {
     diffSum += Math.abs(gray[i] - prevGrayForMotion[i]);
     count++;
-  });
+  }
   prevGrayForMotion = gray.slice();
   return count > 0 ? diffSum / count : 0; // 0〜255スケール、大きいほど動きが大きい
 }
