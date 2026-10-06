@@ -1075,6 +1075,14 @@
       background: rgba(26, 13, 18, 0.72);
     }
 
+    /* てんぐ巣病マップ：桜の名所ピン */
+    .sakura-spot-icon {
+      font-size: 18px;
+      line-height: 22px;
+      text-align: center;
+      filter: drop-shadow(0 1px 2px rgba(0,0,0,0.4));
+    }
+
     /* 複数枚まとめて判定 */
     .batch-list {
       display: flex;
@@ -1888,6 +1896,18 @@
       </label>
     </div>
 
+    <!-- てんぐ巣病マップに桜の名所を表示 -->
+    <div class="howto-step" style="align-items:center;gap:1rem;margin-top:0.75rem;">
+      <div class="howto-step-body" style="flex:1;">
+        <p class="howto-step-title" data-i18n="settings_sakura_spots">🌸 桜の名所をマップに表示する</p>
+        <p class="howto-step-desc" style="margin-top:0.25rem;" data-i18n="settings_sakura_spots_desc">「てんぐ巣病マップ」に、日立市が紹介する桜の名所（かみね公園・平和通りなど）のピンを表示します。</p>
+      </div>
+      <label class="settings-toggle">
+        <input type="checkbox" id="settingSakuraSpots" checked>
+        <span class="toggle-track"><span class="toggle-thumb"></span></span>
+      </label>
+    </div>
+
     <!-- 背景の季節 -->
     <div class="howto-step" style="align-items:center;gap:1rem;margin-top:0.75rem;">
       <div class="howto-step-body" style="flex:1;">
@@ -2137,6 +2157,8 @@ const I18N = {
     settings_data_desc: '判定結果を匿名で送信し、AI改善に役立てます。',
     settings_guide: '📸 撮影ガイドを表示する',
     settings_guide_desc: 'カメラ撮影時に、明るさやピント合わせをサポートするガイド表示を行います。',
+    settings_sakura_spots: '🌸 桜の名所をマップに表示する',
+    settings_sakura_spots_desc: '「てんぐ巣病マップ」に、日立市が紹介する桜の名所（かみね公園・平和通りなど）のピンを表示します。',
     settings_auto: '🎯 かざすだけで自動判定',
     settings_auto_desc: 'ガイド枠が緑になり構えが安定すると、自動で撮影してAI診断まで行います。オフの場合は手動でシャッターを押して診断してください。（この機能は「撮影ガイド」がONの場合のみ動作します）',
     settings_season_bg: '🖼️ 背景の季節',
@@ -2251,6 +2273,7 @@ const I18N = {
     map_title: '🗺️ てんぐ巣病マップ（この端末の記録）',
     map_desc: 'このスマホ・PCでカメラ撮影して「病気」と判定された場所を表示します（位置情報を許可した場合のみ）。ファイルから選んだ写真や、他の利用者の記録は含まれません。',
     map_summary: '記録地点数：{n}件',
+    map_open_in_google: 'Googleマップで見る',
     badge_section_login: '📅 月別ログインバッジ',
     badge_login_label: '{n}月のバッジ',
     badge_summary_login: 'ログイン達成月：{n}/12',
@@ -2290,6 +2313,8 @@ const I18N = {
     settings_data_desc: 'Send results anonymously to improve AI.',
     settings_guide: '📸 Show shooting guide',
     settings_guide_desc: 'Shows on-screen guidance for brightness and focus while shooting with the camera.',
+    settings_sakura_spots: '🌸 Show famous sakura spots on the map',
+    settings_sakura_spots_desc: 'Shows pins for sakura viewing spots introduced by Hitachi City (Kamine Park, Heiwa-dori, etc.) on the Witches\' Broom Map.',
     settings_auto: '🎯 Auto-judge just by holding up the camera',
     settings_auto_desc: 'When the guide frame turns green and holds steady, the app automatically captures and runs the AI diagnosis. Turn off to press the shutter manually instead. (Requires "Show shooting guide" to be on.)',
     settings_season_bg: '🖼️ Seasonal background',
@@ -2412,6 +2437,7 @@ To date, no effective treatment or preventive method has been established.
     map_title: '🗺️ Witches\' Broom Map (this device only)',
     map_desc: 'Shows locations where photos taken with this device\'s camera were diagnosed as diseased (only when location permission was granted). Photos chosen from files and other users\' data are not included.',
     map_summary: 'Recorded points: {n}',
+    map_open_in_google: 'View on Google Maps',
     badge_section_login: '📅 Monthly Login Badges',
     badge_login_label: 'Month {n} Badge',
     badge_summary_login: 'Months collected: {n}/12',
@@ -2451,6 +2477,8 @@ To date, no effective treatment or preventive method has been established.
     settings_data_desc: '匿名发送结果以改进AI。',
     settings_guide: '📸 显示拍摄引导',
     settings_guide_desc: '拍摄时显示帮助您调整亮度和对焦的引导界面。',
+    settings_sakura_spots: '🌸 在地图上显示樱花名胜',
+    settings_sakura_spots_desc: '在“丛枝病地图”上显示日立市介绍的赏樱名胜（上野公园、和平大道等）的图钉。',
     settings_auto: '🎯 只需举起相机即可自动判定',
     settings_auto_desc: '当引导框变绿并保持稳定时，将自动拍摄并进行AI诊断。关闭后需手动按下快门进行诊断。（此功能需要开启“显示拍摄引导”）',
     settings_season_bg: '🖼️ 季节背景',
@@ -2572,6 +2600,7 @@ To date, no effective treatment or preventive method has been established.
     map_title: '🗺️ 丛枝病地图（仅本设备记录）',
     map_desc: '显示使用本设备相机拍摄并被判定为患病的位置（仅限已授权位置信息的情况）。不包含从相册选择的照片及其他用户的数据。',
     map_summary: '记录地点数：{n}个',
+    map_open_in_google: '在谷歌地图中查看',
     badge_section_login: '📅 每月登录徽章',
     badge_login_label: '{n}月徽章',
     badge_summary_login: '已收集月份：{n}/12',
@@ -2611,6 +2640,8 @@ To date, no effective treatment or preventive method has been established.
     settings_data_desc: '결과를 익명으로 전송하여 AI 개선에 도움을 줍니다.',
     settings_guide: '📸 촬영 가이드 표시',
     settings_guide_desc: '카메라 촬영 시 밝기와 초점 맞추기를 돕는 가이드를 표시합니다.',
+    settings_sakura_spots: '🌸 지도에 벚꽃 명소 표시하기',
+    settings_sakura_spots_desc: '「텐구소병 지도」에 히타치시가 소개하는 벚꽃 명소(카미네 공원, 헤이와도리 등)의 핀을 표시합니다.',
     settings_auto: '🎯 카메라를 비추기만 하면 자동 판정',
     settings_auto_desc: '가이드 프레임이 초록색이 되어 자세가 안정되면 자동으로 촬영하여 AI 진단까지 진행합니다. 끄면 수동으로 셔터를 눌러 진단합니다. (이 기능은 "촬영 가이드 표시"가 켜져 있을 때만 작동합니다)',
     settings_season_bg: '🖼️ 계절 배경',
@@ -2733,6 +2764,7 @@ To date, no effective treatment or preventive method has been established.
     map_title: '🗺️ 텐구소병 지도 (이 기기의 기록만)',
     map_desc: '이 기기의 카메라로 촬영하여 "병해"로 판정된 위치를 표시합니다 (위치 정보를 허용한 경우에만). 파일에서 선택한 사진이나 다른 사용자의 기록은 포함되지 않습니다.',
     map_summary: '기록된 지점 수：{n}건',
+    map_open_in_google: '구글 지도에서 보기',
     badge_section_login: '📅 월별 로그인 배지',
     badge_login_label: '{n}월 배지',
     badge_summary_login: '수집한 월：{n}/12',
@@ -2860,6 +2892,15 @@ function applyI18n() {
     localStorage.setItem('setting_auto_judge', autoJudgeToggle.checked);
     // 表示中のガイドメッセージ（手動/自動の文言）を即座に切り替える
     if (typeof refreshGuideBannerLang === 'function') refreshGuideBannerLang();
+  });
+
+  // てんぐ巣病マップに桜の名所を表示する設定（デフォルトON）
+  const sakuraSpotsToggle = document.getElementById('settingSakuraSpots');
+  const savedSakuraSpots = localStorage.getItem('setting_sakura_spots');
+  if (savedSakuraSpots === 'false') sakuraSpotsToggle.checked = false;
+  sakuraSpotsToggle.addEventListener('change', () => {
+    localStorage.setItem('setting_sakura_spots', sakuraSpotsToggle.checked);
+    if (typeof renderTenguMap === 'function' && document.getElementById('mapOverlay')?.style.display === 'flex') renderTenguMap();
   });
 
   // 背景の季節 設定（デフォルト: 自動）
@@ -3231,6 +3272,39 @@ function severityColor(entry) {
   return '#EF4444'; // 重度 / その他
 }
 
+// 日立市公式サイト「日立のさくら名所」より（設定でON/OFF可能）
+// 出典: https://www.city.hitachi.lg.jp/citypromotion/hitachi_donnamachi/1007306/1004679/index.html
+const SAKURA_FAMOUS_SPOTS = [
+  { name: '十王パノラマ公園', area: '十王地区', lat: 36.6698, lng: 140.6648, url: 'http://goo.gl/maps/o3gBEV1MU1nr2hNB7' },
+  { name: 'かみね公園', area: '日立地区', lat: 36.6088, lng: 140.6573, url: 'http://goo.gl/maps/SjjX8Q82QD9vWRDGA' },
+  { name: '平和通り', area: '日立地区', lat: 36.5947, lng: 140.6559, url: 'http://goo.gl/maps/WjHTbpXWYnWvquDB9' },
+  { name: '滑川小学校', area: '日立地区', lat: 36.6172, lng: 140.6679, url: 'http://goo.gl/maps/b4kBY2WNjkGX8ptj8' },
+  { name: '諏訪台桜塚三角公園', area: '日立地区', lat: 36.6017, lng: 140.6494, url: 'http://goo.gl/maps/QR9zaUzRjWmHaFb59' },
+  { name: '日立市消防本部', area: '日立地区', lat: 36.6013, lng: 140.6534, url: 'http://goo.gl/maps/Sq43UTh1A3C6odUf7' },
+  { name: '戸ノ内児童公園', area: '日立地区', lat: 36.6000, lng: 140.6626, url: 'http://goo.gl/maps/CStKztuSkuJXjbjCA' },
+  { name: '中小路小学校', area: '日立地区', lat: 36.5964, lng: 140.6591, url: 'http://goo.gl/maps/vcDCzw2yJoDN39ty9' },
+  { name: '東平霊園', area: '日立地区', lat: 36.6001, lng: 140.6420, url: 'http://goo.gl/maps/9X4NHxEK2j442ssSA' },
+  { name: '助川小学校の五代桜', area: '日立地区', lat: 36.5914, lng: 140.6464, url: 'http://goo.gl/maps/etyhndHEJatFtF9AA' },
+  { name: '会瀬グラウンド', area: '日立地区', lat: 36.5835, lng: 140.6487, url: 'http://goo.gl/maps/3DpaojJNng19QtkAA' },
+  { name: '日立工業専修学校', area: '多賀地区', lat: 36.5766, lng: 140.6304, url: 'http://goo.gl/maps/UZh5QLAxJGv5NmzQ6' },
+  { name: '多賀中学校', area: '多賀地区', lat: 36.5667, lng: 140.6389, url: 'http://goo.gl/maps/NsqKHuJLYcrY9jw66' },
+  { name: '桜川緑地', area: '多賀地区', lat: 36.5631, lng: 140.6328, url: 'http://goo.gl/maps/jWr8uqXGDokU4x6c9' },
+  { name: 'さくら通り', area: '多賀地区', lat: 36.5553, lng: 140.6398, url: 'http://goo.gl/maps/HKo8CV4yqHtKq33U8' },
+  { name: '大久保小学校', area: '多賀地区', lat: 36.5580, lng: 140.6260, url: 'http://goo.gl/maps/FgqSGG5owPDeZqRK8' },
+  { name: '塙山小学校', area: '多賀地区', lat: 36.5484, lng: 140.6162, url: 'http://goo.gl/maps/mwhMEgX5iS4bTxjf7' },
+  { name: '金沢小学校', area: '多賀地区', lat: 36.5403, lng: 140.6119, url: 'http://goo.gl/maps/PY7CfNEpfGAqz2PF6' },
+  { name: '日立研究所', area: '南部地区', lat: 36.5150, lng: 140.6088, url: 'http://goo.gl/maps/TNSXhcGT3fuzGdM99' },
+  { name: '南高野第2児童公園', area: '南部地区', lat: 36.5073, lng: 140.6045, url: 'http://goo.gl/maps/ytNeTPuShXudM7nv7' },
+  { name: 'まえはら児童公園', area: '南部地区', lat: 36.5140, lng: 140.6244, url: 'http://goo.gl/maps/piwBhQcwaaVaGzBW9' },
+  { name: '水木小学校', area: '南部地区', lat: 36.5216, lng: 140.6309, url: 'http://goo.gl/maps/yv2E93u1FzHXvkvBA' },
+  { name: '油ヶ崎神社', area: '中里地区', lat: 36.6417, lng: 140.5366, url: 'http://goo.gl/maps/uzVQKQ7Hdt9mhVYZ6' },
+  { name: '中里小中学校', area: '中里地区', lat: 36.6326, lng: 140.5470, url: 'http://goo.gl/maps/TWq2NLuHg8B4fixB6' },
+];
+
+function isSakuraSpotsEnabled() {
+  return localStorage.getItem('setting_sakura_spots') !== 'false'; // デフォルトON
+}
+
 let tenguMapInstance = null;
 function renderTenguMap() {
   const container = document.getElementById('tenguMapEl');
@@ -3251,13 +3325,30 @@ function renderTenguMap() {
   }
   // 既存マーカーをクリア（タイルレイヤーは残す）
   tenguMapInstance.eachLayer(layer => {
-    if (layer instanceof L.CircleMarker) tenguMapInstance.removeLayer(layer);
+    if (layer instanceof L.CircleMarker || layer instanceof L.Marker) tenguMapInstance.removeLayer(layer);
   });
 
+  const showSpots = isSakuraSpotsEnabled();
+  const sakuraIcon = (typeof L !== 'undefined') ? L.divIcon({
+    className: 'sakura-spot-icon',
+    html: '🌸',
+    iconSize: [22, 22],
+    iconAnchor: [11, 11],
+  }) : null;
+
+  const bounds = [];
+  if (showSpots) {
+    SAKURA_FAMOUS_SPOTS.forEach(spot => {
+      const marker = L.marker([spot.lat, spot.lng], { icon: sakuraIcon }).addTo(tenguMapInstance);
+      marker.bindPopup(`🌸 <strong>${spot.name}</strong><br>${spot.area}<br><a href="${spot.url}" target="_blank" rel="noopener">${t('map_open_in_google') || 'Googleマップで見る'}</a>`);
+      bounds.push([spot.lat, spot.lng]);
+    });
+  }
+
   if (locations.length === 0) {
-    tenguMapInstance.setView([36.5, 139.5], 6); // 位置情報の記録が無い場合は日本付近を表示
+    if (bounds.length > 0) tenguMapInstance.fitBounds(bounds, { padding: [24, 24] });
+    else tenguMapInstance.setView([36.5, 139.5], 6); // 記録も名所表示も無い場合は日本付近を表示
   } else {
-    const bounds = [];
     locations.forEach(loc => {
       const marker = L.circleMarker([loc.lat, loc.lng], {
         radius: 7,
