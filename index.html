@@ -2819,6 +2819,8 @@ function applyI18n() {
   if (typeof refreshBacklightStatusLang === 'function') refreshBacklightStatusLang();
   // バッジ画面が開いていれば現在の言語で再描画
   if (typeof renderBadgeGrid === 'function' && document.getElementById('badgeOverlay')?.style.display === 'flex') renderBadgeGrid();
+  // マップが開いていれば、桜の名所名なども現在の言語で再描画
+  if (typeof renderTenguMap === 'function' && document.getElementById('mapOverlay')?.style.display === 'flex') renderTenguMap();
 }
 
 // ====== 設定モーダル ======
@@ -3301,41 +3303,55 @@ function severityColor(entry) {
   return '#EF4444'; // 重度 / その他
 }
 
-// 日立市公式サイト「日立のさくら名所」より（設定でON/OFF可能）
+// 日立市・常陸太田市の公式サイト「桜の名所」より（設定でON/OFF可能）
 // 出典: https://www.city.hitachi.lg.jp/citypromotion/hitachi_donnamachi/1007306/1004679/index.html
+// name/area は { ja, en, zh, ko } の4言語対応。getSpotName()/getSpotArea() で表示言語を切り替える
+const SAKURA_AREA_LABELS = {
+  hitachi:    { ja: '日立市',   en: 'Hitachi City',    zh: '日立市',   ko: '히타치시' },
+  hitachiota: { ja: '常陸太田市', en: 'Hitachiota City',  zh: '常陆太田市', ko: '히타치오타시' },
+};
 const SAKURA_FAMOUS_SPOTS = [
-  { name: '十王パノラマ公園', area: '日立市', lat: 36.6698, lng: 140.6648, url: 'http://goo.gl/maps/o3gBEV1MU1nr2hNB7' },
-  { name: 'かみね公園', area: '日立市', lat: 36.6088, lng: 140.6573, url: 'http://goo.gl/maps/SjjX8Q82QD9vWRDGA' },
-  { name: '平和通り', area: '日立市', lat: 36.5947, lng: 140.6559, url: 'http://goo.gl/maps/WjHTbpXWYnWvquDB9' },
-  { name: '滑川小学校', area: '日立市', lat: 36.6172, lng: 140.6679, url: 'http://goo.gl/maps/b4kBY2WNjkGX8ptj8' },
-  { name: '諏訪台桜塚三角公園', area: '日立市', lat: 36.6017, lng: 140.6494, url: 'http://goo.gl/maps/QR9zaUzRjWmHaFb59' },
-  { name: '日立市消防本部', area: '日立市', lat: 36.6013, lng: 140.6534, url: 'http://goo.gl/maps/Sq43UTh1A3C6odUf7' },
-  { name: '戸ノ内児童公園', area: '日立市', lat: 36.6000, lng: 140.6626, url: 'http://goo.gl/maps/CStKztuSkuJXjbjCA' },
-  { name: '中小路小学校', area: '日立市', lat: 36.5964, lng: 140.6591, url: 'http://goo.gl/maps/vcDCzw2yJoDN39ty9' },
-  { name: '東平霊園', area: '日立市', lat: 36.6001, lng: 140.6420, url: 'http://goo.gl/maps/9X4NHxEK2j442ssSA' },
-  { name: '助川小学校の五代桜', area: '日立市', lat: 36.5914, lng: 140.6464, url: 'http://goo.gl/maps/etyhndHEJatFtF9AA' },
-  { name: '会瀬グラウンド', area: '日立市', lat: 36.5835, lng: 140.6487, url: 'http://goo.gl/maps/3DpaojJNng19QtkAA' },
-  { name: '日立工業専修学校', area: '日立市', lat: 36.5766, lng: 140.6304, url: 'http://goo.gl/maps/UZh5QLAxJGv5NmzQ6' },
-  { name: '多賀中学校', area: '日立市', lat: 36.5667, lng: 140.6389, url: 'http://goo.gl/maps/NsqKHuJLYcrY9jw66' },
-  { name: '桜川緑地', area: '日立市', lat: 36.5631, lng: 140.6328, url: 'http://goo.gl/maps/jWr8uqXGDokU4x6c9' },
-  { name: 'さくら通り', area: '日立市', lat: 36.5553, lng: 140.6398, url: 'http://goo.gl/maps/HKo8CV4yqHtKq33U8' },
-  { name: '大久保小学校', area: '日立市', lat: 36.5580, lng: 140.6260, url: 'http://goo.gl/maps/FgqSGG5owPDeZqRK8' },
-  { name: '塙山小学校', area: '日立市', lat: 36.5484, lng: 140.6162, url: 'http://goo.gl/maps/mwhMEgX5iS4bTxjf7' },
-  { name: '金沢小学校', area: '日立市', lat: 36.5403, lng: 140.6119, url: 'http://goo.gl/maps/PY7CfNEpfGAqz2PF6' },
-  { name: '日立研究所', area: '日立市', lat: 36.5150, lng: 140.6088, url: 'http://goo.gl/maps/TNSXhcGT3fuzGdM99' },
-  { name: '南高野第2児童公園', area: '日立市', lat: 36.5073, lng: 140.6045, url: 'http://goo.gl/maps/ytNeTPuShXudM7nv7' },
-  { name: 'まえはら児童公園', area: '日立市', lat: 36.5140, lng: 140.6244, url: 'http://goo.gl/maps/piwBhQcwaaVaGzBW9' },
-  { name: '水木小学校', area: '日立市', lat: 36.5216, lng: 140.6309, url: 'http://goo.gl/maps/yv2E93u1FzHXvkvBA' },
-  { name: '油ヶ崎神社', area: '日立市', lat: 36.6417, lng: 140.5366, url: 'http://goo.gl/maps/uzVQKQ7Hdt9mhVYZ6' },
-  { name: '中里小中学校', area: '日立市', lat: 36.6326, lng: 140.5470, url: 'https://maps.app.goo.gl/MiDYQUwnCvyfEHmKA' },
+  { name: { ja: '十王パノラマ公園', en: 'Juo Panorama Park', zh: '十王全景公园', ko: '주오 파노라마 공원' }, area: 'hitachi', lat: 36.6698, lng: 140.6648, url: 'http://goo.gl/maps/o3gBEV1MU1nr2hNB7' },
+  { name: { ja: 'かみね公園', en: 'Kamine Park', zh: '神峰公园', ko: '카미네 공원' }, area: 'hitachi', lat: 36.6088, lng: 140.6573, url: 'http://goo.gl/maps/SjjX8Q82QD9vWRDGA' },
+  { name: { ja: '平和通り', en: 'Heiwa-dori (Peace Street)', zh: '和平大道', ko: '헤이와도리(평화거리)' }, area: 'hitachi', lat: 36.5947, lng: 140.6559, url: 'http://goo.gl/maps/WjHTbpXWYnWvquDB9' },
+  { name: { ja: '滑川小学校', en: 'Namekawa Elementary School', zh: '滑川小学校', ko: '나메카와 초등학교' }, area: 'hitachi', lat: 36.6172, lng: 140.6679, url: 'http://goo.gl/maps/b4kBY2WNjkGX8ptj8' },
+  { name: { ja: '諏訪台桜塚三角公園', en: 'Suwadai Sakurazuka Triangle Park', zh: '诹访台樱冢三角公园', ko: '스와다이 사쿠라즈카 삼각공원' }, area: 'hitachi', lat: 36.6017, lng: 140.6494, url: 'http://goo.gl/maps/QR9zaUzRjWmHaFb59' },
+  { name: { ja: '日立市消防本部', en: 'Hitachi City Fire Department', zh: '日立市消防总部', ko: '히타치시 소방본부' }, area: 'hitachi', lat: 36.6013, lng: 140.6534, url: 'http://goo.gl/maps/Sq43UTh1A3C6odUf7' },
+  { name: { ja: '戸ノ内児童公園', en: "Tonouchi Children's Park", zh: '户之内儿童公园', ko: '토노우치 어린이공원' }, area: 'hitachi', lat: 36.6000, lng: 140.6626, url: 'http://goo.gl/maps/CStKztuSkuJXjbjCA' },
+  { name: { ja: '中小路小学校', en: 'Nakakoji Elementary School', zh: '中小路小学校', ko: '나카코지 초등학교' }, area: 'hitachi', lat: 36.5964, lng: 140.6591, url: 'http://goo.gl/maps/vcDCzw2yJoDN39ty9' },
+  { name: { ja: '東平霊園', en: 'Tohei Cemetery', zh: '东平陵园', ko: '도헤이 묘지' }, area: 'hitachi', lat: 36.6001, lng: 140.6420, url: 'http://goo.gl/maps/9X4NHxEK2j442ssSA' },
+  { name: { ja: '助川小学校の五代桜', en: 'Godai Cherry Tree at Sukegawa Elementary School', zh: '助川小学校的五代樱', ko: '스케가와 초등학교의 고다이자쿠라' }, area: 'hitachi', lat: 36.5914, lng: 140.6464, url: 'http://goo.gl/maps/etyhndHEJatFtF9AA' },
+  { name: { ja: '会瀬グラウンド', en: 'Ose Ground', zh: '会濑运动场', ko: '오세 그라운드' }, area: 'hitachi', lat: 36.5835, lng: 140.6487, url: 'http://goo.gl/maps/3DpaojJNng19QtkAA' },
+  { name: { ja: '日立工業専修学校', en: 'Hitachi Technical College', zh: '日立工业专修学校', ko: '히타치 공업전수학교' }, area: 'hitachi', lat: 36.5766, lng: 140.6304, url: 'http://goo.gl/maps/UZh5QLAxJGv5NmzQ6' },
+  { name: { ja: '多賀中学校', en: 'Taga Junior High School', zh: '多贺中学校', ko: '타가 중학교' }, area: 'hitachi', lat: 36.5667, lng: 140.6389, url: 'http://goo.gl/maps/NsqKHuJLYcrY9jw66' },
+  { name: { ja: '桜川緑地', en: 'Sakuragawa Green Space', zh: '樱川绿地', ko: '사쿠라가와 녹지' }, area: 'hitachi', lat: 36.5631, lng: 140.6328, url: 'http://goo.gl/maps/jWr8uqXGDokU4x6c9' },
+  { name: { ja: 'さくら通り', en: 'Sakura Street', zh: '樱花大道', ko: '사쿠라도리(벚꽃거리)' }, area: 'hitachi', lat: 36.5553, lng: 140.6398, url: 'http://goo.gl/maps/HKo8CV4yqHtKq33U8' },
+  { name: { ja: '大久保小学校', en: 'Okubo Elementary School', zh: '大久保小学校', ko: '오쿠보 초등학교' }, area: 'hitachi', lat: 36.5580, lng: 140.6260, url: 'http://goo.gl/maps/FgqSGG5owPDeZqRK8' },
+  { name: { ja: '塙山小学校', en: 'Hanayama Elementary School', zh: '塙山小学校', ko: '하나야마 초등학교' }, area: 'hitachi', lat: 36.5484, lng: 140.6162, url: 'http://goo.gl/maps/mwhMEgX5iS4bTxjf7' },
+  { name: { ja: '金沢小学校', en: 'Kanesawa Elementary School', zh: '金泽小学校', ko: '가네사와 초등학교' }, area: 'hitachi', lat: 36.5403, lng: 140.6119, url: 'http://goo.gl/maps/PY7CfNEpfGAqz2PF6' },
+  { name: { ja: '日立研究所', en: 'Hitachi Research Laboratory', zh: '日立研究所', ko: '히타치 연구소' }, area: 'hitachi', lat: 36.5150, lng: 140.6088, url: 'http://goo.gl/maps/TNSXhcGT3fuzGdM99' },
+  { name: { ja: '南高野第2児童公園', en: "Minami-Koya No.2 Children's Park", zh: '南高野第2儿童公园', ko: '미나미코야 제2어린이공원' }, area: 'hitachi', lat: 36.5073, lng: 140.6045, url: 'http://goo.gl/maps/ytNeTPuShXudM7nv7' },
+  { name: { ja: 'まえはら児童公園', en: "Maehara Children's Park", zh: '前原儿童公园', ko: '마에하라 어린이공원' }, area: 'hitachi', lat: 36.5140, lng: 140.6244, url: 'http://goo.gl/maps/piwBhQcwaaVaGzBW9' },
+  { name: { ja: '水木小学校', en: 'Mizuki Elementary School', zh: '水木小学校', ko: '미즈키 초등학교' }, area: 'hitachi', lat: 36.5216, lng: 140.6309, url: 'http://goo.gl/maps/yv2E93u1FzHXvkvBA' },
+  { name: { ja: '油ヶ崎神社', en: 'Yugasaki Shrine', zh: '油崎神社', ko: '유가사키 신사' }, area: 'hitachi', lat: 36.6417, lng: 140.5366, url: 'http://goo.gl/maps/uzVQKQ7Hdt9mhVYZ6' },
+  { name: { ja: '中里小中学校', en: 'Nakazato Elementary & Junior High School', zh: '中里小中学校', ko: '나카자토 초중학교' }, area: 'hitachi', lat: 36.6326, lng: 140.5470, url: 'https://maps.app.goo.gl/MiDYQUwnCvyfEHmKA' },
   // 常陸太田市
-  { name: '西山公園', area: '常陸太田市', lat: 36.5413, lng: 140.5129, url: '' },
-  { name: '常陸太田特別支援学校', area: '常陸太田市', lat: 36.5628, lng: 140.5328, url: '' },
-  { name: '泉福寺', area: '常陸太田市', lat: 36.7422, lng: 140.5004, url: '' },
-  { name: '小森明神古墳', area: '常陸太田市', lat: 36.7322, lng: 140.4939, url: '' },
-  { name: '七反のしだれ桜', area: '常陸太田市', lat: 36.8245, lng: 140.5362, url: '' },
-  { name: '漆平の枝垂れ桜', area: '常陸太田市', lat: 36.8264, lng: 140.5463, url: '' },
+  { name: { ja: '西山公園', en: 'Nishiyama Park', zh: '西山公园', ko: '니시야마 공원' }, area: 'hitachiota', lat: 36.5413, lng: 140.5129, url: '' },
+  { name: { ja: '常陸太田特別支援学校', en: 'Hitachiota Special Needs School', zh: '常陆太田特别支援学校', ko: '히타치오타 특별지원학교' }, area: 'hitachiota', lat: 36.5628, lng: 140.5328, url: '' },
+  { name: { ja: '泉福寺', en: 'Senpuku-ji Temple', zh: '泉福寺', ko: '센푸쿠지' }, area: 'hitachiota', lat: 36.7422, lng: 140.5004, url: '' },
+  { name: { ja: '小森明神古墳', en: 'Komorimyojin Burial Mound', zh: '小森明神古坟', ko: '고모리묘진 고분' }, area: 'hitachiota', lat: 36.7322, lng: 140.4939, url: '' },
+  { name: { ja: '七反のしだれ桜', en: 'Shichitan Weeping Cherry Tree', zh: '七反垂枝樱', ko: '시치탄 수양벚나무' }, area: 'hitachiota', lat: 36.8245, lng: 140.5362, url: '' },
+  { name: { ja: '漆平の枝垂れ桜', en: 'Urushidaira Weeping Cherry Tree', zh: '漆平垂枝樱', ko: '우루시다이라 수양벚나무' }, area: 'hitachiota', lat: 36.8264, lng: 140.5463, url: '' },
 ];
+
+// 現在の表示言語に合わせて名所名・エリア名を返す
+function getSpotName(spot) {
+  return spot.name[currentLang] || spot.name.ja;
+}
+function getSpotArea(spot) {
+  const labels = SAKURA_AREA_LABELS[spot.area];
+  return labels ? (labels[currentLang] || labels.ja) : '';
+}
 
 function isSakuraSpotsEnabled() {
   return localStorage.getItem('setting_sakura_spots') !== 'false'; // デフォルトON
@@ -3377,7 +3393,7 @@ function renderTenguMap() {
     SAKURA_FAMOUS_SPOTS.forEach(spot => {
       const marker = L.marker([spot.lat, spot.lng], { icon: sakuraIcon }).addTo(tenguMapInstance);
       const spotMapUrl = spot.url || `https://maps.google.com/?q=${spot.lat},${spot.lng}`;
-      marker.bindPopup(`🌸 <strong>${spot.name}</strong><br>${spot.area}<br><a href="${spotMapUrl}" target="_blank" rel="noopener">${t('map_open_in_google') || 'Googleマップで見る'}</a>`);
+      marker.bindPopup(`🌸 <strong>${getSpotName(spot)}</strong><br>${getSpotArea(spot)}<br><a href="${spotMapUrl}" target="_blank" rel="noopener">${t('map_open_in_google') || 'Googleマップで見る'}</a>`);
       bounds.push([spot.lat, spot.lng]);
     });
   }
