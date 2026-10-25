@@ -1,523 +1,151 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="UTF-8" />
-  <title>てんぐすん。</title>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.16.0/dist/tf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/piexifjs@1.0.6/piexif.min.js"></script>
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.css" />
-  <script src="https://cdn.jsdelivr.net/npm/leaflet@1.9.4/dist/leaflet.js"></script>
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link href="https://fonts.googleapis.com/css2?family=Zen+Maru+Gothic:wght@400;500;700&family=Noto+Serif+JP:wght@300;400&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=20261025b">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>「てんぐすん。」は移行しました</title>
+    <style>
+        /* 全体のリセットと背景設定 */
+        body {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
+            background: linear-gradient(135deg, #fff5f5 0%, #ffe3e3 100%);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #4a3737;
+            overflow: hidden;
+            position: relative;
+        }
+
+        /* 桜のニュアンスを加える背景の装飾（オーナメント） */
+        body::before, body::after {
+            content: "";
+            position: absolute;
+            border-radius: 50%;
+            filter: blur(60px);
+            z-index: 0;
+        }
+        body::before {
+            width: 300px;
+            height: 300px;
+            background: rgba(255, 183, 197, 0.4);
+            top: -50px;
+            left: -50px;
+        }
+        body::after {
+            width: 400px;
+            height: 400px;
+            background: rgba(255, 158, 181, 0.3);
+            bottom: -100px;
+            right: -100px;
+        }
+
+        /* 案内カードのスタイル */
+        .container {
+            background: rgba(255, 255, 255, 0.85);
+            border-radius: 24px;
+            padding: 3.5rem 2rem;
+            box-shadow: 0 12px 40px rgba(255, 158, 181, 0.15);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.6);
+            text-align: center;
+            max-width: 480px;
+            width: 90%;
+            z-index: 1;
+            box-sizing: border-box;
+            transform: translateY(0);
+            animation: fadeInUp 0.8s ease-out forwards;
+        }
+
+        /* テキストのスタイリング */
+        .message {
+            font-size: 1.35rem;
+            font-weight: 600;
+            line-height: 1.8;
+            margin-bottom: 2.5rem;
+            letter-spacing: 0.05em;
+        }
+
+        .brand-name {
+            color: #d1516e;
+            font-size: 1.6rem;
+            display: block;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        /* 移行先ボタンのスタイリング */
+        .btn-link {
+            display: inline-block;
+            background: linear-gradient(135deg, #ff8da1 0%, #d1516e 100%);
+            color: #ffffff;
+            text-decoration: none;
+            font-size: 1.1rem;
+            font-weight: 600;
+            padding: 1rem 2.5rem;
+            border-radius: 50px;
+            box-shadow: 0 6px 20px rgba(209, 81, 110, 0.3);
+            transition: all 0.3s ease;
+            letter-spacing: 0.03em;
+        }
+
+        /* ボタンのホバーエフェクト */
+        .btn-link:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 10px 25px rgba(209, 81, 110, 0.45);
+            background: linear-gradient(135deg, #ff9eaf 0%, #e05c7b 100%);
+        }
+
+        .btn-link:active {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 12px rgba(209, 81, 110, 0.3);
+        }
+
+        /* 補助テキスト（自動遷移用など） */
+        .notice {
+            margin-top: 2rem;
+            font-size: 0.85rem;
+            color: #8c7373;
+        }
+
+        /* ふんわり表示されるアニメーション */
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
 </head>
 <body>
 
-<!-- 季節の背景画像（ユーザーが images/ フォルダに spring / summer / autumn / winter を配置すると表示） -->
-<img id="seasonBgImg" class="season-bg-img" alt="" aria-hidden="true">
-
-
-<div class="app">
-
-  <!-- ヘッダー -->
-  <header class="app-header">
-    <div class="header-top-row">
-      <!-- 左列：バッジ / マップ -->
-      <div class="header-col header-col-left">
-        <button class="howto-reopen-btn" id="badgeOpenBtn"><span data-i18n="badge_btn">🏅 バッジ</span><span class="notice-dot" id="badgeDot"></span></button>
-        <button class="howto-reopen-btn" id="mapOpenBtn"><span data-i18n="map_btn">🗺️ マップ</span></button>
-      </div>
-      <!-- 中央：桜マーク -->
-      <div class="header-emblem">🌸</div>
-      <!-- 右列：使い方 / お知らせ / 設定 -->
-      <div class="header-col header-col-right">
-        <button class="howto-reopen-btn" id="howtoReopenBtn" data-i18n="howto_btn">使い方</button>
-        <button class="howto-reopen-btn" id="noticeOpenBtn"><span data-i18n="notice_btn">📢 お知らせ</span><span class="notice-dot" id="noticeDot"></span></button>
-        <button class="howto-reopen-btn" id="contactReopenBtn" data-i18n="settings_btn">⚙️ 設定</button>
-      </div>
-    </div>
-    <h1 class="app-title" data-i18n="app_title">てんぐすん。</h1>
-    <p class="app-subtitle" data-i18n="app_subtitle">桜の健康をAIで診断します</p>
-  </header>
-
-  <!-- モデルステータス -->
-  <div class="model-status" id="modelStatus">
-    <span class="status-dot loading" id="statusDot"></span><span data-i18n="model_loading">モデルを読み込み中…</span>
-  </div>
-
-  <!-- メインカード -->
-  <div class="card">
-    <div class="card-section">
-      <p class="section-label" data-i18n="select_image">画像を選択</p>
-
-      <div class="file-drop" id="fileDrop">
-        <input type="file" id="imageInput" accept="image/*" />
-        <div class="file-drop-icon">📷</div>
-        <p class="file-drop-text" id="fileDropText"><span data-i18n="tap_select">タップして写真を選択</span><br><span style="font-size:0.72rem;opacity:0.7" data-i18n="or_drop">またはここにドロップ</span></p>
-      </div>
-
-      <!-- 複数枚まとめて判定 -->
-      <button type="button" class="btn btn-open-camera" id="batchOpenBtn" data-i18n="batch_btn">📚 複数枚まとめて判定</button>
-      <input type="file" id="batchImageInput" accept="image/*" multiple style="display:none">
-      <!-- カメラ起動ボタン（カメラOFF時のみ表示） -->
-      <button type="button" class="btn btn-open-camera" id="toggleCamera" style="margin-top:0.6rem;" data-i18n="camera_btn">📹 カメラを起動する</button>
+    <div class="container">
+        <p class="message">
+            <span class="brand-name">「てんぐすん。」</span>
+            はこちらに移行しました。
+        </p>
+        
+        <a href="https://tengusun.com/" class="btn-link">新しいサイトへ移動する</a>
+        
+        <p class="notice">ボタンをクリックすると新しいURLへ移動します。</p>
     </div>
 
-    <!-- iOSスタイル カメラビュー（カメラON時に表示） -->
-    <div class="ios-camera-wrap" id="iosCameraWrap" style="display:none">
-
-      <!-- カメラ本体（9:16） -->
-      <div class="ios-camera-inner">
-
-      <!-- 映像エリア -->
-      <div class="video-wrapper" id="videoWrapper">
-        <!-- 閉じるボタン：映像内の左上にオーバーレイ -->
-        <button type="button" class="ios-close-btn" id="closeCameraBtn" data-i18n="camera_close_btn">✕ 閉じる</button>
-        <video id="video" class="main" autoplay playsinline></video>
-        <img id="overlayPreview" class="overlay-preview" alt="撮影画像プレビュー" />
-
-        <!-- 撮影ガイドオーバーレイ -->
-        <div class="guide-overlay" id="guideOverlay" style="display:none">
-          <div class="guide-frame" id="guideFrame">
-            <span class="frame-corner tl"></span>
-            <span class="frame-corner tr"></span>
-            <span class="frame-corner bl"></span>
-            <span class="frame-corner br"></span>
-          </div>
-          <div class="guide-banner" id="guideBanner">
-            <span class="guide-icon" id="guideIcon">📸</span>
-            <span class="guide-msg" id="guideMsg" data-i18n="guide_msg_init">カメラを向けてください</span>
-          </div>
-          <div class="guide-ok" id="guideOk" style="display:none">✓ OK</div>
-        </div>
-
-        <!-- 右上: バスターON/OFFボタン -->
-        <button type="button" class="ios-buster-btn" id="busterToggleOverlay" data-i18n-title="backlight_title_attr" title="逆光バスター">☀️</button>
-        <!-- バスターON時のステータス -->
-        <div class="ios-buster-status" id="backlightStatus" style="display:none"></div>
-
-        <!-- 解析用の隠しcanvas -->
-        <canvas id="guideCanvas" style="display:none"></canvas>
-        <canvas id="backlightCanvas" style="display:none"></canvas>
-        <!-- カメラ切替フラッシュ -->
-        <div class="cam-switching-overlay" id="camSwitchOverlay"></div>
-
-        <!-- 明るさスライダー（縦・映像内右端） -->
-        <div class="ios-brightness-wrap" id="brightnessSideWrap" style="display:none">
-          <div class="ios-brightness-track">
-            <span class="ios-bright-icon top">☀️</span>
-            <input type="range" id="brightnessSlider" min="-1" max="1" step="0.01" value="0"
-                   class="ios-brightness-slider" />
-            <div class="ios-bright-track" id="brightTrack">
-              <div class="ios-bright-fill" id="brightFill" style="height:50%"></div>
-              <div class="ios-bright-thumb" id="brightThumb" style="bottom:50%"></div>
-            </div>
-            <span class="ios-bright-icon bot">🌑</span>
-          </div>
-          <span class="ios-bright-val" id="brightnessValue">0</span>
-        </div>
-      </div>
-
-      <!-- ズームバー（映像の直下・中央） -->
-      <div class="ios-zoom-bar" id="sliderGroup" style="display:none">
-        <div class="ios-zoom-pills" id="zoomPills">
-          <button class="zoom-pill active" data-zoom="1">1×</button>
-          <button class="zoom-pill" data-zoom="2">2×</button>
-          <button class="zoom-pill" data-zoom="3">3×</button>
-        </div>
-        <input type="range" id="zoomSlider" min="1" max="3" step="0.1" value="1" class="ios-zoom-slider" />
-        <span class="ios-zoom-val" id="zoomValue">1.0×</span>
-      </div>
-
-      <!-- 下部コントロールバー（iOSスタイル） -->
-      <div class="ios-controls">
-        <!-- 左: サムネイル（最後の撮影 / アップロード画像） -->
-        <div class="ios-thumb-wrap" id="iosThumbWrap">
-          <img id="preview" class="ios-thumb-img" alt="プレビュー" />
-          <div class="mini-camera" id="miniCamContainer" style="display:none">
-            <video id="miniCam" autoplay playsinline muted></video>
-          </div>
-        </div>
-
-        <!-- 中央: シャッターボタン -->
-        <button type="button" class="ios-shutter" id="captureBtn" disabled></button>
-
-        <!-- 右: カメラ切替ボタン -->
-        <button type="button" class="ios-switch" id="switchCamera" disabled>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" width="28" height="28">
-            <path d="M1 4v6h6M23 20v-6h-6"/>
-            <path d="M20.5 9A9 9 0 0 0 5.6 5.6L1 10m22 4l-4.6 4.4A9 9 0 0 1 3.5 15"/>
-          </svg>
-        </button>
-      </div>
-
-      </div><!-- /ios-camera-inner -->
-    </div>
-
-    <!-- サムネイル行（カメラOFF時の撮影済み表示） -->
-    <div class="card-section">
-      <div class="preview-thumb" id="previewThumb" style="display:none" title="タップで拡大">
-        <img class="thumb-img" id="previewOffline" alt="プレビュー" style="cursor:pointer" />
-        <div class="thumb-info">
-          <p data-i18n="photo_taken">撮影済み / 選択済み</p>
-          <p style="font-size:0.68rem;opacity:0.6;margin-top:0.2rem" data-i18n="tap_confirm">タップで確認</p>
-        </div>
-        <button type="button" class="btn-download" id="downloadBtn" disabled data-i18n="save_btn">⬇ 保存</button>
-      </div>
-    </div>
-  </div>
-
-
-
-  <!-- 判定ボタン -->
-  <button type="button" class="btn-submit" id="submitBtn" disabled data-i18n="submit_btn">🌸 AIで診断する</button>
-
-  <!-- 結果 -->
-  <div class="result-card" id="resultCard">
-    <div class="result-inner" id="result"></div>
-    <!-- ヒートマップ（病気判定時のみ表示・result-card内） -->
-    <div id="heatmapCard" style="display:none">
-      <div class="heatmap-section">
-        <div class="heatmap-header">
-          <span>🔥</span>
-          <span class="heatmap-header-text" id="heatmapHeaderText" data-i18n="heatmap_title">ここが怪しい！ AIの注目エリア</span>
-          <div class="heatmap-legend" id="heatmapLegend">
-            <span data-i18n="legend_low">低</span>
-            <div class="legend-bar"></div>
-            <span data-i18n="legend_high">高</span>
-          </div>
-        </div>
-        <div id="heatmapLoading" style="display:none; padding:1.5rem; text-align:center; font-size:0.75rem; color:#999;">
-          <span data-i18n="heatmap_wait">少し時間がかかります</span>
-        </div>
-        <div class="heatmap-canvas-wrap" id="heatmapCanvasWrap">
-          <canvas id="hmOrigCanvas"></canvas>
-          <canvas id="hmHeatCanvas"></canvas>
-        </div>
-        <div class="heatmap-note" id="heatmapNote" data-i18n="heatmap_note">
-          赤いほどAIが「病気の証拠」として強く注目している領域です。青〜緑は参考程度です。
-        </div>
-      </div>
-    </div>
-    <!-- 撮影場所マップ（位置情報がある場合のみ表示） -->
-    <div class="location-section" id="locationCard" style="display:none">
-      <div class="location-header">
-        <span>📍</span>
-        <span class="location-header-text" id="locationHeaderText" data-i18n="location_title">撮影場所</span>
-      </div>
-      <div class="location-map-wrap">
-        <iframe id="locationMapFrame" loading="lazy" referrerpolicy="no-referrer-when-downgrade" title="location map"></iframe>
-      </div>
-      <div class="location-footer">
-        <span class="location-coords" id="locationCoordsText"></span>
-        <a class="location-open-link" id="locationOpenLink" href="#" target="_blank" rel="noopener" data-i18n="location_open_link">Googleマップで開く</a>
-      </div>
-    </div>
-  </div>
-
-  <p class="footer-note" data-i18n="footer_note">
-    カメラのご使用にはブラウザの許可が必要です<br>
-    位置情報はダウンロード写真のEXIFのみに使用します
-  </p>
-</div>
-
-<!-- 使い方モーダル -->
-<div class="howto-overlay" id="howtoOverlay">
-  <div class="howto-box">
-    <button class="howto-close" id="howtoClose">✕</button>
-    <p class="howto-title" data-i18n="howto_title">🌸 てんぐすん。の使い方</p>
-
-    <div class="howto-step">
-      <div class="howto-num">1</div>
-      <div class="howto-step-body">
-        <p class="howto-step-title" data-i18n="howto_step1_title">写真を用意する</p>
-        <p class="howto-step-desc" data-i18n="howto_step1_desc">「📷 カメラを起動する」でその場で撮影するか、ギャラリーから画像を選択してください。</p>
-      </div>
-    </div>
-
-    <div class="howto-step">
-      <div class="howto-num">2</div>
-      <div class="howto-step-body">
-        <p class="howto-step-title" data-i18n="howto_step2_title">撮影のコツ</p>
-        <p class="howto-step-desc" data-i18n="howto_step2_desc">カメラ画面の枠（ガイド）が緑色になったら撮影のサインです。桜の枝・葉が枠内に収まるよう近づいてください。「かざすだけで自動判定」がONなら、そのまま少し構えを安定させるだけで自動的に撮影・診断されます。</p>
-      </div>
-    </div>
-
-    <div class="howto-step">
-      <div class="howto-num">3</div>
-      <div class="howto-step-body">
-        <p class="howto-step-title" data-i18n="howto_step3_title">逆光・暗所バスター（☀️）</p>
-        <p class="howto-step-desc" data-i18n="howto_step3_desc">暗い場所や逆光で撮る場合、カメラ右上の☀️をタップするとAIが自動で明るさを補正します。</p>
-      </div>
-    </div>
-
-    <div class="howto-step">
-      <div class="howto-num">4</div>
-      <div class="howto-step-body">
-        <p class="howto-step-title" data-i18n="howto_step4_title">AI診断する</p>
-        <p class="howto-step-desc" data-i18n="howto_step4_desc">「🌸 AIで診断する」ボタンを押すと、桜かどうか・健康か病気かを自動で判定します。</p>
-      </div>
-    </div>
-
-    <div class="howto-step">
-      <div class="howto-num">5</div>
-      <div class="howto-step-body">
-        <p class="howto-step-title" data-i18n="howto_step5_title">病気と判定されたら</p>
-        <p class="howto-step-desc" data-i18n="howto_step5_desc">AIが注目した部位がヒートマップで表示されます。その施設の管理者へご連絡ください。</p>
-      </div>
-    </div>
-
-    <hr class="howto-divider" />
-    <p class="howto-note" data-i18n="howto_note">※ AIの判定は参考情報です。最終判断は専門家にご相談ください。<br>カメラ・位置情報の許可が必要な場合があります。</p>
-
-    <button class="howto-start-btn" id="howtoStartBtn" data-i18n="howto_start">さっそく使ってみる 🌸</button>
-  </div>
-</div>
-
-<!-- 設定モーダル -->
-<div class="howto-overlay" id="contactOverlay">
-  <div class="howto-box">
-    <button class="howto-close" id="contactClose">✕</button>
-    <p class="howto-title" data-i18n="settings_title">⚙️ 設定</p>
-
-    <!-- 言語 -->
-    <div class="howto-step" style="align-items:center;gap:1rem;">
-      <div class="howto-step-body" style="flex:1;">
-        <p class="howto-step-title" data-i18n="settings_lang">🌐 言語 / Language</p>
-      </div>
-      <select id="settingLang" style="font-size:0.85rem;padding:0.3rem 0.5rem;border-radius:8px;border:1.5px solid var(--border-mid);background:var(--surface);color:var(--text-primary);cursor:pointer;">
-        <option value="ja">日本語</option>
-        <option value="en">English</option>
-        <option value="zh">中文</option>
-        <option value="ko">한국어</option>
-      </select>
-    </div>
-
-    <!-- ダークモード -->
-    <div class="howto-step" style="align-items:center;gap:1rem;margin-top:0.75rem;">
-      <div class="howto-step-body" style="flex:1;">
-        <p class="howto-step-title" data-i18n="settings_dark">🌙 ダークモード</p>
-        <p class="howto-step-desc" style="margin-top:0.25rem;" data-i18n="settings_dark_desc">画面を暗いテーマに切り替えます。</p>
-      </div>
-      <label class="settings-toggle">
-        <input type="checkbox" id="settingDark">
-        <span class="toggle-track"><span class="toggle-thumb"></span></span>
-      </label>
-    </div>
-
-    <!-- 背景の花びら -->
-    <div class="howto-step" style="align-items:center;gap:1rem;margin-top:0.75rem;">
-      <div class="howto-step-body" style="flex:1;">
-        <p class="howto-step-title" data-i18n="settings_petals">🌸 背景の花びらの量</p>
-        <p class="howto-step-desc" style="margin-top:0.25rem;" data-i18n="settings_petals_desc">画面に舞う花びら（季節の演出）の量を調整します。</p>
-      </div>
-      <select id="settingPetals" style="font-size:0.85rem;padding:0.3rem 0.5rem;border-radius:8px;border:1.5px solid var(--border-mid);background:var(--surface);color:var(--text-primary);cursor:pointer;">
-        <option value="none" data-i18n="petals_none">無し</option>
-        <option value="few" data-i18n="petals_few">少なめ</option>
-        <option value="normal" data-i18n="petals_normal" selected>普通</option>
-        <option value="many" data-i18n="petals_many">多め</option>
-      </select>
-    </div>
-
-    <!-- データ収集協力 -->
-    <div class="howto-step" style="align-items:center;gap:1rem;margin-top:0.75rem;">
-      <div class="howto-step-body" style="flex:1;">
-        <p class="howto-step-title" data-i18n="settings_data">📊 データ収集に協力する</p>
-        <p class="howto-step-desc" style="margin-top:0.25rem;" data-i18n="settings_data_desc">判定結果を匿名で送信し、AI改善に役立てます。</p>
-      </div>
-      <label class="settings-toggle">
-        <input type="checkbox" id="settingDataCollect" checked>
-        <span class="toggle-track"><span class="toggle-thumb"></span></span>
-      </label>
-    </div>
-
-    <!-- 撮影ガイド -->
-    <div class="howto-step" style="align-items:center;gap:1rem;margin-top:0.75rem;">
-      <div class="howto-step-body" style="flex:1;">
-        <p class="howto-step-title" data-i18n="settings_guide">📸 撮影ガイドを表示する</p>
-        <p class="howto-step-desc" style="margin-top:0.25rem;" data-i18n="settings_guide_desc">カメラ撮影時に、明るさやピント合わせをサポートするガイド表示を行います。</p>
-      </div>
-      <label class="settings-toggle">
-        <input type="checkbox" id="settingGuide" checked>
-        <span class="toggle-track"><span class="toggle-thumb"></span></span>
-      </label>
-    </div>
-
-    <!-- かざすだけで自動判定 -->
-    <div class="howto-step" style="align-items:center;gap:1rem;margin-top:0.75rem;">
-      <div class="howto-step-body" style="flex:1;">
-        <p class="howto-step-title" data-i18n="settings_auto">🎯 かざすだけで自動判定</p>
-        <p class="howto-step-desc" style="margin-top:0.25rem;" data-i18n="settings_auto_desc">ガイド枠が緑になり構えが安定すると、自動で撮影してAI診断まで行います。オフの場合は手動でシャッターを押して診断してください。（この機能は「撮影ガイド」がONの場合のみ動作します）</p>
-      </div>
-      <label class="settings-toggle">
-        <input type="checkbox" id="settingAutoJudge">
-        <span class="toggle-track"><span class="toggle-thumb"></span></span>
-      </label>
-    </div>
-
-    <!-- てんぐ巣病マップに桜の名所を表示 -->
-    <div class="howto-step" style="align-items:center;gap:1rem;margin-top:0.75rem;">
-      <div class="howto-step-body" style="flex:1;">
-        <p class="howto-step-title" data-i18n="settings_sakura_spots">🌸 桜の名所をマップに表示する</p>
-        <p class="howto-step-desc" style="margin-top:0.25rem;" data-i18n="settings_sakura_spots_desc">「てんぐ巣病マップ」に、日立市が紹介する桜の名所（かみね公園・平和通りなど）のピンを表示します。</p>
-      </div>
-      <label class="settings-toggle">
-        <input type="checkbox" id="settingSakuraSpots" checked>
-        <span class="toggle-track"><span class="toggle-thumb"></span></span>
-      </label>
-    </div>
-
-    <!-- 背景の季節 -->
-    <div class="howto-step" style="align-items:center;gap:1rem;margin-top:0.75rem;">
-      <div class="howto-step-body" style="flex:1;">
-        <p class="howto-step-title" data-i18n="settings_season_bg">🖼️ 背景の季節</p>
-        <p class="howto-step-desc" style="margin-top:0.25rem;" data-i18n="settings_season_bg_desc">季節に合わせて背景画像を切り替えます。「自動」を選ぶと現在の月から季節を判定します。</p>
-      </div>
-      <select id="settingSeasonBg" style="font-size:0.85rem;padding:0.3rem 0.5rem;border-radius:8px;border:1.5px solid var(--border-mid);background:var(--surface);color:var(--text-primary);cursor:pointer;">
-        <option value="auto" data-i18n="season_auto">自動</option>
-        <option value="spring" data-i18n="season_spring">🌸 春</option>
-        <option value="summer" data-i18n="season_summer">🌿 夏</option>
-        <option value="autumn" data-i18n="season_autumn">🍁 秋</option>
-        <option value="winter" data-i18n="season_winter">❄️ 冬</option>
-        <option value="off" data-i18n="season_off">オフ（画像なし）</option>
-      </select>
-    </div>
-
-    <hr class="howto-divider" />
-    <p class="howto-note" style="text-align:center;" data-i18n="settings_contact">お問い合わせ<br><a href="mailto:hitachi1.sakura.tengusu@gmail.com" style="color:var(--sakura-600);text-decoration:none;">hitachi1.sakura.tengusu@gmail.com</a></p>
-
-    <button class="howto-start-btn" id="contactCloseBtn" data-i18n="settings_close">閉じる</button>
-  </div>
-</div>
-
-<!-- てんぐ巣病マップ（この端末の記録のみ） -->
-<div class="howto-overlay" id="mapOverlay">
-  <div class="howto-box">
-    <button class="howto-close" id="mapClose">✕</button>
-    <p class="howto-title" data-i18n="map_title">🗺️ てんぐ巣病マップ（この端末の記録）</p>
-    <p class="badge-note" data-i18n="map_desc">このスマホ・PCでカメラ撮影して「病気」と判定された場所を表示します（位置情報を許可した場合のみ）。ファイルから選んだ写真や、他の利用者の記録は含まれません。</p>
-    <div id="tenguMapEl" style="width:100%;height:300px;border-radius:12px;overflow:hidden;margin-bottom:0.6rem;background:rgba(0,0,0,0.05);"></div>
-    <p class="badge-summary" id="mapSummary"></p>
-    <button class="howto-start-btn" id="mapCloseBtn" data-i18n="settings_close">閉じる</button>
-  </div>
-</div>
-
-<!-- 複数枚まとめて判定：判定前の確認 -->
-<div class="howto-overlay" id="batchConfirmOverlay">
-  <div class="howto-box">
-    <button class="howto-close" id="batchConfirmClose">✕</button>
-    <p class="howto-title" data-i18n="batch_confirm_title">📚 判定する画像の確認</p>
-    <p class="badge-summary" id="batchConfirmSummary"></p>
-    <p class="badge-note" data-i18n="batch_confirm_note">判定したくない画像は「削除」で外せます。</p>
-    <div id="batchConfirmList" class="batch-list"></div>
-    <button class="howto-start-btn" id="batchConfirmStartBtn" data-i18n="batch_confirm_start">🌸 この画像で判定する</button>
-    <button class="howto-secondary-btn" id="batchConfirmCancelBtn" data-i18n="batch_confirm_cancel">キャンセル</button>
-  </div>
-</div>
-
-<!-- 複数枚まとめて判定 -->
-<div class="howto-overlay" id="batchOverlay">
-  <div class="howto-box">
-    <button class="howto-close" id="batchClose">✕</button>
-    <p class="howto-title" data-i18n="batch_title">📚 複数枚まとめて判定</p>
-    <p class="badge-summary" id="batchSummary"></p>
-    <div id="batchListContainer" class="batch-list"></div>
-    <button class="howto-start-btn" id="batchCloseBtn" data-i18n="settings_close">閉じる</button>
-  </div>
-</div>
-
-<!-- バッジ -->
-<div class="howto-overlay" id="badgeOverlay">
-  <div class="howto-box">
-    <button class="howto-close" id="badgeClose">✕</button>
-    <p class="howto-title" data-i18n="badge_title">🏅 バッジ</p>
-    <p class="badge-summary" id="badgeSummary">判定回数：0回　／　てんぐ巣病 発見数：0回</p>
-    <p class="badge-note" data-i18n="badge_same_photo_note">※ 同じ写真を連続で判定しても回数はカウントされません。</p>
-    <div id="badgeGridContainer"></div>
-    <hr class="howto-divider" />
-    <button class="howto-secondary-btn" id="badgeResetBtn" data-i18n="badge_reset_btn" style="width:100%;">記録をリセット</button>
-    <button class="howto-start-btn" id="badgeCloseBtn" data-i18n="settings_close">閉じる</button>
-  </div>
-</div>
-
-<!-- お知らせ -->
-<div class="howto-overlay" id="noticeOverlay">
-  <div class="howto-box">
-    <button class="howto-close" id="noticeClose">✕</button>
-    <p class="howto-title" data-i18n="notice_title">📢 お知らせ</p>
-
-    <div class="notice-item">
-      <p class="notice-item-title"><span>💫</span><span data-i18n="notice_new_title">新機能のお知らせ</span></p>
-      <p class="notice-item-body" data-i18n="notice_new_body">新機能のお知らせです</p>
-    </div>
-
-    <div class="notice-item">
-      <p class="notice-item-title"><span>🧪</span><span data-i18n="notice_trial_title">試験運用のお知らせ</span></p>
-      <p class="notice-item-body" data-i18n="notice_trial_body">9月から11月末まで、本アプリの試験運用を行います。</p>
-    </div>
-
-    <div class="notice-item">
-      <p class="notice-item-title"><span>🌸</span><span data-i18n="notice_about_title">詳しい使い方・私たちの研究について</span></p>
-      <p class="notice-item-body" data-i18n="notice_about_body">詳しい使い方や私たちの研究についてはこちら</p>
-      <a class="notice-item-link" href="https://sites.google.com/view/tenguscope/%E3%83%9B%E3%83%BC%E3%83%A0?authuser=0" target="_blank" rel="noopener">https://sites.google.com/view/tenguscope/</a>
-    </div>
-
-    <div class="notice-item">
-      <p class="notice-item-title"><span>🧭</span><span data-i18n="notice_position_title">位置情報について</span></p>
-      <p class="notice-item-body" data-i18n="notice_position_body">「位置情報はダウンロード用写真への埋め込みに使用され、これらの情報は日立市桜のてんぐ巣病マップ作成等に役立てて行きたいと考えています。
-桜の写真提供へのご協力をよろしくお願いします！」</p>
-    </div>
-
-    <div class="notice-item">
-  <p class="notice-item-title"><span>✨️</span><span data-i18n="notice_SNS_title">活動について</span></p>
-  <p class="notice-item-body" data-i18n="notice_SNS_body">SNSの宣伝</p>
-  
-  <p> <a class="notice-item-link" href="https://note.com/famous_daphne202" target="_blank" rel="noopener" data-i18n="notice_SNS_link_text1">「てんぐすん。」公式note</a></p> 
-  <p> <a class="notice-item-link" href="https://note.com/tengusun" target="_blank" rel="noopener" data-i18n="notice_SNS_link_text2">作者の個人note</a></p> 
-  <p> <a class="notice-item-link" href="https://www.instagram.com/tengusun2026/" target="_blank" rel="noopener" data-i18n="notice_SNS_link_text3">「てんぐすん。」公式Instagram</a></p> 
-</div>
-
- <!--桜に関する情報コーナー-->
-    
-    <hr class="howto-divider" />
-    <p class="howto-step-title" style="margin-bottom:0.6rem;" data-i18n="notice_sakura_info_section_title">🌸 桜に関する情報コーナー</p>
-    
-    <div class="sakura-info-item">
-      <button type="button" class="sakura-info-header">
-        <span data-i18n="notice_sakura_info1_title">① てんぐ巣病とは</span>
-        <span class="sakura-info-chevron">▼</span>
-      </button>
-      <div class="sakura-info-body-wrap">
-        <div class="sakura-info-body">
-          <div class="sakura-info-body-inner" data-i18n="notice_sakura_info1_body">（本文はここに入力してください）</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="sakura-info-item">
-      <button type="button" class="sakura-info-header">
-        <span data-i18n="notice_sakura_info2_title">② タイトル未定</span>
-        <span class="sakura-info-chevron">▼</span>
-      </button>
-      <div class="sakura-info-body-wrap">
-        <div class="sakura-info-body">
-          <div class="sakura-info-body-inner" data-i18n="notice_sakura_info2_body">（本文はここに入力してください）</div>
-        </div>
-      </div>
-    </div>
-
-    <hr class="howto-divider" />
-
-    <div class="notice-item">
-      <p class="notice-item-title"><span>💡</span><span data-i18n="notice_support_title">ご協力・ご支援</span></p>
-      <p class="notice-item-body" data-i18n="notice_support_body">（本文はここに入力してください）</p>
-    </div>
-
-    <button class="howto-start-btn" id="noticeCloseBtn" data-i18n="settings_close">閉じる</button>
-  </div>
-</div>
-
-<script src="script.js?v=20261025"></script>
+    <script>
+        // 必要に応じて、数秒後に自動でリダイレクトさせたい場合は以下のコメントアウトを解除してください。
+        /*
+        setTimeout(function() {
+            window.location.href = "https://tengusun.com/";
+        }, 5000); // 5秒後に自動遷移
+        */
+    </script>
 </body>
 </html>
