@@ -307,6 +307,12 @@ const I18N = {
     batch_title: '📚 複数枚まとめて判定',
     batch_processing: '判定中… {n}',
     batch_summary: '{n}枚を判定しました（てんぐ巣病の疑い：{sick}枚）',
+    batch_confirm_title: '📚 判定する画像の確認',
+    batch_confirm_summary: '{n}枚の画像を選択中',
+    batch_confirm_note: '判定したくない画像は「削除」で外せます。',
+    batch_confirm_start: '🌸 この画像で判定する',
+    batch_confirm_cancel: 'キャンセル',
+    batch_remove: '削除',
   },
   en: {
     app_title: 'tengusun.',
@@ -473,6 +479,12 @@ To date, no effective treatment or preventive method has been established.
     batch_title: '📚 Batch Diagnosis Results',
     batch_processing: 'Diagnosing… {n}',
     batch_summary: '{n} photos diagnosed (possible Witches\' Broom: {sick})',
+    batch_confirm_title: '📚 Review images before diagnosis',
+    batch_confirm_summary: '{n} images selected',
+    batch_confirm_note: 'Remove any images you don\'t want to diagnose.',
+    batch_confirm_start: '🌸 Diagnose these images',
+    batch_confirm_cancel: 'Cancel',
+    batch_remove: 'Remove',
   },
   zh: {
     app_title: '天狗孙。',
@@ -638,6 +650,12 @@ To date, no effective treatment or preventive method has been established.
     batch_title: '📚 批量诊断结果',
     batch_processing: '正在诊断… {n}',
     batch_summary: '已诊断{n}张照片（疑似丛枝病：{sick}张）',
+    batch_confirm_title: '📚 确认要诊断的图片',
+    batch_confirm_summary: '已选择{n}张图片',
+    batch_confirm_note: '不想诊断的图片可以点击“删除”移除。',
+    batch_confirm_start: '🌸 诊断这些图片',
+    batch_confirm_cancel: '取消',
+    batch_remove: '删除',
   },
   ko: {
     app_title: '텐구슨.',
@@ -804,6 +822,12 @@ To date, no effective treatment or preventive method has been established.
     batch_title: '📚 여러 장 판정 결과',
     batch_processing: '판정 중… {n}',
     batch_summary: '{n}장을 판정했습니다 (텐구소병 의심: {sick}장)',
+    batch_confirm_title: '📚 판정할 이미지 확인',
+    batch_confirm_summary: '{n}장의 이미지를 선택 중',
+    batch_confirm_note: '판정하고 싶지 않은 이미지는 "삭제"로 제외할 수 있습니다.',
+    batch_confirm_start: '🌸 이 이미지로 판정하기',
+    batch_confirm_cancel: '취소',
+    batch_remove: '삭제',
   }
 };
 
@@ -839,6 +863,8 @@ function applyI18n() {
   if (typeof refreshGuideBannerLang === 'function') refreshGuideBannerLang();
   // 暗所バスターの判定表示も現在の言語で再表示
   if (typeof refreshBacklightStatusLang === 'function') refreshBacklightStatusLang();
+  // 複数枚判定の確認画面が開いていれば現在の言語で再描画
+  if (typeof renderBatchConfirm === 'function' && document.getElementById('batchConfirmOverlay')?.style.display === 'flex') renderBatchConfirm();
   // バッジ画面が開いていれば現在の言語で再描画
   if (typeof renderBadgeGrid === 'function' && document.getElementById('badgeOverlay')?.style.display === 'flex') renderBadgeGrid();
 }
@@ -2919,20 +2945,99 @@ async function runBatchDiagnosis(files) {
   renderBatchResults(results);
 }
 
+// ====== 複数枚まとめて判定：判定前の確認（不要な画像は削除可能） ======
+let batchPendingItems = []; // [{ id, file, url }]
+let batchPendingSeq = 0;
+
+function renderBatchConfirm() {
+  const listEl = document.getElementById('batchConfirmList');
+  const summaryEl = document.getElementById('batchConfirmSummary');
+  const startBtn = document.getElementById('batchConfirmStartBtn');
+  if (!listEl) return;
+  if (summaryEl) summaryEl.textContent = t('batch_confirm_summary').replace('{n}', batchPendingItems.length);
+  if (startBtn) startBtn.disabled = batchPendingItems.length === 0;
+  listEl.innerHTML = batchPendingItems.map(item => `
+    <div class="batch-item">
+      <img class="batch-item-thumb" data-id="${item.id}" src="${item.url}" alt="">
+      <div class="batch-item-info">
+        <div class="batch-item-name">${escapeHtml(item.file.name)}</div>
+      </div>
+      <button type="button" class="batch-item-remove" data-id="${item.id}">${t('batch_remove')}</button>
+    </div>`).join('');
+}
+
+function clearBatchPending() {
+  batchPendingItems.forEach(item => URL.revokeObjectURL(item.url));
+  batchPendingItems = [];
+}
+
 (function initBatchModal() {
   const overlay = document.getElementById('batchOverlay');
   const openBtn = document.getElementById('batchOpenBtn');
   const input = document.getElementById('batchImageInput');
-  if (!overlay || !openBtn || !input) return;
+  const confirmOverlay = document.getElementById('batchConfirmOverlay');
+  const confirmList = document.getElementById('batchConfirmList');
+  if (!overlay || !openBtn || !input || !confirmOverlay) return;
   overlay.style.display = 'none';
+  confirmOverlay.style.display = 'none';
+
+  function openConfirm() {
+    renderBatchConfirm();
+    confirmOverlay.style.display = 'flex';
+    requestAnimationFrame(() => requestAnimationFrame(() => { confirmOverlay.style.opacity = '1'; }));
+  }
+  function closeConfirm() {
+    confirmOverlay.style.opacity = '0';
+    setTimeout(() => confirmOverlay.style.display = 'none', 120);
+  }
 
   openBtn.addEventListener('click', () => input.click());
-  input.addEventListener('change', async function() {
+
+  // 画像を選んだら、すぐ判定せず確認画面を開く
+  input.addEventListener('change', function() {
     const files = Array.from(this.files || []);
     this.value = ''; // 同じファイルを選び直しても change が発火するようにリセット
     if (!files.length) return;
+    clearBatchPending();
+    batchPendingItems = files
+      .filter(f => f.type.startsWith('image/'))
+      .map(f => ({ id: ++batchPendingSeq, file: f, url: URL.createObjectURL(f) }));
+    if (!batchPendingItems.length) return;
+    openConfirm();
+  });
+
+  // サムネイルをタップ：通常判定と同じ全画面表示（ライトボックス）で拡大確認
+  confirmList.addEventListener('click', e => {
+    const thumb = e.target.closest('.batch-item-thumb');
+    if (!thumb) return;
+    const item = batchPendingItems.find(it => it.id === Number(thumb.dataset.id));
+    if (item) openLightbox(item.url);
+  });
+
+  // 「削除」ボタン：その画像だけ判定対象から外す
+  confirmList.addEventListener('click', e => {
+    const btn = e.target.closest('.batch-item-remove');
+    if (!btn) return;
+    const id = Number(btn.dataset.id);
+    const target = batchPendingItems.find(item => item.id === id);
+    if (target) URL.revokeObjectURL(target.url);
+    batchPendingItems = batchPendingItems.filter(item => item.id !== id);
+    renderBatchConfirm();
+  });
+
+  // 「判定する」：残った画像だけで判定を開始
+  document.getElementById('batchConfirmStartBtn')?.addEventListener('click', async () => {
+    const files = batchPendingItems.map(item => item.file);
+    if (!files.length) return;
+    closeConfirm();
+    clearBatchPending();
     await runBatchDiagnosis(files);
   });
+
+  // キャンセル / ✕：判定せずに閉じる
+  const cancelConfirm = () => { closeConfirm(); clearBatchPending(); };
+  document.getElementById('batchConfirmCancelBtn')?.addEventListener('click', cancelConfirm);
+  document.getElementById('batchConfirmClose')?.addEventListener('click', cancelConfirm);
 
   function closeBatch() {
     overlay.style.opacity = '0';
