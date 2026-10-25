@@ -1474,3 +1474,29 @@ body.dark-mode .badge-item.earned {
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
 }
+
+/* 複数枚判定：確認画面の削除ボタン */
+.batch-item-remove {
+  flex-shrink: 0;
+  font-family: 'Zen Maru Gothic', sans-serif;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #B91C1C;
+  background: #FEE2E2;
+  border: 1.5px solid #FCA5A5;
+  border-radius: 99px;
+  padding: 0.35rem 0.7rem;
+  cursor: pointer;
+  white-space: nowrap;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+.batch-item-remove:hover { background: #FECACA; }
+body.dark-mode .batch-item-remove {
+  color: #FCA5A5;
+  background: rgba(127, 29, 29, 0.35);
+  border-color: rgba(252, 165, 165, 0.45);
+}
+.howto-start-btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.batch-item-thumb { cursor: pointer; }
