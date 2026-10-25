@@ -135,11 +135,17 @@ body.dark-mode .app-header {
 .header-top-row {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   gap: 0.4rem;
-  flex-wrap: wrap;
   margin-bottom: 0.5rem;
 }
+.header-col {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.header-col-left  { align-items: flex-start; }
+.header-col-right { align-items: flex-end; }
 .howto-reopen-btn {
   display: inline-flex;
   align-items: center;
