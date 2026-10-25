@@ -23,11 +23,17 @@
   <!-- ヘッダー -->
   <header class="app-header">
     <div class="header-top-row">
-      <button class="howto-reopen-btn" id="howtoReopenBtn" data-i18n="howto_btn">使い方</button>
-      <button class="howto-reopen-btn" id="noticeOpenBtn"><span data-i18n="notice_btn">📢 お知らせ</span><span class="notice-dot" id="noticeDot"></span></button>
-      <button class="howto-reopen-btn" id="contactReopenBtn" data-i18n="settings_btn">⚙️ 設定</button>
-      <button class="howto-reopen-btn" id="badgeOpenBtn"><span data-i18n="badge_btn">🏅 バッジ</span><span class="notice-dot" id="badgeDot"></span></button>
-      <button class="howto-reopen-btn" id="mapOpenBtn"><span data-i18n="map_btn">🗺️ マップ</span></button>
+      <!-- 左列：バッジ / マップ -->
+      <div class="header-col header-col-left">
+        <button class="howto-reopen-btn" id="badgeOpenBtn"><span data-i18n="badge_btn">🏅 バッジ</span><span class="notice-dot" id="badgeDot"></span></button>
+        <button class="howto-reopen-btn" id="mapOpenBtn"><span data-i18n="map_btn">🗺️ マップ</span></button>
+      </div>
+      <!-- 右列：使い方 / お知らせ / 設定 -->
+      <div class="header-col header-col-right">
+        <button class="howto-reopen-btn" id="howtoReopenBtn" data-i18n="howto_btn">使い方</button>
+        <button class="howto-reopen-btn" id="noticeOpenBtn"><span data-i18n="notice_btn">📢 お知らせ</span><span class="notice-dot" id="noticeDot"></span></button>
+        <button class="howto-reopen-btn" id="contactReopenBtn" data-i18n="settings_btn">⚙️ 設定</button>
+      </div>
     </div>
     <div class="header-emblem">🌸</div>
     <h1 class="app-title" data-i18n="app_title">てんぐすん。</h1>
